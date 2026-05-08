@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { QrCode, User, Trophy, Calendar } from "lucide-react";
 import { usePathname } from "next/navigation";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
+import { motion } from "framer-motion";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -23,7 +25,8 @@ export default function Navbar() {
           <Link href="/events" className="hover:text-[var(--color-primary-500)] transition-colors">Events</Link>
           <Link href="/communities" className="hover:text-[var(--color-primary-500)] transition-colors">Communities</Link>
         </div>
-        <div className="flex gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <ThemeSwitcher />
           <Link href="/app" className="bg-[var(--color-pastel-blue)] px-6 py-2 rounded-full bubbly-card font-bold hover:bubbly-card-hover transition-all inline-block">
             Launch App
           </Link>
@@ -45,9 +48,22 @@ export default function Navbar() {
 
 function NavItem({ href, icon, label, active }: { href: string, icon: React.ReactNode, label: string, active: boolean }) {
   return (
-    <Link href={href} className={`flex flex-col items-center justify-center w-16 h-16 rounded-2xl transition-all ${active ? "bg-[var(--color-pastel-purple)] bubbly-border" : "hover:bg-gray-100"}`}>
-      {icon}
-      <span className="text-[10px] font-bold mt-1">{label}</span>
+    <Link href={href} className="relative flex flex-col items-center justify-center w-16 h-16 rounded-2xl transition-all hover:bg-gray-100 overflow-hidden">
+      {active && (
+        <motion.div
+          layoutId="bottom-nav-active"
+          className="absolute inset-0 rounded-2xl bg-[var(--color-pastel-purple)] border-3 border-[var(--color-primary-900)]"
+          transition={{ type: "spring", stiffness: 420, damping: 32 }}
+        />
+      )}
+      <motion.span
+        className="relative z-10 flex flex-col items-center"
+        animate={{ y: active ? -1 : 0, scale: active ? 1.04 : 1 }}
+        transition={{ type: "spring", stiffness: 360, damping: 22 }}
+      >
+        {icon}
+        <span className="text-[10px] font-bold mt-1">{label}</span>
+      </motion.span>
     </Link>
   );
 }

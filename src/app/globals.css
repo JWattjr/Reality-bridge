@@ -27,6 +27,42 @@
   --foreground: var(--color-primary-900);
 }
 
+[data-theme="arcade"] {
+  --color-primary-100: #dff7ff;
+  --color-primary-300: #7de3ff;
+  --color-primary-500: #00a9ff;
+  --color-primary-700: #005fba;
+  --color-primary-900: #10215f;
+  --color-pastel-purple: #b7a6ff;
+  --color-pastel-pink: #ff7eb6;
+  --color-pastel-yellow: #ffe75e;
+  --color-pastel-blue: #60e8ff;
+  --color-pastel-green: #73ff8f;
+  --color-bg-base: #fff7f0;
+  --background: var(--color-bg-base);
+  --foreground: var(--color-primary-900);
+  --shadow-bubbly: 4px 4px 0px 0px rgba(16, 33, 95, 1);
+  --shadow-bubbly-hover: 2px 2px 0px 0px rgba(16, 33, 95, 1);
+}
+
+[data-theme="field-guide"] {
+  --color-primary-100: #d8f3dc;
+  --color-primary-300: #95d5b2;
+  --color-primary-500: #2d6a4f;
+  --color-primary-700: #1b4332;
+  --color-primary-900: #081c15;
+  --color-pastel-purple: #b7e4c7;
+  --color-pastel-pink: #ffb703;
+  --color-pastel-yellow: #fef3c7;
+  --color-pastel-blue: #90e0ef;
+  --color-pastel-green: #74c69d;
+  --color-bg-base: #f6f3e8;
+  --background: var(--color-bg-base);
+  --foreground: var(--color-primary-900);
+  --shadow-bubbly: 4px 4px 0px 0px rgba(8, 28, 21, 1);
+  --shadow-bubbly-hover: 2px 2px 0px 0px rgba(8, 28, 21, 1);
+}
+
 body {
   background-color: var(--background);
   color: var(--foreground);
@@ -58,4 +94,61 @@ body {
 
 @utility blob-shape-2 {
   border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+}
+
+.premium-glint {
+  position: relative;
+  overflow: hidden;
+}
+
+.premium-glint::after {
+  content: "";
+  position: absolute;
+  inset: -60% auto -60% -45%;
+  width: 34%;
+  transform: rotate(18deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.72), transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.premium-glint:hover::after {
+  animation: premium-glint-sweep 1.1s ease;
+}
+
+.proof-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    currentColor 0%,
+    var(--color-primary-500) 42%,
+    currentColor 84%
+  );
+  background-size: 200% auto;
+  color: transparent;
+  background-clip: text;
+  animation: proof-shimmer 2.6s ease-in-out infinite;
+}
+
+@keyframes premium-glint-sweep {
+  0% {
+    opacity: 0;
+    left: -45%;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    left: 125%;
+  }
+}
+
+@keyframes proof-shimmer {
+  0%,
+  60% {
+    background-position: 0% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
 }

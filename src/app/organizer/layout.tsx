@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 
 export default function OrganizerLayout({
   children,
@@ -21,7 +22,8 @@ export default function OrganizerLayout({
               Organizer
             </span>
           </Link>
-          <nav className="flex items-center gap-4">
+          <nav className="flex items-center gap-3 sm:gap-4">
+            <ThemeSwitcher compact />
             <Link href="/organizer" className="text-sm font-bold hover:text-[var(--color-primary-500)] transition-colors">Dashboard</Link>
             <Link href="/organizer/create" className="text-sm font-bold bg-[var(--color-pastel-pink)] px-4 py-1.5 rounded-full border-2 border-[var(--color-primary-900)] shadow-[2px_2px_0px_0px_#312e81] hover:translate-y-0.5 hover:shadow-none transition-all">
               + New Event

@@ -116,9 +116,11 @@ export default function MissionsPage() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ delay: i * 0.03 }}
+                whileHover={mission.status === "available" ? { y: -3, scale: 1.01 } : undefined}
+                whileTap={{ scale: 0.985 }}
+                transition={{ delay: i * 0.03, type: "spring", stiffness: 300, damping: 24 }}
                 onClick={() => setExpandedMission(expandedMission === mission.id ? null : mission.id)}
-                className={`bubbly-card p-3 cursor-pointer transition-all ${
+                className={`bubbly-card premium-glint p-3 cursor-pointer transition-all ${
                   mission.status === "completed"
                     ? "bg-green-50 opacity-70"
                     : mission.status === "locked"
@@ -136,9 +138,13 @@ export default function MissionsPage() {
                       {mission.title}
                     </p>
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-xs font-bold text-[var(--color-primary-500)] flex items-center gap-0.5">
+                      <motion.span
+                        className="text-xs font-bold text-[var(--color-primary-500)] flex items-center gap-0.5"
+                        animate={mission.status === "available" ? { scale: [1, 1.08, 1] } : undefined}
+                        transition={{ duration: 1.8, repeat: Infinity, repeatDelay: 2.4, ease: "easeInOut" }}
+                      >
                         <Zap size={10} /> +{mission.xpReward} XP
-                      </span>
+                      </motion.span>
                       {mission.sponsorTag && (
                         <span className="text-[10px] font-bold bg-[var(--color-pastel-yellow)] px-1.5 py-0.5 rounded-full border border-[var(--color-primary-900)]">
                           {mission.sponsorTag}
@@ -149,19 +155,24 @@ export default function MissionsPage() {
                           🏅 Badge
                         </span>
                       )}
-                      <span className="text-[10px] font-bold bg-white px-1.5 py-0.5 rounded-full border border-[var(--color-primary-900)] flex items-center gap-0.5">
+                      <motion.span
+                        className="text-[10px] font-bold bg-white px-1.5 py-0.5 rounded-full border border-[var(--color-primary-900)] flex items-center gap-0.5"
+                        whileHover={{ scale: 1.06 }}
+                      >
                         <ShieldCheck size={9} /> {proofCopy.label}
-                      </span>
+                      </motion.span>
                     </div>
                   </div>
                 </div>
                 {mission.status === "available" && (
-                  <button
+                  <motion.button
                     onClick={(e) => e.stopPropagation()}
+                    whileHover={{ x: 2, scale: 1.04 }}
+                    whileTap={{ scale: 0.96 }}
                     className="bg-[var(--color-pastel-blue)] font-bold text-[10px] px-3 py-1.5 border-2 border-[var(--color-primary-900)] rounded-full hover:bg-[var(--color-primary-900)] hover:text-white transition-colors shrink-0"
                   >
                     {proofCopy.action}
-                  </button>
+                  </motion.button>
                 )}
               </div>
 

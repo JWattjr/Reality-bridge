@@ -52,8 +52,10 @@ export default function OrganizerDashboard() {
             key={stat.label}
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
+            whileHover={{ y: -4, scale: 1.03 }}
+            whileTap={{ scale: 0.98 }}
             transition={{ delay: 0.1 + i * 0.05 }}
-            className="bubbly-card p-4"
+            className="bubbly-card premium-glint p-4"
             style={{ backgroundColor: stat.color }}
           >
             <div className="flex justify-between items-start mb-2">
@@ -114,10 +116,13 @@ export default function OrganizerDashboard() {
           <div>
             <h2 className="font-display text-xl font-bold mb-3">0G Integration Proof</h2>
             <div className="bubbly-card p-4 bg-white space-y-3">
-              <div className="rounded-xl bg-[var(--color-pastel-purple)] border-2 border-[var(--color-primary-900)] p-3">
+              <motion.div
+                className="rounded-xl bg-[var(--color-pastel-purple)] border-2 border-[var(--color-primary-900)] p-3"
+                whileHover={{ scale: 1.01 }}
+              >
                 <p className="text-[10px] font-bold opacity-60">0G mainnet Flow contract</p>
                 <p className="font-bold text-xs break-all">{zeroGContract}</p>
-              </div>
+              </motion.div>
               {proofRecords.length === 0 && (
                 <p className="text-xs font-bold opacity-50">
                   Real 0G upload receipts will appear here after /api/verification succeeds.
@@ -127,7 +132,14 @@ export default function OrganizerDashboard() {
                 const mission = MISSIONS.find((item) => item.id === proof.missionId);
 
                 return (
-                  <div key={proof.id} className="rounded-xl bg-[var(--color-bg-base)] border-2 border-[var(--color-primary-900)] p-3">
+                  <motion.div
+                    key={proof.id}
+                    initial={{ opacity: 0, y: 12, rotate: -0.6 }}
+                    animate={{ opacity: 1, y: 0, rotate: 0 }}
+                    whileHover={{ y: -3, scale: 1.01 }}
+                    transition={{ type: "spring", stiffness: 280, damping: 22 }}
+                    className="premium-glint rounded-xl bg-[var(--color-bg-base)] border-2 border-[var(--color-primary-900)] p-3"
+                  >
                     <div className="flex items-center justify-between gap-2">
                       <div className="min-w-0">
                         <p className="font-bold text-xs truncate">{mission?.title ?? proof.missionId}</p>
@@ -135,7 +147,14 @@ export default function OrganizerDashboard() {
                           {PROOF_TYPE_COPY[proof.proofType].label} - {proof.location}
                         </p>
                       </div>
-                      <span className="font-bold text-[10px] text-green-700 shrink-0">{proof.xpEarned} XP</span>
+                      <motion.span
+                        initial={{ scale: 1.35, rotate: -8 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 18 }}
+                        className="font-bold text-[10px] text-green-700 shrink-0 rounded-full border border-green-700 bg-green-100 px-2 py-1"
+                      >
+                        {proof.xpEarned} XP
+                      </motion.span>
                     </div>
                     <div className="mt-2 flex items-center justify-between gap-2 text-[10px] font-bold">
                       <span className="opacity-50 truncate">{proof.storage.storageRef}</span>
@@ -144,10 +163,10 @@ export default function OrganizerDashboard() {
                           Explorer
                         </a>
                       ) : (
-                        <span className="text-[var(--color-primary-500)] shrink-0">{shortHash(proof.storage.rootHash)}</span>
+                        <span className="proof-shimmer shrink-0">{shortHash(proof.storage.rootHash)}</span>
                       )}
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
@@ -158,7 +177,7 @@ export default function OrganizerDashboard() {
             <h2 className="font-display text-xl font-bold mb-3">🏅 Top Missions</h2>
             <div className="bubbly-card p-4 bg-white space-y-3">
               {ANALYTICS.topMissions.map((mission, i) => (
-                <div key={i} className="flex items-center gap-3">
+                <motion.div key={i} className="flex items-center gap-3 rounded-xl p-1" whileHover={{ x: 3 }}>
                   <span className="font-bold text-sm w-5 text-center opacity-50">{i + 1}</span>
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-xs truncate">{mission.name}</p>
@@ -170,12 +189,15 @@ export default function OrganizerDashboard() {
                         }}
                         initial={{ width: 0 }}
                         animate={{ width: `${(mission.completions / ANALYTICS.topMissions[0].completions) * 100}%` }}
-                        transition={{ duration: 1, delay: 0.4 + i * 0.1 }}
+                        whileHover={{ filter: "brightness(1.08)" }}
+                        transition={{ type: "spring", stiffness: 85, damping: 18, delay: 0.4 + i * 0.1 }}
                       />
                     </div>
                   </div>
-                  <span className="font-bold text-xs opacity-60 shrink-0">{mission.completions}</span>
-                </div>
+                  <motion.span className="font-bold text-xs opacity-60 shrink-0" whileHover={{ scale: 1.15 }}>
+                    {mission.completions}
+                  </motion.span>
+                </motion.div>
               ))}
             </div>
           </div>
@@ -185,15 +207,15 @@ export default function OrganizerDashboard() {
             <h2 className="font-display text-xl font-bold mb-3">🏪 Sponsor Booth Visits</h2>
             <div className="bubbly-card p-4 bg-white space-y-3">
               {ANALYTICS.sponsorVisits.map((sponsor, i) => (
-                <div key={i} className="flex items-center justify-between">
+                <motion.div key={i} className="flex items-center justify-between rounded-xl p-1" whileHover={{ x: 3, backgroundColor: "rgba(255,255,255,0.55)" }}>
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-[var(--color-pastel-yellow)] border-2 border-[var(--color-primary-900)] flex items-center justify-center text-xs font-bold">
                       {sponsor.sponsor[0]}
                     </div>
                     <span className="font-bold text-sm">{sponsor.sponsor}</span>
                   </div>
-                  <span className="font-bold text-sm">{sponsor.visits} visits</span>
-                </div>
+                  <motion.span className="font-bold text-sm" whileHover={{ scale: 1.08 }}>{sponsor.visits} visits</motion.span>
+                </motion.div>
               ))}
             </div>
           </div>
@@ -212,7 +234,9 @@ export default function OrganizerDashboard() {
                         className="w-full rounded-t-lg border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-purple)]"
                         initial={{ height: 0 }}
                         animate={{ height: `${height}%` }}
-                        transition={{ duration: 0.8, delay: 0.5 + i * 0.05 }}
+                        whileHover={{ scaleY: 1.04, filter: "brightness(1.08)" }}
+                        title={`${hour.hour}: ${hour.missions} missions`}
+                        transition={{ type: "spring", stiffness: 95, damping: 17, delay: 0.5 + i * 0.05 }}
                       />
                       <span className="text-[8px] font-bold opacity-40">{hour.hour}</span>
                     </div>

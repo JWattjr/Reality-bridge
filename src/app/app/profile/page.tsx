@@ -68,7 +68,7 @@ export default function ProfilePage() {
               className="h-full bg-white rounded-full"
               initial={{ width: 0 }}
               animate={{ width: `${levelInfo.progress}%` }}
-              transition={{ duration: 1.2, ease: "easeOut", delay: 0.3 }}
+              transition={{ type: "spring", stiffness: 90, damping: 18, delay: 0.3 }}
             />
           </div>
         </div>
@@ -152,11 +152,19 @@ export default function ProfilePage() {
               key={badge.id}
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
+              whileHover={{ y: -4, rotate: badge.rarity === "legendary" ? 1.4 : 0.8, scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
               transition={{ delay: 0.2 + i * 0.05 }}
-              className="bubbly-card p-3 text-center cursor-pointer active:translate-y-0.5 active:shadow-none transition-all"
+              className="bubbly-card premium-glint p-3 text-center cursor-pointer active:translate-y-0.5 active:shadow-none transition-all"
               style={{ backgroundColor: getRarityColor(badge.rarity) }}
             >
-              <div className="text-3xl mb-1">{badge.emoji}</div>
+              <motion.div
+                className="text-3xl mb-1"
+                animate={badge.rarity === "legendary" ? { rotate: [-2, 2, -2] } : undefined}
+                transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+              >
+                {badge.emoji}
+              </motion.div>
               <p className="font-bold text-[10px] leading-tight">{badge.name}</p>
               <p className="text-[8px] font-bold opacity-50 mt-0.5 uppercase">{badge.rarity}</p>
               {proofRecords.some((proof) => proof.badgeId === badge.id) && (
@@ -187,6 +195,7 @@ export default function ProfilePage() {
                 key={badge.id}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
+                whileHover={{ x: 3, scale: 1.01 }}
                 transition={{ delay: 0.15 + i * 0.04 }}
                 className="rounded-2xl border-2 border-[var(--color-primary-900)] p-3 bg-white"
               >

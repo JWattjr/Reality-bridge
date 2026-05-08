@@ -121,7 +121,7 @@ export default function Home() {
             Turn event activity into missions, XP, badges, and portable reputation.
           </p>
           <p className="mx-auto mt-5 max-w-xl text-sm font-bold leading-relaxed opacity-70 sm:text-lg">
-            POAP proves attendance. ProofPlay proves participation with stored evidence, real-world missions, and proof records that can point back to 0G Storage.
+            ProofPlay turns contribution into stored evidence with real-world missions and proof records that can point back to 0G Storage.
           </p>
         </motion.div>
       </section>
@@ -205,7 +205,7 @@ export default function Home() {
           className="max-w-2xl mx-auto bubbly-card p-6 sm:p-10 bg-gradient-to-br from-[var(--color-pastel-purple)] to-[var(--color-pastel-pink)] text-center"
         >
           <h2 className="font-display text-3xl md:text-4xl font-bold mb-3">Ready to prove it? 🚀</h2>
-          <p className="font-bold opacity-70 mb-6">Start turning event attendance into real reputation.</p>
+          <p className="font-bold opacity-70 mb-6">Start turning real event contributions into portable reputation.</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link href="/app" className="bg-white px-8 py-3 rounded-full border-3 border-[var(--color-primary-900)] font-bold shadow-[3px_3px_0px_0px_#312e81] hover:translate-y-0.5 hover:shadow-[1px_1px_0px_0px_#312e81] transition-all flex items-center justify-center gap-2">
               Join as Attendee <ArrowRight size={16} />

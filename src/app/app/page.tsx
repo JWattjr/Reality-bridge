@@ -34,7 +34,7 @@ export default function AppDashboard() {
               className="h-full bg-gradient-to-r from-[var(--color-pastel-purple)] to-[var(--color-pastel-pink)]"
               initial={{ width: 0 }}
               animate={{ width: `${levelInfo.progress}%` }}
-              transition={{ duration: 1, ease: "easeOut", delay: 0.3 }}
+              transition={{ type: "spring", stiffness: 90, damping: 18, delay: 0.3 }}
             />
           </div>
         </div>
@@ -112,8 +112,10 @@ export default function AppDashboard() {
               key={mission.id}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
+              whileHover={mission.status === "available" ? { y: -3, scale: 1.01 } : undefined}
+              whileTap={{ scale: 0.985 }}
               transition={{ delay: 0.4 + i * 0.05 }}
-              className={`rounded-2xl border-2 border-[var(--color-primary-900)] p-3 flex items-center justify-between transition-all ${
+              className={`premium-glint rounded-2xl border-2 border-[var(--color-primary-900)] p-3 flex items-center justify-between transition-all ${
                 mission.status === "completed"
                   ? "bg-gray-50 opacity-60"
                   : mission.status === "locked"
@@ -132,9 +134,13 @@ export default function AppDashboard() {
                 <div className="min-w-0">
                   <p className={`font-bold text-sm truncate ${mission.status === "completed" ? "line-through" : ""}`}>{mission.title}</p>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-[var(--color-primary-500)] flex items-center gap-0.5">
+                    <motion.span
+                      className="text-xs font-bold text-[var(--color-primary-500)] flex items-center gap-0.5"
+                      animate={mission.status === "available" ? { scale: [1, 1.08, 1] } : undefined}
+                      transition={{ duration: 1.8, repeat: Infinity, repeatDelay: 2.6, ease: "easeInOut" }}
+                    >
                       <Zap size={10} /> +{mission.xpReward} XP
-                    </span>
+                    </motion.span>
                     <span className="text-[10px] font-bold bg-[var(--color-bg-base)] px-1.5 py-0.5 rounded-full border border-[var(--color-primary-900)]">
                       {PROOF_TYPE_COPY[mission.proofType].label}
                     </span>
@@ -152,9 +158,13 @@ export default function AppDashboard() {
                 </div>
               </div>
               {mission.status === "available" && (
-                <button className="bg-[var(--color-pastel-blue)] font-bold text-[10px] px-2.5 py-1 border-2 border-[var(--color-primary-900)] rounded-full hover:bg-[var(--color-primary-900)] hover:text-white transition-colors shrink-0">
+                <motion.button
+                  whileHover={{ x: 2, scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
+                  className="bg-[var(--color-pastel-blue)] font-bold text-[10px] px-2.5 py-1 border-2 border-[var(--color-primary-900)] rounded-full hover:bg-[var(--color-primary-900)] hover:text-white transition-colors shrink-0"
+                >
                   {PROOF_TYPE_COPY[mission.proofType].action}
-                </button>
+                </motion.button>
               )}
             </motion.div>
           ))}

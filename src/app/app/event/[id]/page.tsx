@@ -120,7 +120,7 @@ export default function EventDetailPage() {
             className="h-full bg-gradient-to-r from-[var(--color-pastel-green)] to-[var(--color-pastel-blue)]"
             initial={{ width: 0 }}
             animate={{ width: `${(completedMissions / eventMissions.length) * 100}%` }}
-            transition={{ duration: 1, ease: "easeOut", delay: 0.4 }}
+            transition={{ type: "spring", stiffness: 90, damping: 18, delay: 0.4 }}
           />
         </div>
       </motion.div>
@@ -138,8 +138,10 @@ export default function EventDetailPage() {
               key={mission.id}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
+              whileHover={mission.status === "available" ? { y: -3, scale: 1.01 } : undefined}
+              whileTap={{ scale: 0.985 }}
               transition={{ delay: 0.3 + i * 0.04 }}
-              className={`bubbly-card p-3 flex items-center justify-between transition-all ${
+              className={`bubbly-card premium-glint p-3 flex items-center justify-between transition-all ${
                 mission.status === "completed"
                   ? "bg-green-50 opacity-70"
                   : mission.status === "locked"
@@ -156,9 +158,13 @@ export default function EventDetailPage() {
                     {mission.title}
                   </p>
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[10px] font-bold text-[var(--color-primary-500)] flex items-center gap-0.5">
+                    <motion.span
+                      className="text-[10px] font-bold text-[var(--color-primary-500)] flex items-center gap-0.5"
+                      animate={mission.status === "available" ? { scale: [1, 1.08, 1] } : undefined}
+                      transition={{ duration: 1.8, repeat: Infinity, repeatDelay: 2.6, ease: "easeInOut" }}
+                    >
                       <Zap size={8} /> +{mission.xpReward}
-                    </span>
+                    </motion.span>
                     <span className="text-[8px] font-bold bg-white px-1 py-0.5 rounded-full border border-[var(--color-primary-900)] flex items-center gap-0.5">
                       <ShieldCheck size={8} /> {PROOF_TYPE_COPY[mission.proofType].label}
                     </span>
@@ -176,9 +182,13 @@ export default function EventDetailPage() {
                 </div>
               </div>
               {mission.status === "available" && (
-                <button className="bg-[var(--color-pastel-blue)] font-bold text-[10px] px-2.5 py-1 border-2 border-[var(--color-primary-900)] rounded-full shrink-0">
+                <motion.button
+                  whileHover={{ x: 2, scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
+                  className="bg-[var(--color-pastel-blue)] font-bold text-[10px] px-2.5 py-1 border-2 border-[var(--color-primary-900)] rounded-full shrink-0"
+                >
                   {PROOF_TYPE_COPY[mission.proofType].action}
-                </button>
+                </motion.button>
               )}
             </motion.div>
           ))}
