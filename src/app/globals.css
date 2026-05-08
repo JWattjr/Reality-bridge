@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-nunito), "Nunito", sans-serif;
+  --font-display: var(--font-balsamiq), "Balsamiq Sans", cursive;
+
+  --color-primary-100: #e0e7ff; /* indigo-100 */
+  --color-primary-300: #a5b4fc; /* indigo-300 */
+  --color-primary-500: #6366f1; /* indigo-500 */
+  --color-primary-700: #4338ca; /* indigo-700 */
+  --color-primary-900: #312e81; /* indigo-900 */
+
+  --color-pastel-purple: #c4b5fd;
+  --color-pastel-pink: #fbcfe8;
+  --color-pastel-yellow: #fef08a;
+  --color-pastel-blue: #bae6fd;
+  --color-pastel-green: #bbf7d0;
+  
+  --color-bg-base: #faf8f5;
+
+  --shadow-bubbly: 4px 4px 0px 0px rgba(49, 46, 129, 1);
+  --shadow-bubbly-hover: 2px 2px 0px 0px rgba(49, 46, 129, 1);
+}
+
+:root {
+  --background: var(--color-bg-base);
+  --foreground: var(--color-primary-900);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+/* Custom Utilities */
+@utility bubbly-border {
+  border: 3px solid var(--color-primary-900);
+  border-radius: 9999px;
+}
+
+@utility bubbly-card {
+  border: 3px solid var(--color-primary-900);
+  border-radius: 24px;
+  box-shadow: var(--shadow-bubbly);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+@utility bubbly-card-hover {
+  transform: translate(2px, 2px);
+  box-shadow: var(--shadow-bubbly-hover);
+}
+
+@utility blob-shape-1 {
+  border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+}
+
+@utility blob-shape-2 {
+  border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+}
