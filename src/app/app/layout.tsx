@@ -22,10 +22,10 @@ export default function AppLayout({
             </div>
             ProofPlay
           </Link>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <ThemeSwitcher compact />
             <WalletLoginButton compact />
-            <Link href="/app/profile" className="font-bold flex items-center gap-1.5 bg-white border-2 border-[var(--color-primary-900)] px-2.5 py-1 rounded-full shadow-[2px_2px_0px_0px_#312e81] text-xs hover:translate-y-0.5 hover:shadow-none transition-all">
+            <Link href="/app/profile" className="hidden min-[380px]:flex font-bold items-center gap-1.5 bg-white border-2 border-[var(--color-primary-900)] px-2.5 py-1 rounded-full shadow-[2px_2px_0px_0px_#312e81] text-xs hover:translate-y-0.5 hover:shadow-none transition-all">
               <span>{CURRENT_USER.avatar}</span>
               <span>⭐ {CURRENT_USER.totalXp.toLocaleString()}</span>
             </Link>

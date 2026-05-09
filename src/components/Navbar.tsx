@@ -29,9 +29,7 @@ export default function Navbar() {
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
           <ThemeSwitcher />
-          <div className="hidden sm:block">
-            <WalletLoginButton compact />
-          </div>
+          <WalletLoginButton compact className="hidden min-[420px]:inline-flex" />
           <Link href="/app" className="bg-[var(--color-pastel-blue)] px-6 py-2 rounded-full bubbly-card font-bold hover:bubbly-card-hover transition-all inline-block">
             Launch App
           </Link>

@@ -3,6 +3,7 @@
 import BlobBackground from "@/components/BlobBackground";
 import DottedGlobe from "@/components/DottedGlobe";
 import Navbar from "@/components/Navbar";
+import WalletLoginButton from "@/components/WalletLoginButton";
 import { motion } from "framer-motion";
 import { Zap, Trophy, QrCode, Users, ArrowRight, Star, Shield, Globe } from "lucide-react";
 import Link from "next/link";
@@ -82,6 +83,7 @@ export default function Home() {
           </h1>
 
           <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center px-4 sm:mt-10 sm:px-0">
+            <WalletLoginButton className="justify-center px-7 py-3.5 text-base sm:hidden" />
             <Link
               href="/app"
               className="bg-[var(--color-pastel-pink)] text-base sm:text-lg px-7 py-3.5 rounded-full border-3 border-[var(--color-primary-900)] font-bold shadow-[4px_4px_0px_0px_#312e81] hover:translate-y-0.5 hover:shadow-[2px_2px_0px_0px_#312e81] transition-all flex items-center justify-center gap-2"

@@ -5,26 +5,27 @@ import { useProofPlayAuth } from "@/components/ProofPlayAuthProvider";
 
 type WalletLoginButtonProps = {
   compact?: boolean;
+  className?: string;
 };
 
-export default function WalletLoginButton({ compact = false }: WalletLoginButtonProps) {
+export default function WalletLoginButton({ compact = false, className = "" }: WalletLoginButtonProps) {
   const auth = useProofPlayAuth();
 
   if (!auth.configured) {
     return (
       <span
-        className="inline-flex items-center gap-1.5 rounded-full border-2 border-[var(--color-primary-900)] bg-white/75 px-3 py-1.5 text-[10px] font-bold text-[var(--color-primary-900)]"
+        className={`inline-flex items-center gap-1.5 rounded-full border-2 border-[var(--color-primary-900)] bg-white/75 px-3 py-1.5 text-[10px] font-bold text-[var(--color-primary-900)] ${className}`}
         title="Add NEXT_PUBLIC_PRIVY_APP_ID in Vercel to enable Privy login"
       >
         <Wallet size={compact ? 12 : 14} />
-        {compact ? "Privy" : "Privy not set"}
+        {compact ? "Set Privy" : "Set Privy env"}
       </span>
     );
   }
 
   if (!auth.ready) {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-[var(--color-primary-900)] bg-white/75 px-3 py-1.5 text-[10px] font-bold">
+      <span className={`inline-flex items-center gap-1.5 rounded-full border-2 border-[var(--color-primary-900)] bg-white/75 px-3 py-1.5 text-[10px] font-bold ${className}`}>
         <Wallet size={compact ? 12 : 14} />
         Loading
       </span>
@@ -36,7 +37,7 @@ export default function WalletLoginButton({ compact = false }: WalletLoginButton
       <button
         type="button"
         onClick={auth.logout}
-        className="inline-flex items-center gap-1.5 rounded-full border-2 border-[var(--color-primary-900)] bg-white px-3 py-1.5 text-[10px] font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
+        className={`inline-flex items-center gap-1.5 rounded-full border-2 border-[var(--color-primary-900)] bg-white px-3 py-1.5 text-[10px] font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none ${className}`}
         title="Disconnect wallet"
       >
         <LogOut size={compact ? 12 : 14} />
@@ -49,7 +50,7 @@ export default function WalletLoginButton({ compact = false }: WalletLoginButton
     <button
       type="button"
       onClick={auth.login}
-      className="inline-flex items-center gap-1.5 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-3 py-1.5 text-[10px] font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
+      className={`inline-flex items-center gap-1.5 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-3 py-1.5 text-[10px] font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none ${className}`}
     >
       <LogIn size={compact ? 12 : 14} />
       {compact ? "Login" : "Sign in"}
