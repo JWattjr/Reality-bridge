@@ -21,6 +21,16 @@ When `/api/verification` receives a valid mission submission, it:
 4. Stores the returned root hash, transaction hash, contract address, and explorer URL in Supabase.
 5. Exposes those receipts through `/api/proofs` and the organizer proof panel.
 
+### Live proof receipt
+
+This repo has produced a real 0G Storage receipt for the `Chainlink Booth NFC` mission:
+
+- 0G mainnet contract: `0x62D4144dB0F0a6fBBaeb6296c785C71B3D57C526`
+- 0G root hash: `0x6f23996f4cc22bd72cced9d867ba33bce188a3c82d1ba2f7274e2670128edf91`
+- 0G transaction hash: `0xe72a331780628efba258340db64077b8d11d43308e161d6f86cd4d458038b395`
+- 0G explorer: `https://chainscan.0g.ai/tx/0xe72a331780628efba258340db64077b8d11d43308e161d6f86cd4d458038b395`
+- Supabase index: `/api/proofs` returns `database.provider = "supabase"` with the stored proof receipt.
+
 ## Supabase Proof Index
 
 0G Storage remains the permanent evidence layer. Supabase stores the fast app index used by the UI:
