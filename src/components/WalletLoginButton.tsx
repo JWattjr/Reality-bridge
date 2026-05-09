@@ -13,6 +13,8 @@ export default function WalletLoginButton({ compact = false, className = "" }: W
   const auth = useProofPlayAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [balance, setBalance] = useState<string | null>(null);
+  const [balanceStatus, setBalanceStatus] = useState<"idle" | "loading" | "error">("idle");
 
   if (!auth.configured) {
     return (
@@ -38,6 +40,27 @@ export default function WalletLoginButton({ compact = false, className = "" }: W
   if (auth.authenticated) {
     const walletAddress = auth.walletAddress ?? auth.userId ?? "";
     const explorerUrl = walletAddress ? `https://chainscan.0g.ai/address/${walletAddress}` : "";
+    const formattedBalance = balance ? `${Number(balance).toLocaleString(undefined, {
+      maximumFractionDigits: 5,
+    })} 0G` : null;
+
+    async function refreshBalance() {
+      if (!walletAddress) return;
+
+      setBalanceStatus("loading");
+
+      try {
+        const response = await fetch(`/api/wallet/balance?address=${encodeURIComponent(walletAddress)}`);
+        const data = await response.json();
+
+        if (!response.ok) throw new Error(data.issue ?? "Could not read balance");
+
+        setBalance(data.balance.balance);
+        setBalanceStatus("idle");
+      } catch {
+        setBalanceStatus("error");
+      }
+    }
 
     return (
       <div className="relative inline-flex">
@@ -56,6 +79,28 @@ export default function WalletLoginButton({ compact = false, className = "" }: W
             <div className="rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] p-3">
               <p className="text-[10px] font-bold uppercase opacity-60">Privy wallet</p>
               <p className="mt-1 break-all text-xs font-bold">{walletAddress}</p>
+            </div>
+
+            <div className="mt-3 rounded-2xl border-2 border-[var(--color-primary-900)] bg-white p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-[10px] font-bold uppercase opacity-60">0G balance</p>
+                  <p className="mt-1 text-sm font-bold">
+                    {balanceStatus === "loading"
+                      ? "Checking..."
+                      : balanceStatus === "error"
+                        ? "Could not load"
+                        : formattedBalance ?? "Not checked"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={refreshBalance}
+                  className="rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-purple)] px-3 py-1.5 text-[10px] font-bold"
+                >
+                  Refresh
+                </button>
+              </div>
             </div>
 
             <div className="mt-3 grid grid-cols-2 gap-2">

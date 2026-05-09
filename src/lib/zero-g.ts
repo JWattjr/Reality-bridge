@@ -1,4 +1,4 @@
-import { Wallet, JsonRpcProvider } from "ethers";
+import { Wallet, JsonRpcProvider, formatEther, isAddress } from "ethers";
 import type { StorageReference } from "@/lib/mock-data";
 
 export const ZERO_G_MAINNET = {
@@ -19,6 +19,27 @@ export class ZeroGConfigError extends Error {
     super(message);
     this.name = "ZeroGConfigError";
   }
+}
+
+export async function getZeroGBalance(address: string) {
+  if (!isAddress(address)) {
+    throw new Error("Invalid wallet address.");
+  }
+
+  const rpcUrl = process.env.ZERO_G_RPC_URL ?? ZERO_G_MAINNET.rpcUrl;
+  const chainId = Number(process.env.ZERO_G_CHAIN_ID ?? ZERO_G_MAINNET.chainId);
+  const provider = new JsonRpcProvider(rpcUrl, chainId);
+  const wei = await provider.getBalance(address);
+
+  return {
+    address,
+    balanceWei: wei.toString(),
+    balance: formatEther(wei),
+    symbol: "0G",
+    chainId,
+    network: chainId === ZERO_G_MAINNET.chainId ? ZERO_G_MAINNET.network : "0G Testnet",
+    explorerUrl: `${(process.env.ZERO_G_EXPLORER_BASE_URL ?? ZERO_G_MAINNET.explorerBaseUrl).replace(/\/$/, "")}/address/${address}`,
+  };
 }
 
 export async function uploadJsonToZeroG(payload: unknown, key: string) {
