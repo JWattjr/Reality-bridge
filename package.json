@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@0gfoundation/0g-storage-ts-sdk": "^1.2.9",
+    "@supabase/supabase-js": "^2.105.4",
     "clsx": "^2.1.1",
     "ethers": "^6.13.1",
     "framer-motion": "^12.38.0",

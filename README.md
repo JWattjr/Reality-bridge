@@ -18,8 +18,27 @@ When `/api/verification` receives a valid mission submission, it:
 1. Validates the proof method for that mission.
 2. Uploads the proof JSON to 0G Storage through `Indexer.upload`.
 3. Uploads photo bytes to 0G Storage when the mission uses photo proof.
-4. Stores the returned root hash, transaction hash, contract address, and explorer URL in `data/proof-records.json`.
+4. Stores the returned root hash, transaction hash, contract address, and explorer URL in Supabase.
 5. Exposes those receipts through `/api/proofs` and the organizer proof panel.
+
+## Supabase Proof Index
+
+0G Storage remains the permanent evidence layer. Supabase stores the fast app index used by the UI:
+
+- proof record id
+- user id / wallet id
+- event id
+- mission id
+- XP earned
+- 0G root hash
+- 0G transaction hash
+- explorer URL
+
+Create the table by running:
+
+```sql
+-- supabase/schema.sql
+```
 
 ## Environment
 
@@ -27,9 +46,11 @@ Copy `.env.example` to `.env.local` and set:
 
 ```bash
 ZERO_G_PRIVATE_KEY=0x...
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-server-only-service-role-key
 ```
 
-The private key must be funded on 0G mainnet for gas/storage fees. Without it, the API returns `503 not_configured` instead of generating fake proof data.
+The private key must be funded on 0G mainnet for gas/storage fees. Without it, the API returns `503 not_configured` instead of generating fake proof data. Without Supabase env vars, local development uses an in-memory proof index; production should use Supabase.
 
 ## Development
 

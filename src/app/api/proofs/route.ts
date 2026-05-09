@@ -1,4 +1,5 @@
 import { readProofRecords } from "@/lib/proof-store";
+import { hasSupabaseConfig } from "@/lib/supabase-server";
 import { ZERO_G_MAINNET } from "@/lib/zero-g";
 
 export async function GET() {
@@ -10,6 +11,9 @@ export async function GET() {
       chainId: ZERO_G_MAINNET.chainId,
       contractAddress: process.env.ZERO_G_FLOW_CONTRACT_ADDRESS ?? ZERO_G_MAINNET.flowContractAddress,
       explorerBaseUrl: process.env.ZERO_G_EXPLORER_BASE_URL ?? ZERO_G_MAINNET.explorerBaseUrl,
+    },
+    database: {
+      provider: hasSupabaseConfig() ? "supabase" : "memory-fallback",
     },
     proofs,
   });
