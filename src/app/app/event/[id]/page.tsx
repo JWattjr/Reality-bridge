@@ -2,12 +2,15 @@
 
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { EVENTS, MISSIONS, LEADERBOARD, PROOF_TYPE_COPY, getProofRecordForMission, shortHash } from "@/lib/mock-data";
+import { EVENTS, MISSIONS, LEADERBOARD, PROOF_TYPE_COPY, shortHash } from "@/lib/mock-data";
+import type { Mission } from "@/lib/mock-data";
 import { MapPin, CalendarDays, Users, Zap, ArrowLeft, Share2, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { CommunityEvent } from "@/lib/community-store";
 import { EventIconBadge, MissionIconBadge } from "@/components/ProofPlayIcons";
+import { MissionVerifyAction } from "@/components/MissionVerifyAction";
+import { useMissionVerification } from "@/hooks/useMissionVerification";
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -16,6 +19,13 @@ export default function EventDetailPage() {
   const [liveEvent, setLiveEvent] = useState<CommunityEvent | null>(null);
   const event = mockEvent ?? liveEvent;
   const [checkedIn, setCheckedIn] = useState(mockEvent?.checkedIn ?? false);
+  const {
+    proofsLoading,
+    getMissionProof,
+    submissionStatus,
+    verifyMission,
+    withProofStatus,
+  } = useMissionVerification(eventId);
 
   useEffect(() => {
     if (mockEvent) return;
@@ -39,13 +49,20 @@ export default function EventDetailPage() {
     );
   }
 
-  const eventMissions = mockEvent
+  const baseEventMissions = mockEvent
     ? MISSIONS.filter((m) => m.eventId === eventId)
     : liveEvent?.missions.map((mission) => ({
         ...mission,
+        eventId,
         status: "available" as const,
         sponsorTag: undefined,
+        completionCount: 0,
+        maxCompletions: 1,
       })) ?? [];
+  const eventMissions = baseEventMissions.map((mission) => withProofStatus(mission as Mission));
+  const checkInMission = eventMissions.find((mission) => mission.id === "m1" || mission.title.toLowerCase().includes("check in"));
+  const checkInStatus = checkInMission ? submissionStatus[checkInMission.id] : undefined;
+  const isCheckedIn = checkedIn || Boolean(checkInMission && getMissionProof(checkInMission.id));
   const completedMissions = eventMissions.filter((m) => m.status === "completed").length;
   const earnedXp = eventMissions.filter((m) => m.status === "completed").reduce((sum, m) => sum + m.xpReward, 0);
 
@@ -84,12 +101,19 @@ export default function EventDetailPage() {
         <p className="text-xs font-bold mt-3 opacity-70 leading-relaxed">{event.description}</p>
 
         <div className="flex gap-2 mt-4">
-          {!checkedIn ? (
+          {!isCheckedIn ? (
             <button
-              onClick={() => setCheckedIn(true)}
+              disabled={checkInStatus?.state === "submitting"}
+              onClick={() => {
+                if (checkInMission) {
+                  verifyMission(checkInMission);
+                } else {
+                  setCheckedIn(true);
+                }
+              }}
               className="flex-1 bg-[var(--color-primary-900)] text-white font-bold text-sm py-2.5 rounded-full border-2 border-[var(--color-primary-900)] hover:bg-[var(--color-primary-700)] transition-colors"
             >
-              Check In
+              {checkInStatus?.state === "submitting" ? "Uploading check-in proof..." : "Check In"}
             </button>
           ) : (
             <div className="flex-1 bg-white/60 backdrop-blur-sm font-bold text-sm py-2.5 rounded-full border-2 border-[var(--color-primary-900)] text-center">
@@ -101,6 +125,12 @@ export default function EventDetailPage() {
           </button>
         </div>
       </motion.div>
+
+      {proofsLoading && (
+        <p className="rounded-2xl border-2 border-[var(--color-primary-900)] bg-white p-3 text-xs font-bold opacity-70">
+          Syncing your proof receipts from Supabase...
+        </p>
+      )}
 
       {/* Stats Bar */}
       <motion.div
@@ -151,63 +181,77 @@ export default function EventDetailPage() {
       >
         <h2 className="font-display text-lg font-bold mb-2">Missions</h2>
         <div className="space-y-2">
-          {eventMissions.map((mission, i) => (
-            <motion.div
-              key={mission.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              whileHover={mission.status === "available" ? { y: -3, scale: 1.01 } : undefined}
-              whileTap={{ scale: 0.985 }}
-              transition={{ delay: 0.3 + i * 0.04 }}
-              className={`bubbly-card premium-glint p-3 flex items-center justify-between transition-all ${
-                mission.status === "completed"
-                  ? "bg-green-50 opacity-70"
-                  : mission.status === "locked"
-                  ? "bg-gray-50 opacity-50"
-                  : "bg-white"
-              }`}
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <MissionIconBadge title={mission.title} type={mission.type} proofType={mission.proofType} size="sm" />
-                <div className="min-w-0">
-                  <p className={`font-bold text-xs truncate ${mission.status === "completed" ? "line-through" : ""}`}>
-                    {mission.title}
-                  </p>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <motion.span
-                      className="text-[10px] font-bold text-[var(--color-primary-500)] flex items-center gap-0.5"
-                      animate={mission.status === "available" ? { scale: [1, 1.08, 1] } : undefined}
-                      transition={{ duration: 1.8, repeat: Infinity, repeatDelay: 2.6, ease: "easeInOut" }}
-                    >
-                      <Zap size={8} /> +{mission.xpReward}
-                    </motion.span>
-                    <span className="text-[8px] font-bold bg-white px-1 py-0.5 rounded-full border border-[var(--color-primary-900)] flex items-center gap-0.5">
-                      <ShieldCheck size={8} /> {PROOF_TYPE_COPY[mission.proofType].label}
-                    </span>
-                    {mission.sponsorTag && (
-                      <span className="text-[8px] font-bold bg-[var(--color-pastel-yellow)] px-1 py-0.5 rounded-full border border-[var(--color-primary-900)]">
-                        {mission.sponsorTag}
-                      </span>
-                    )}
-                    {mission.status === "completed" && getProofRecordForMission(mission.id) && (
-                      <span className="text-[8px] font-bold text-green-700 bg-green-100 px-1 py-0.5 rounded-full border border-green-700">
-                        0G {shortHash(getProofRecordForMission(mission.id)!.storage.rootHash)}
-                      </span>
-                    )}
+          {eventMissions.map((mission, i) => {
+            const proof = getMissionProof(mission.id);
+            const status = submissionStatus[mission.id];
+
+            return (
+              <motion.div
+                key={mission.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                whileHover={mission.status === "available" ? { y: -3, scale: 1.01 } : undefined}
+                whileTap={{ scale: 0.985 }}
+                transition={{ delay: 0.3 + i * 0.04 }}
+                className={`bubbly-card premium-glint p-3 transition-all ${
+                  mission.status === "completed"
+                    ? "bg-green-50 opacity-80"
+                    : mission.status === "locked"
+                    ? "bg-gray-50 opacity-50"
+                    : "bg-white"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <MissionIconBadge title={mission.title} type={mission.type} proofType={mission.proofType} size="sm" />
+                    <div className="min-w-0">
+                      <p className={`font-bold text-xs truncate ${mission.status === "completed" ? "line-through" : ""}`}>
+                        {mission.title}
+                      </p>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <motion.span
+                          className="text-[10px] font-bold text-[var(--color-primary-500)] flex items-center gap-0.5"
+                          animate={mission.status === "available" ? { scale: [1, 1.08, 1] } : undefined}
+                          transition={{ duration: 1.8, repeat: Infinity, repeatDelay: 2.6, ease: "easeInOut" }}
+                        >
+                          <Zap size={8} /> +{mission.xpReward}
+                        </motion.span>
+                        <span className="text-[8px] font-bold bg-white px-1 py-0.5 rounded-full border border-[var(--color-primary-900)] flex items-center gap-0.5">
+                          <ShieldCheck size={8} /> {PROOF_TYPE_COPY[mission.proofType].label}
+                        </span>
+                        {mission.sponsorTag && (
+                          <span className="text-[8px] font-bold bg-[var(--color-pastel-yellow)] px-1 py-0.5 rounded-full border border-[var(--color-primary-900)]">
+                            {mission.sponsorTag}
+                          </span>
+                        )}
+                        {proof && (
+                          <span className="text-[8px] font-bold text-green-700 bg-green-100 px-1 py-0.5 rounded-full border border-green-700">
+                            0G {shortHash(proof.storage.rootHash)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
+                  <MissionVerifyAction
+                    mission={mission}
+                    status={status}
+                    onVerify={verifyMission}
+                    compact
+                  />
                 </div>
-              </div>
-              {mission.status === "available" && (
-                <motion.button
-                  whileHover={{ x: 2, scale: 1.04 }}
-                  whileTap={{ scale: 0.96 }}
-                  className="bg-[var(--color-pastel-blue)] font-bold text-[10px] px-2.5 py-1 border-2 border-[var(--color-primary-900)] rounded-full shrink-0"
-                >
-                  {PROOF_TYPE_COPY[mission.proofType].action}
-                </motion.button>
-              )}
-            </motion.div>
-          ))}
+                {status?.message && (
+                  <p className={`mt-2 text-[10px] font-bold ${status.state === "error" ? "text-red-600" : "text-green-700"}`}>
+                    {status.message}
+                  </p>
+                )}
+                {proof?.mediaStorage && (
+                  <p className="mt-1 text-[10px] font-bold text-green-700">
+                    Media on 0G: {shortHash(proof.mediaStorage.rootHash)}
+                  </p>
+                )}
+              </motion.div>
+            );
+          })}
         </div>
       </motion.section>
 

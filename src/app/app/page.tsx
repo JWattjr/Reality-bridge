@@ -198,10 +198,10 @@ export default function AppDashboard() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
       >
-        <button className="bubbly-card p-4 bg-[var(--color-pastel-pink)] flex flex-col items-center justify-center gap-2 text-center transition-all h-20 active:translate-y-0.5 active:shadow-none">
+        <Link href={activeEvent ? `/app/event/${activeEvent.id}` : "/app/missions"} className="bubbly-card p-4 bg-[var(--color-pastel-pink)] flex flex-col items-center justify-center gap-2 text-center transition-all h-20 active:translate-y-0.5 active:shadow-none">
           <QrCode size={22} />
           <span className="font-bold text-xs">Scan Proof</span>
-        </button>
+        </Link>
         <Link href="/app/profile" className="bubbly-card p-4 bg-[var(--color-pastel-yellow)] flex flex-col items-center justify-center gap-2 text-center transition-all h-20 active:translate-y-0.5 active:shadow-none">
           <Users size={22} />
           <span className="font-bold text-xs">Profile Tag</span>
@@ -254,13 +254,15 @@ export default function AppDashboard() {
                   </div>
                 </div>
               </div>
-              <motion.button
+              <motion.div
                 whileHover={{ x: 2, scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
                 className="bg-[var(--color-pastel-blue)] font-bold text-[10px] px-2.5 py-1 border-2 border-[var(--color-primary-900)] rounded-full hover:bg-[var(--color-primary-900)] hover:text-white transition-colors shrink-0"
               >
-                {PROOF_TYPE_COPY[mission.proofType].action}
-              </motion.button>
+                <Link href={`/app/event/${activeEvent?.id ?? "evt_1"}`}>
+                  {PROOF_TYPE_COPY[mission.proofType].action}
+                </Link>
+              </motion.div>
             </motion.div>
           ))}
 

@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Zap, Filter, ShieldCheck } from "lucide-react";
-import { MISSIONS, PROOF_TYPE_COPY, getProofRecordForMission, shortHash } from "@/lib/mock-data";
-import type { Mission, MissionStatus, MissionType } from "@/lib/mock-data";
-import { useProofPlayAuth } from "@/components/ProofPlayAuthProvider";
+import { MISSIONS, PROOF_TYPE_COPY, shortHash } from "@/lib/mock-data";
+import type { Mission, MissionStatus, MissionType, ProofRecord } from "@/lib/mock-data";
 import { MissionIconBadge } from "@/components/ProofPlayIcons";
+import { MissionVerifyAction } from "@/components/MissionVerifyAction";
+import { useMissionVerification } from "@/hooks/useMissionVerification";
 
 const TYPE_FILTERS: { label: string; value: MissionType | "all" }[] = [
   { label: "All", value: "all" },
@@ -24,107 +25,27 @@ const STATUS_FILTERS: { label: string; value: MissionStatus | "all" }[] = [
   { label: "Locked", value: "locked" },
 ];
 
-type SubmissionState = "idle" | "submitting" | "verified" | "error";
-type SubmissionStatus = {
-  state: SubmissionState;
-  message?: string;
-};
-
 export default function MissionsPage() {
-  const auth = useProofPlayAuth();
+  const {
+    proofsLoading,
+    getMissionProof,
+    submissionStatus,
+    verifyMission,
+    withProofStatus,
+  } = useMissionVerification();
   const [typeFilter, setTypeFilter] = useState<MissionType | "all">("all");
   const [statusFilter, setStatusFilter] = useState<MissionStatus | "all">("all");
   const [expandedMission, setExpandedMission] = useState<string | null>(null);
-  const [submissionStatus, setSubmissionStatus] = useState<Record<string, SubmissionStatus>>({});
 
-  const filteredMissions = MISSIONS.filter((m) => {
+  const missions = MISSIONS.map(withProofStatus);
+  const filteredMissions = missions.filter((m) => {
     if (typeFilter !== "all" && m.type !== typeFilter) return false;
     if (statusFilter !== "all" && m.status !== statusFilter) return false;
     return true;
   });
 
-  const totalXp = MISSIONS.reduce((sum, m) => sum + m.xpReward, 0);
-  const earnedXp = MISSIONS.filter((m) => m.status === "completed").reduce((sum, m) => sum + m.xpReward, 0);
-
-  async function verifyMission(mission: Mission, file?: File) {
-    if (!auth.configured) {
-      setSubmissionStatus((current) => ({
-        ...current,
-        [mission.id]: {
-          state: "error",
-          message: "Add NEXT_PUBLIC_PRIVY_APP_ID before live wallet proofs.",
-        },
-      }));
-      return;
-    }
-
-    if (!auth.ready) return;
-
-    if (!auth.authenticated || !auth.userId) {
-      auth.login();
-      return;
-    }
-
-    if (mission.proofType === "photo_upload" && !file) {
-      setSubmissionStatus((current) => ({
-        ...current,
-        [mission.id]: { state: "error", message: "Choose a photo to upload as proof." },
-      }));
-      return;
-    }
-
-    setSubmissionStatus((current) => ({
-      ...current,
-      [mission.id]: { state: "submitting", message: "Uploading proof to 0G..." },
-    }));
-
-    try {
-      const mediaPayload = file ? await fileToBase64(file) : undefined;
-      const response = await fetch("/api/verification", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventId: mission.eventId,
-          missionId: mission.id,
-          proofType: mission.proofType,
-          userId: auth.userId,
-          location: mission.proofLocation,
-          checkpointPayload:
-            mission.proofType === "qr_scan" || mission.proofType === "nfc_tap"
-              ? `${mission.eventId}:${mission.id}:${mission.proofLocation ?? mission.title}`
-              : undefined,
-          organizerId: mission.proofType === "organizer_approval" ? "proofplay-organizer-demo" : undefined,
-          codeWord: mission.proofType === "quiz_code" ? "PROOFPLAY" : undefined,
-          mediaFileName: file?.name,
-          mediaMimeType: file?.type,
-          mediaBase64: mediaPayload,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        const issues = Array.isArray(data.issues) ? data.issues.join(", ") : "Verification failed";
-        throw new Error(issues);
-      }
-
-      setSubmissionStatus((current) => ({
-        ...current,
-        [mission.id]: {
-          state: "verified",
-          message: `0G proof stored: ${shortHash(data.zeroG.rootHash)}`,
-        },
-      }));
-    } catch (error) {
-      setSubmissionStatus((current) => ({
-        ...current,
-        [mission.id]: {
-          state: "error",
-          message: error instanceof Error ? error.message : "Verification failed",
-        },
-      }));
-    }
-  }
+  const totalXp = missions.reduce((sum, m) => sum + m.xpReward, 0);
+  const earnedXp = missions.filter((m) => m.status === "completed").reduce((sum, m) => sum + m.xpReward, 0);
 
   return (
     <div className="space-y-5">
@@ -137,11 +58,11 @@ export default function MissionsPage() {
         <h1 className="font-display text-xl font-bold mb-2">Mission Board</h1>
         <div className="grid grid-cols-3 gap-2">
           <div className="bg-white/60 rounded-xl border-2 border-[var(--color-primary-900)] p-2 text-center backdrop-blur-sm">
-            <p className="font-bold text-lg">{MISSIONS.length}</p>
+            <p className="font-bold text-lg">{missions.length}</p>
             <p className="text-[10px] font-bold opacity-70">Total</p>
           </div>
           <div className="bg-white/60 rounded-xl border-2 border-[var(--color-primary-900)] p-2 text-center backdrop-blur-sm">
-            <p className="font-bold text-lg text-green-600">{MISSIONS.filter((m) => m.status === "completed").length}</p>
+            <p className="font-bold text-lg text-green-600">{missions.filter((m) => m.status === "completed").length}</p>
             <p className="text-[10px] font-bold opacity-70">Done</p>
           </div>
           <div className="bg-white/60 rounded-xl border-2 border-[var(--color-primary-900)] p-2 text-center backdrop-blur-sm">
@@ -150,6 +71,12 @@ export default function MissionsPage() {
           </div>
         </div>
       </motion.div>
+
+      {proofsLoading && (
+        <p className="rounded-2xl border-2 border-[var(--color-primary-900)] bg-white p-3 text-xs font-bold opacity-70">
+          Syncing your proof receipts from Supabase...
+        </p>
+      )}
 
       {/* Filters */}
       <motion.div
@@ -198,6 +125,7 @@ export default function MissionsPage() {
         <AnimatePresence mode="popLayout">
           {filteredMissions.map((mission, i) => {
             const proofCopy = PROOF_TYPE_COPY[mission.proofType];
+            const proof = getMissionProof(mission.id);
 
             return (
               <motion.div
@@ -252,13 +180,11 @@ export default function MissionsPage() {
                     </div>
                   </div>
                 </div>
-                {mission.status === "available" && (
-                  <MissionActionButton
-                    mission={mission}
-                    status={submissionStatus[mission.id]}
-                    onVerify={verifyMission}
-                  />
-                )}
+                <MissionVerifyAction
+                  mission={mission}
+                  status={submissionStatus[mission.id]}
+                  onVerify={verifyMission}
+                />
               </div>
 
               {/* Expanded details */}
@@ -277,7 +203,7 @@ export default function MissionsPage() {
                         <span className="opacity-60">Type: {mission.type.toUpperCase()}</span>
                         <span className="opacity-60">Max: {mission.maxCompletions}x</span>
                       </div>
-                      <MissionProofDetails mission={mission} />
+                      <MissionProofDetails mission={mission} proof={proof} />
                       {submissionStatus[mission.id]?.message && (
                         <p
                           className={`mt-2 font-bold ${
@@ -313,62 +239,7 @@ export default function MissionsPage() {
   );
 }
 
-function MissionActionButton({
-  mission,
-  status,
-  onVerify,
-}: {
-  mission: Mission;
-  status?: SubmissionStatus;
-  onVerify: (mission: Mission, file?: File) => void;
-}) {
-  const proofCopy = PROOF_TYPE_COPY[mission.proofType];
-  const isSubmitting = status?.state === "submitting";
-
-  if (mission.proofType === "photo_upload") {
-    return (
-      <motion.label
-        onClick={(e) => e.stopPropagation()}
-        whileHover={{ x: 2, scale: 1.04 }}
-        whileTap={{ scale: 0.96 }}
-        className="bg-[var(--color-pastel-blue)] font-bold text-[10px] px-3 py-1.5 border-2 border-[var(--color-primary-900)] rounded-full hover:bg-[var(--color-primary-900)] hover:text-white transition-colors shrink-0 cursor-pointer"
-      >
-        {isSubmitting ? "Uploading" : proofCopy.action}
-        <input
-          type="file"
-          accept="image/*"
-          className="sr-only"
-          disabled={isSubmitting}
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) onVerify(mission, file);
-            event.target.value = "";
-          }}
-        />
-      </motion.label>
-    );
-  }
-
-  return (
-    <motion.button
-      type="button"
-      disabled={isSubmitting}
-      onClick={(e) => {
-        e.stopPropagation();
-        onVerify(mission);
-      }}
-      whileHover={{ x: 2, scale: 1.04 }}
-      whileTap={{ scale: 0.96 }}
-      className="bg-[var(--color-pastel-blue)] font-bold text-[10px] px-3 py-1.5 border-2 border-[var(--color-primary-900)] rounded-full hover:bg-[var(--color-primary-900)] hover:text-white transition-colors shrink-0 disabled:cursor-wait disabled:opacity-70"
-    >
-      {isSubmitting ? "Uploading" : proofCopy.action}
-    </motion.button>
-  );
-}
-
-function MissionProofDetails({ mission }: { mission: Mission }) {
-  const proof = getProofRecordForMission(mission.id);
-
+function MissionProofDetails({ mission, proof }: { mission: Mission; proof?: ProofRecord }) {
   return (
     <div className="mt-2 rounded-xl border-2 border-[var(--color-primary-900)] bg-white/70 p-2">
       <div className="flex items-center justify-between gap-2">
@@ -379,19 +250,13 @@ function MissionProofDetails({ mission }: { mission: Mission }) {
         <div className="mt-1 space-y-1">
           <p className="font-bold text-green-600">0G root: {shortHash(proof.storage.rootHash)}</p>
           <p className="opacity-60 truncate">{proof.storage.storageRef}</p>
+          {proof.mediaStorage && (
+            <p className="font-bold text-green-600">Media root: {shortHash(proof.mediaStorage.rootHash)}</p>
+          )}
         </div>
       ) : (
         <p className="mt-1 opacity-60">A validated proof record will be uploaded before XP and badges are saved.</p>
       )}
     </div>
   );
-}
-
-function fileToBase64(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result ?? ""));
-    reader.onerror = () => reject(new Error("Could not read selected file"));
-    reader.readAsDataURL(file);
-  });
 }
