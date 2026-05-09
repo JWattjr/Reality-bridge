@@ -8,15 +8,12 @@ import { PROOF_TYPE_COPY, type ProofType } from "@/lib/mock-data";
 import type { CommunityEvent } from "@/lib/community-store";
 
 const MISSION_TEMPLATES = [
-  { title: "Check In at Entrance", type: "qr", proofType: "qr_scan", xp: 50, description: "Scan the QR code at the main entrance." },
-  { title: "Visit Sponsor Booth", type: "qr", proofType: "qr_scan", xp: 70, description: "Head to the sponsor booth and scan their QR." },
-  { title: "NFC Booth Checkpoint", type: "nfc", proofType: "nfc_tap", xp: 70, description: "Tap the booth NFC tag." },
-  { title: "Attend Workshop", type: "text", proofType: "quiz_code", xp: 120, description: "Enter the speaker code at the end." },
-  { title: "Submit Project", type: "photo", proofType: "photo_upload", xp: 300, description: "Submit your project with a screenshot." },
-  { title: "Take Group Photo", type: "photo", proofType: "photo_upload", xp: 60, description: "Upload a group photo with other attendees." },
-  { title: "Answer Quiz", type: "text", proofType: "quiz_code", xp: 90, description: "Complete the event trivia quiz." },
-  { title: "Help Another Team", type: "manual", proofType: "organizer_approval", xp: 100, description: "Verified by organizer after helping a team." },
-  { title: "Demo on Stage", type: "manual", proofType: "organizer_approval", xp: 500, description: "Present your project during the demo session." },
+  { title: "Check in at entrance", type: "qr", proofType: "qr_scan", xp: 50, description: "Scan the venue entrance QR code." },
+  { title: "Connect with 3 other attendees", type: "manual", proofType: "organizer_approval", xp: 120, description: "Connect with three attendees not already in your friend list." },
+  { title: "Scan QR code at Superteam booth", type: "qr", proofType: "qr_scan", xp: 80, description: "Visit Superteam and scan their booth QR." },
+  { title: "Test your knowledge on BlockNova", type: "text", proofType: "quiz_code", xp: 100, description: "Enter the BlockNova quiz or speaker code." },
+  { title: "Collect any sponsor Merch", type: "photo", proofType: "photo_upload", xp: 90, description: "Upload proof of sponsor merch collected." },
+  { title: "Upload the best picture you took at the venue", type: "photo", proofType: "photo_upload", xp: 110, description: "Upload your best venue photo." },
 ] satisfies Array<{ title: string; type: string; proofType: ProofType; xp: number; description: string }>;
 
 const CATEGORIES = ["Conference", "Hackathon", "Meetup", "Workshop", "Festival", "Community", "Brand Activation"];
@@ -41,7 +38,7 @@ export default function CreateEventPage() {
     maxAttendees: "300",
     startDate: "",
     endDate: "",
-    category: "Hackathon",
+    category: "Community",
   });
   const [createdEvent, setCreatedEvent] = useState<CommunityEvent | null>(null);
   const [submitStatus, setSubmitStatus] = useState("");
@@ -142,7 +139,7 @@ export default function CreateEventPage() {
                 type="text"
                 value={eventDetails.title}
                 onChange={(event) => updateEventDetails("title", event.target.value)}
-                placeholder="e.g. Web3 Summit 2026"
+                placeholder="e.g. BlockNova Event"
                 className="w-full px-4 py-2.5 rounded-xl border-2 border-[var(--color-primary-900)] font-bold text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-pastel-purple)] bg-[var(--color-bg-base)]"
               />
             </div>

@@ -342,14 +342,9 @@ export default function ProfilePage() {
           className="space-y-2"
         >
           {[
-            { action: "Checked in", event: "Web3 Summit 2026", time: "Today, 9:15 AM", emoji: "📍" },
-            { action: "Attended Keynote", event: "Web3 Summit 2026", time: "Today, 10:00 AM", emoji: "🎤" },
-            { action: "Earned Badge", event: "Brain Power", time: "Today, 11:30 AM", emoji: "🧠" },
-            { action: "Completed Mission", event: "Visit Polygon Booth", time: "Yesterday", emoji: "✅" },
-            { action: "Joined Event", event: "Creator Economy Meetup", time: "Apr 20, 2026", emoji: "🎫" },
-            { action: "Won Prize", event: "ETH Hackathon Lagos", time: "Mar 17, 2026", emoji: "🏆" },
-            { action: "Submitted Project", event: "ETH Hackathon Lagos", time: "Mar 17, 2026", emoji: "🏗️" },
-            { action: "Helped a Team", event: "ETH Hackathon Lagos", time: "Mar 16, 2026", emoji: "🤝" },
+            { action: "Registered", event: "BlockNova Event", time: "Today", emoji: "BN" },
+            { action: "Ready for check-in", event: "BlockNova Event", time: "At venue", emoji: "QR" },
+            { action: "Connection mission available", event: "BlockNova Event", time: "At venue", emoji: "3X" },
           ].map((item, i) => (
             <motion.div
               key={i}

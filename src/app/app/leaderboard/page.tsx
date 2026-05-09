@@ -23,7 +23,7 @@ export default function LeaderboardPage() {
         animate={{ opacity: 1, y: 0 }}
       >
         <h1 className="font-display text-xl font-bold">🏆 Leaderboard</h1>
-        <p className="text-xs font-bold opacity-60 mt-0.5">Web3 Summit 2026 — Live Rankings</p>
+        <p className="text-xs font-bold opacity-60 mt-0.5">BlockNova Event - Live Rankings</p>
       </motion.div>
 
       {/* Podium */}
