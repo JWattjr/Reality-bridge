@@ -121,7 +121,7 @@ export default function Home() {
             Turn event activity into missions, XP, badges, and portable reputation.
           </p>
           <p className="mx-auto mt-5 max-w-xl text-sm font-bold leading-relaxed opacity-70 sm:text-lg">
-            ProofPlay turns contribution into stored evidence with real-world missions and proof records that can point back to 0G Storage.
+            ProofPlay turns contribution into stored evidence with real-world missions and verifiable proof records on 0G Storage.
           </p>
         </motion.div>
       </section>
