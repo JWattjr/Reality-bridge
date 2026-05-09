@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import type { ReactNode } from "react";
 import { CalendarDays, MapPin, Users } from "lucide-react";
 import { listCommunityEvents } from "@/lib/community-store";
+import { EventIconBadge, MissionIconBadge } from "@/components/ProofPlayIcons";
 
 export default async function PublicEventPage({ params }: { params: Promise<{ slug: string }> }) {
   await connection();
@@ -37,9 +38,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
               {event.title}
             </h1>
           </div>
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border-2 border-[var(--color-primary-900)] text-3xl" style={{ backgroundColor: event.color }}>
-            {event.emoji}
-          </div>
+          <EventIconBadge size="lg" />
         </div>
 
         <p className="mt-4 text-sm font-bold leading-relaxed opacity-70">{event.description}</p>
@@ -55,7 +54,8 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
           <div className="mt-3 space-y-2">
             {event.missions.map((mission) => (
               <div key={mission.id} className="flex items-center justify-between gap-3 rounded-2xl border-2 border-[var(--color-primary-900)] bg-white p-3">
-                <div className="min-w-0">
+                <MissionIconBadge title={mission.title} type={mission.type} proofType={mission.proofType} size="sm" />
+                <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-bold">{mission.title}</p>
                   <p className="text-xs font-bold opacity-50">{mission.proofType} - {mission.xpReward} XP</p>
                 </div>

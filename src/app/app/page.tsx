@@ -23,6 +23,7 @@ import {
 } from "@/lib/mock-data";
 import type { CommunityEvent } from "@/lib/community-store";
 import { useProofPlayAuth } from "@/components/ProofPlayAuthProvider";
+import { EventIconBadge, MissionIconBadge } from "@/components/ProofPlayIcons";
 
 const levelInfo = getLevelForXp(CURRENT_USER.totalXp);
 
@@ -176,9 +177,7 @@ export default function AppDashboard() {
                   <CalendarDays size={12} /> {activeEvent.startDate} - {activeEvent.endDate}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-white bubbly-border flex items-center justify-center text-2xl shrink-0">
-                {activeEvent.emoji}
-              </div>
+              <EventIconBadge size="lg" />
             </div>
 
             <div className="bg-white/50 p-3 rounded-xl border-2 border-[var(--color-primary-900)] flex justify-between items-center backdrop-blur-sm">
@@ -186,7 +185,7 @@ export default function AppDashboard() {
                 {activeEvent.isRegistered ? "Registered" : "Open"} - {activeMissions.length} missions
               </span>
               <Link href={`/app/event/${activeEvent.id}`} className="bg-[var(--color-primary-900)] text-white text-xs font-bold px-3 py-1.5 rounded-full hover:bg-[var(--color-primary-700)] transition-colors">
-                View →
+                View
               </Link>
             </div>
           </div>
@@ -233,7 +232,7 @@ export default function AppDashboard() {
               className="premium-glint rounded-2xl border-2 border-[var(--color-primary-900)] p-3 flex items-center justify-between transition-all bg-white hover:-translate-y-0.5 hover:shadow-[2px_2px_0px_0px_#312e81]"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-5 h-5 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)] shrink-0" />
+                <MissionIconBadge title={mission.title} type={mission.type} proofType={mission.proofType} size="sm" />
                 <div className="min-w-0">
                   <p className="font-bold text-sm truncate">{mission.title}</p>
                   <div className="flex items-center gap-2">
@@ -309,12 +308,7 @@ function EventDiscoveryCard({
       className="bubbly-card bg-white p-3"
     >
       <div className="flex items-start gap-3">
-        <div
-          className="w-11 h-11 rounded-xl flex items-center justify-center text-xl border-2 border-[var(--color-primary-900)] shrink-0"
-          style={{ backgroundColor: event.color }}
-        >
-          {event.emoji}
-        </div>
+        <EventIconBadge />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">

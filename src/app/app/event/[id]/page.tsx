@@ -2,11 +2,12 @@
 
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { EVENTS, MISSIONS, LEADERBOARD, PROOF_TYPE_COPY, getMissionTypeIcon, getProofRecordForMission, shortHash } from "@/lib/mock-data";
+import { EVENTS, MISSIONS, LEADERBOARD, PROOF_TYPE_COPY, getProofRecordForMission, shortHash } from "@/lib/mock-data";
 import { MapPin, CalendarDays, Users, Zap, ArrowLeft, Share2, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { CommunityEvent } from "@/lib/community-store";
+import { EventIconBadge, MissionIconBadge } from "@/components/ProofPlayIcons";
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -30,10 +31,9 @@ export default function EventDetailPage() {
   if (!event) {
     return (
       <div className="text-center py-20">
-        <p className="text-3xl mb-2">🔍</p>
         <p className="font-bold">Event not found</p>
         <Link href="/app" className="text-sm font-bold text-[var(--color-primary-500)] mt-2 inline-block">
-          ← Back to Dashboard
+          Back to Dashboard
         </Link>
       </div>
     );
@@ -72,14 +72,12 @@ export default function EventDetailPage() {
             </span>
             <h1 className="font-display text-2xl font-bold mt-2 leading-tight">{event.title}</h1>
           </div>
-          <div className="w-14 h-14 rounded-2xl bg-white bubbly-border flex items-center justify-center text-3xl shrink-0 shadow-[2px_2px_0px_0px_#312e81]">
-            {event.emoji}
-          </div>
+          <EventIconBadge size="lg" />
         </div>
 
         <div className="space-y-1 text-xs font-bold opacity-80">
           <p className="flex items-center gap-1"><MapPin size={12} /> {event.location}</p>
-          <p className="flex items-center gap-1"><CalendarDays size={12} /> {event.startDate} — {event.endDate}</p>
+          <p className="flex items-center gap-1"><CalendarDays size={12} /> {event.startDate} - {event.endDate}</p>
           <p className="flex items-center gap-1"><Users size={12} /> {event.attendees}/{event.maxAttendees} attending</p>
         </div>
 
@@ -91,11 +89,11 @@ export default function EventDetailPage() {
               onClick={() => setCheckedIn(true)}
               className="flex-1 bg-[var(--color-primary-900)] text-white font-bold text-sm py-2.5 rounded-full border-2 border-[var(--color-primary-900)] hover:bg-[var(--color-primary-700)] transition-colors"
             >
-              📱 Check In
+              Check In
             </button>
           ) : (
             <div className="flex-1 bg-white/60 backdrop-blur-sm font-bold text-sm py-2.5 rounded-full border-2 border-[var(--color-primary-900)] text-center">
-              ✅ Checked In
+              Checked In
             </div>
           )}
           <button className="w-10 h-10 rounded-full bg-white/60 backdrop-blur-sm border-2 border-[var(--color-primary-900)] flex items-center justify-center">
@@ -151,7 +149,7 @@ export default function EventDetailPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
       >
-        <h2 className="font-display text-lg font-bold mb-2">🎯 Missions</h2>
+        <h2 className="font-display text-lg font-bold mb-2">Missions</h2>
         <div className="space-y-2">
           {eventMissions.map((mission, i) => (
             <motion.div
@@ -170,9 +168,7 @@ export default function EventDetailPage() {
               }`}
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)] shrink-0">
-                  {mission.status === "completed" ? "✅" : mission.status === "locked" ? "🔒" : getMissionTypeIcon(mission.type)}
-                </div>
+                <MissionIconBadge title={mission.title} type={mission.type} proofType={mission.proofType} size="sm" />
                 <div className="min-w-0">
                   <p className={`font-bold text-xs truncate ${mission.status === "completed" ? "line-through" : ""}`}>
                     {mission.title}
@@ -222,9 +218,9 @@ export default function EventDetailPage() {
         transition={{ delay: 0.4 }}
       >
         <div className="flex justify-between items-end mb-2">
-          <h2 className="font-display text-lg font-bold">🏆 Top Participants</h2>
+          <h2 className="font-display text-lg font-bold">Top Participants</h2>
           <Link href="/app/leaderboard" className="text-xs font-bold opacity-60 hover:opacity-100">
-            Full board →
+            Full board
           </Link>
         </div>
         <div className="space-y-1.5">

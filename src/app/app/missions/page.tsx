@@ -3,17 +3,18 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Zap, Filter, ShieldCheck } from "lucide-react";
-import { MISSIONS, PROOF_TYPE_COPY, getMissionTypeIcon, getProofRecordForMission, shortHash } from "@/lib/mock-data";
+import { MISSIONS, PROOF_TYPE_COPY, getProofRecordForMission, shortHash } from "@/lib/mock-data";
 import type { Mission, MissionStatus, MissionType } from "@/lib/mock-data";
 import { useProofPlayAuth } from "@/components/ProofPlayAuthProvider";
+import { MissionIconBadge } from "@/components/ProofPlayIcons";
 
 const TYPE_FILTERS: { label: string; value: MissionType | "all" }[] = [
   { label: "All", value: "all" },
-  { label: "📱 QR Scan", value: "qr" },
-  { label: "📡 NFC", value: "nfc" },
-  { label: "✏️ Text", value: "text" },
-  { label: "📸 Photo", value: "photo" },
-  { label: "🤝 Manual", value: "manual" },
+  { label: "QR Scan", value: "qr" },
+  { label: "NFC", value: "nfc" },
+  { label: "Text", value: "text" },
+  { label: "Photo", value: "photo" },
+  { label: "Manual", value: "manual" },
 ];
 
 const STATUS_FILTERS: { label: string; value: MissionStatus | "all" }[] = [
@@ -133,7 +134,7 @@ export default function MissionsPage() {
         animate={{ opacity: 1, y: 0 }}
         className="bubbly-card p-4 bg-gradient-to-br from-[var(--color-pastel-purple)] to-[var(--color-pastel-pink)]"
       >
-        <h1 className="font-display text-xl font-bold mb-2">🚀 Mission Board</h1>
+        <h1 className="font-display text-xl font-bold mb-2">Mission Board</h1>
         <div className="grid grid-cols-3 gap-2">
           <div className="bg-white/60 rounded-xl border-2 border-[var(--color-primary-900)] p-2 text-center backdrop-blur-sm">
             <p className="font-bold text-lg">{MISSIONS.length}</p>
@@ -219,9 +220,7 @@ export default function MissionsPage() {
               >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)] shrink-0">
-                    {mission.status === "completed" ? "✅" : mission.status === "locked" ? "🔒" : getMissionTypeIcon(mission.type)}
-                  </div>
+                  <MissionIconBadge title={mission.title} type={mission.type} proofType={mission.proofType} size="md" />
                   <div className="min-w-0">
                     <p className={`font-bold text-sm truncate ${mission.status === "completed" ? "line-through" : ""}`}>
                       {mission.title}
@@ -241,7 +240,7 @@ export default function MissionsPage() {
                       )}
                       {mission.badgeReward && (
                         <span className="text-[10px] font-bold bg-[var(--color-pastel-pink)] px-1.5 py-0.5 rounded-full border border-[var(--color-primary-900)]">
-                          🏅 Badge
+                          Badge
                         </span>
                       )}
                       <motion.span
@@ -292,7 +291,7 @@ export default function MissionsPage() {
                       )}
                       {mission.completedAt && (
                         <p className="mt-1 text-green-600 font-bold">
-                          ✅ Completed {new Date(mission.completedAt).toLocaleDateString()}
+                          Completed {new Date(mission.completedAt).toLocaleDateString()}
                         </p>
                       )}
                     </div>
@@ -306,7 +305,6 @@ export default function MissionsPage() {
 
         {filteredMissions.length === 0 && (
           <div className="text-center py-12 opacity-50">
-            <p className="text-3xl mb-2">🔍</p>
             <p className="font-bold text-sm">No missions match your filters</p>
           </div>
         )}
