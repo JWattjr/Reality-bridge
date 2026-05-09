@@ -5,13 +5,27 @@ import { motion } from "framer-motion";
 import { EVENTS, MISSIONS, LEADERBOARD, PROOF_TYPE_COPY, getMissionTypeIcon, getProofRecordForMission, shortHash } from "@/lib/mock-data";
 import { MapPin, CalendarDays, Users, Zap, ArrowLeft, Share2, ShieldCheck } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import type { CommunityEvent } from "@/lib/community-store";
 
 export default function EventDetailPage() {
   const params = useParams();
   const eventId = params.id as string;
-  const event = EVENTS.find((e) => e.id === eventId);
-  const [checkedIn, setCheckedIn] = useState(event?.checkedIn ?? false);
+  const mockEvent = EVENTS.find((e) => e.id === eventId);
+  const [liveEvent, setLiveEvent] = useState<CommunityEvent | null>(null);
+  const event = mockEvent ?? liveEvent;
+  const [checkedIn, setCheckedIn] = useState(mockEvent?.checkedIn ?? false);
+
+  useEffect(() => {
+    if (mockEvent) return;
+
+    fetch("/api/events")
+      .then((response) => response.json())
+      .then((data: { events?: CommunityEvent[] }) => {
+        setLiveEvent(data.events?.find((item) => item.id === eventId) ?? null);
+      })
+      .catch(() => setLiveEvent(null));
+  }, [eventId, mockEvent]);
 
   if (!event) {
     return (
@@ -25,7 +39,13 @@ export default function EventDetailPage() {
     );
   }
 
-  const eventMissions = MISSIONS.filter((m) => m.eventId === eventId);
+  const eventMissions = mockEvent
+    ? MISSIONS.filter((m) => m.eventId === eventId)
+    : liveEvent?.missions.map((mission) => ({
+        ...mission,
+        status: "available" as const,
+        sponsorTag: undefined,
+      })) ?? [];
   const completedMissions = eventMissions.filter((m) => m.status === "completed").length;
   const earnedXp = eventMissions.filter((m) => m.status === "completed").reduce((sum, m) => sum + m.xpReward, 0);
 
@@ -113,13 +133,13 @@ export default function EventDetailPage() {
       >
         <div className="flex justify-between text-xs font-bold opacity-60 mb-1">
           <span>Event Progress</span>
-          <span>{Math.round((completedMissions / eventMissions.length) * 100)}%</span>
+          <span>{eventMissions.length ? Math.round((completedMissions / eventMissions.length) * 100) : 0}%</span>
         </div>
         <div className="w-full h-4 bg-gray-100 rounded-full border-2 border-[var(--color-primary-900)] overflow-hidden">
           <motion.div
             className="h-full bg-gradient-to-r from-[var(--color-pastel-green)] to-[var(--color-pastel-blue)]"
             initial={{ width: 0 }}
-            animate={{ width: `${(completedMissions / eventMissions.length) * 100}%` }}
+            animate={{ width: `${eventMissions.length ? (completedMissions / eventMissions.length) * 100 : 0}%` }}
             transition={{ type: "spring", stiffness: 90, damping: 18, delay: 0.4 }}
           />
         </div>

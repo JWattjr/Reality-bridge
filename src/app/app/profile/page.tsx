@@ -6,6 +6,7 @@ import type { ProofRecord } from "@/lib/mock-data";
 import { Calendar, Award, Target, Star, Share2, Settings, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useProofPlayAuth } from "@/components/ProofPlayAuthProvider";
+import type { UserProfile } from "@/lib/community-store";
 
 const levelInfo = getLevelForXp(CURRENT_USER.totalXp);
 
@@ -22,6 +23,9 @@ export default function ProfilePage() {
   const auth = useProofPlayAuth();
   const [activeTab, setActiveTab] = useState<"badges" | "activity" | "proofs">("badges");
   const [proofRecords, setProofRecords] = useState<ProofRecord[]>([]);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [connectionCode, setConnectionCode] = useState("");
+  const [connectionStatus, setConnectionStatus] = useState("");
 
   const sortedBadges = [...BADGES].sort((a, b) => {
     return RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity);
@@ -34,6 +38,51 @@ export default function ProfilePage() {
       .then((data: { proofs?: ProofRecord[] }) => setProofRecords(data.proofs ?? []))
       .catch(() => setProofRecords([]));
   }, []);
+
+  useEffect(() => {
+    if (!auth.authenticated || !auth.userId) return;
+
+    fetch("/api/profiles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: auth.userId,
+        walletAddress: auth.walletAddress,
+        displayName: auth.displayName,
+      }),
+    })
+      .then((response) => response.json())
+      .then((data: { profile?: UserProfile }) => setProfile(data.profile ?? null))
+      .catch(() => setProfile(null));
+  }, [auth.authenticated, auth.displayName, auth.userId, auth.walletAddress]);
+
+  async function connectWithFriend() {
+    if (!auth.authenticated || !auth.userId) {
+      auth.login();
+      return;
+    }
+
+    setConnectionStatus("Connecting...");
+
+    try {
+      const response = await fetch("/api/connections", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requesterUserId: auth.userId,
+          targetUserTag: connectionCode,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) throw new Error(data.issues?.join(", ") ?? "Connection failed");
+
+      setConnectionCode("");
+      setConnectionStatus(`Connected with ${data.connection.targetProfile.displayName}`);
+    } catch (error) {
+      setConnectionStatus(error instanceof Error ? error.message : "Connection failed");
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -91,6 +140,54 @@ export default function ProfilePage() {
             <Settings size={12} /> Edit
           </button>
         </div>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+        className="bubbly-card bg-white p-4"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-bold uppercase opacity-50">Public connection tag</p>
+            <p className="font-display text-2xl font-bold">{profile?.userTag ?? "Sign in first"}</p>
+            <p className="mt-1 text-xs font-bold opacity-60">
+              Friends can scan or enter this tag as proof they connected with you on ground.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => profile?.userTag && navigator.clipboard.writeText(profile.userTag)}
+            className="rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-blue)] px-3 py-1.5 text-[10px] font-bold"
+          >
+            Copy
+          </button>
+        </div>
+        <div className="mt-3 rounded-2xl border-2 border-dashed border-[var(--color-primary-900)] bg-[var(--color-bg-base)] p-3 text-center">
+          <p className="text-[10px] font-bold uppercase opacity-50">Profile QR payload</p>
+          <p className="mt-1 break-all text-xs font-bold">
+            proofplay://connect/{profile?.userTag ?? "SIGN-IN"}
+          </p>
+        </div>
+        <div className="mt-3 flex gap-2">
+          <input
+            value={connectionCode}
+            onChange={(event) => setConnectionCode(event.target.value.toUpperCase())}
+            placeholder="Enter friend's PP code"
+            className="min-w-0 flex-1 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)] px-3 py-2 text-xs font-bold outline-none"
+          />
+          <button
+            type="button"
+            onClick={connectWithFriend}
+            className="rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-3 py-2 text-xs font-bold"
+          >
+            Connect
+          </button>
+        </div>
+        {connectionStatus && (
+          <p className="mt-2 text-xs font-bold opacity-70">{connectionStatus}</p>
+        )}
       </motion.div>
 
       {/* Stats Grid */}
