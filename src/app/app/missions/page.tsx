@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Zap, Filter, ShieldCheck } from "lucide-react";
 import { MISSIONS, PROOF_TYPE_COPY, getMissionTypeIcon, getProofRecordForMission, shortHash } from "@/lib/mock-data";
 import type { Mission, MissionStatus, MissionType } from "@/lib/mock-data";
+import { useProofPlayAuth } from "@/components/ProofPlayAuthProvider";
 
 const TYPE_FILTERS: { label: string; value: MissionType | "all" }[] = [
   { label: "All", value: "all" },
@@ -22,10 +23,18 @@ const STATUS_FILTERS: { label: string; value: MissionStatus | "all" }[] = [
   { label: "Locked", value: "locked" },
 ];
 
+type SubmissionState = "idle" | "submitting" | "verified" | "error";
+type SubmissionStatus = {
+  state: SubmissionState;
+  message?: string;
+};
+
 export default function MissionsPage() {
+  const auth = useProofPlayAuth();
   const [typeFilter, setTypeFilter] = useState<MissionType | "all">("all");
   const [statusFilter, setStatusFilter] = useState<MissionStatus | "all">("all");
   const [expandedMission, setExpandedMission] = useState<string | null>(null);
+  const [submissionStatus, setSubmissionStatus] = useState<Record<string, SubmissionStatus>>({});
 
   const filteredMissions = MISSIONS.filter((m) => {
     if (typeFilter !== "all" && m.type !== typeFilter) return false;
@@ -35,6 +44,86 @@ export default function MissionsPage() {
 
   const totalXp = MISSIONS.reduce((sum, m) => sum + m.xpReward, 0);
   const earnedXp = MISSIONS.filter((m) => m.status === "completed").reduce((sum, m) => sum + m.xpReward, 0);
+
+  async function verifyMission(mission: Mission, file?: File) {
+    if (!auth.configured) {
+      setSubmissionStatus((current) => ({
+        ...current,
+        [mission.id]: {
+          state: "error",
+          message: "Add NEXT_PUBLIC_PRIVY_APP_ID before live wallet proofs.",
+        },
+      }));
+      return;
+    }
+
+    if (!auth.ready) return;
+
+    if (!auth.authenticated || !auth.userId) {
+      auth.login();
+      return;
+    }
+
+    if (mission.proofType === "photo_upload" && !file) {
+      setSubmissionStatus((current) => ({
+        ...current,
+        [mission.id]: { state: "error", message: "Choose a photo to upload as proof." },
+      }));
+      return;
+    }
+
+    setSubmissionStatus((current) => ({
+      ...current,
+      [mission.id]: { state: "submitting", message: "Uploading proof to 0G..." },
+    }));
+
+    try {
+      const mediaPayload = file ? await fileToBase64(file) : undefined;
+      const response = await fetch("/api/verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventId: mission.eventId,
+          missionId: mission.id,
+          proofType: mission.proofType,
+          userId: auth.userId,
+          location: mission.proofLocation,
+          checkpointPayload:
+            mission.proofType === "qr_scan" || mission.proofType === "nfc_tap"
+              ? `${mission.eventId}:${mission.id}:${mission.proofLocation ?? mission.title}`
+              : undefined,
+          organizerId: mission.proofType === "organizer_approval" ? "proofplay-organizer-demo" : undefined,
+          codeWord: mission.proofType === "quiz_code" ? "PROOFPLAY" : undefined,
+          mediaFileName: file?.name,
+          mediaMimeType: file?.type,
+          mediaBase64: mediaPayload,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const issues = Array.isArray(data.issues) ? data.issues.join(", ") : "Verification failed";
+        throw new Error(issues);
+      }
+
+      setSubmissionStatus((current) => ({
+        ...current,
+        [mission.id]: {
+          state: "verified",
+          message: `0G proof stored: ${shortHash(data.zeroG.rootHash)}`,
+        },
+      }));
+    } catch (error) {
+      setSubmissionStatus((current) => ({
+        ...current,
+        [mission.id]: {
+          state: "error",
+          message: error instanceof Error ? error.message : "Verification failed",
+        },
+      }));
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -165,14 +254,11 @@ export default function MissionsPage() {
                   </div>
                 </div>
                 {mission.status === "available" && (
-                  <motion.button
-                    onClick={(e) => e.stopPropagation()}
-                    whileHover={{ x: 2, scale: 1.04 }}
-                    whileTap={{ scale: 0.96 }}
-                    className="bg-[var(--color-pastel-blue)] font-bold text-[10px] px-3 py-1.5 border-2 border-[var(--color-primary-900)] rounded-full hover:bg-[var(--color-primary-900)] hover:text-white transition-colors shrink-0"
-                  >
-                    {proofCopy.action}
-                  </motion.button>
+                  <MissionActionButton
+                    mission={mission}
+                    status={submissionStatus[mission.id]}
+                    onVerify={verifyMission}
+                  />
                 )}
               </div>
 
@@ -193,6 +279,17 @@ export default function MissionsPage() {
                         <span className="opacity-60">Max: {mission.maxCompletions}x</span>
                       </div>
                       <MissionProofDetails mission={mission} />
+                      {submissionStatus[mission.id]?.message && (
+                        <p
+                          className={`mt-2 font-bold ${
+                            submissionStatus[mission.id].state === "error"
+                              ? "text-red-600"
+                              : "text-green-700"
+                          }`}
+                        >
+                          {submissionStatus[mission.id].message}
+                        </p>
+                      )}
                       {mission.completedAt && (
                         <p className="mt-1 text-green-600 font-bold">
                           ✅ Completed {new Date(mission.completedAt).toLocaleDateString()}
@@ -218,6 +315,59 @@ export default function MissionsPage() {
   );
 }
 
+function MissionActionButton({
+  mission,
+  status,
+  onVerify,
+}: {
+  mission: Mission;
+  status?: SubmissionStatus;
+  onVerify: (mission: Mission, file?: File) => void;
+}) {
+  const proofCopy = PROOF_TYPE_COPY[mission.proofType];
+  const isSubmitting = status?.state === "submitting";
+
+  if (mission.proofType === "photo_upload") {
+    return (
+      <motion.label
+        onClick={(e) => e.stopPropagation()}
+        whileHover={{ x: 2, scale: 1.04 }}
+        whileTap={{ scale: 0.96 }}
+        className="bg-[var(--color-pastel-blue)] font-bold text-[10px] px-3 py-1.5 border-2 border-[var(--color-primary-900)] rounded-full hover:bg-[var(--color-primary-900)] hover:text-white transition-colors shrink-0 cursor-pointer"
+      >
+        {isSubmitting ? "Uploading" : proofCopy.action}
+        <input
+          type="file"
+          accept="image/*"
+          className="sr-only"
+          disabled={isSubmitting}
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) onVerify(mission, file);
+            event.target.value = "";
+          }}
+        />
+      </motion.label>
+    );
+  }
+
+  return (
+    <motion.button
+      type="button"
+      disabled={isSubmitting}
+      onClick={(e) => {
+        e.stopPropagation();
+        onVerify(mission);
+      }}
+      whileHover={{ x: 2, scale: 1.04 }}
+      whileTap={{ scale: 0.96 }}
+      className="bg-[var(--color-pastel-blue)] font-bold text-[10px] px-3 py-1.5 border-2 border-[var(--color-primary-900)] rounded-full hover:bg-[var(--color-primary-900)] hover:text-white transition-colors shrink-0 disabled:cursor-wait disabled:opacity-70"
+    >
+      {isSubmitting ? "Uploading" : proofCopy.action}
+    </motion.button>
+  );
+}
+
 function MissionProofDetails({ mission }: { mission: Mission }) {
   const proof = getProofRecordForMission(mission.id);
 
@@ -237,4 +387,13 @@ function MissionProofDetails({ mission }: { mission: Mission }) {
       )}
     </div>
   );
+}
+
+function fileToBase64(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(new Error("Could not read selected file"));
+    reader.readAsDataURL(file);
+  });
 }

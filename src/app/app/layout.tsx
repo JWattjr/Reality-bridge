@@ -2,6 +2,7 @@
 
 import Navbar from "@/components/Navbar";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
+import WalletLoginButton from "@/components/WalletLoginButton";
 import { CURRENT_USER } from "@/lib/mock-data";
 import { Trophy } from "lucide-react";
 import Link from "next/link";
@@ -23,6 +24,7 @@ export default function AppLayout({
           </Link>
           <div className="flex items-center gap-2">
             <ThemeSwitcher compact />
+            <WalletLoginButton compact />
             <Link href="/app/profile" className="font-bold flex items-center gap-1.5 bg-white border-2 border-[var(--color-primary-900)] px-2.5 py-1 rounded-full shadow-[2px_2px_0px_0px_#312e81] text-xs hover:translate-y-0.5 hover:shadow-none transition-all">
               <span>{CURRENT_USER.avatar}</span>
               <span>⭐ {CURRENT_USER.totalXp.toLocaleString()}</span>

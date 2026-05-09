@@ -5,6 +5,7 @@ import { CURRENT_USER, BADGES, MISSIONS, PROOF_TYPE_COPY, getLevelForXp, getRari
 import type { ProofRecord } from "@/lib/mock-data";
 import { Calendar, Award, Target, Star, Share2, Settings, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useProofPlayAuth } from "@/components/ProofPlayAuthProvider";
 
 const levelInfo = getLevelForXp(CURRENT_USER.totalXp);
 
@@ -18,6 +19,7 @@ const STATS = [
 const RARITY_ORDER = ["legendary", "epic", "rare", "common"] as const;
 
 export default function ProfilePage() {
+  const auth = useProofPlayAuth();
   const [activeTab, setActiveTab] = useState<"badges" | "activity" | "proofs">("badges");
   const [proofRecords, setProofRecords] = useState<ProofRecord[]>([]);
 
@@ -51,6 +53,13 @@ export default function ProfilePage() {
 
           <h1 className="font-display text-2xl font-bold mt-3">{CURRENT_USER.name}</h1>
           <p className="text-xs font-bold opacity-70 mt-1">{CURRENT_USER.bio}</p>
+          <p className="mt-2 text-[10px] font-bold opacity-70">
+            {auth.authenticated
+              ? `Privy identity: ${auth.displayName}`
+              : auth.configured
+                ? "Sign in with Privy to attach new proofs to your wallet."
+                : "Privy login is ready once NEXT_PUBLIC_PRIVY_APP_ID is set."}
+          </p>
 
           <div className="mt-3 inline-flex items-center gap-1.5 bg-white/60 backdrop-blur-sm px-3 py-1 rounded-full border-2 border-[var(--color-primary-900)] text-xs font-bold">
             <Star size={12} fill="currentColor" /> Level {levelInfo.level} — {levelInfo.title}

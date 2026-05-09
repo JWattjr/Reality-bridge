@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Nunito, Balsamiq_Sans } from "next/font/google";
+import { ProofPlayAuthProvider } from "@/components/ProofPlayAuthProvider";
 import "./globals.css";
 
 const nunito = Nunito({
@@ -29,7 +30,9 @@ export default function RootLayout({
       lang="en"
       className={`${nunito.variable} ${balsamiq.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <ProofPlayAuthProvider>{children}</ProofPlayAuthProvider>
+      </body>
     </html>
   );
 }

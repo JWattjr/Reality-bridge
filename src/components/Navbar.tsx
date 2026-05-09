@@ -4,6 +4,7 @@ import Link from "next/link";
 import { QrCode, User, Trophy, Calendar } from "lucide-react";
 import { usePathname } from "next/navigation";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
+import WalletLoginButton from "@/components/WalletLoginButton";
 import { motion } from "framer-motion";
 
 export default function Navbar() {
@@ -27,6 +28,9 @@ export default function Navbar() {
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
           <ThemeSwitcher />
+          <div className="hidden sm:block">
+            <WalletLoginButton compact />
+          </div>
           <Link href="/app" className="bg-[var(--color-pastel-blue)] px-6 py-2 rounded-full bubbly-card font-bold hover:bubbly-card-hover transition-all inline-block">
             Launch App
           </Link>

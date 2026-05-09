@@ -58,9 +58,13 @@ Copy `.env.example` to `.env.local` and set:
 ZERO_G_PRIVATE_KEY=0x...
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-server-only-service-role-key
+NEXT_PUBLIC_PRIVY_APP_ID=your-privy-app-id
+NEXT_PUBLIC_PRIVY_CLIENT_ID=your-optional-privy-client-id
 ```
 
 The private key must be funded on 0G mainnet for gas/storage fees. Without it, the API returns `503 not_configured` instead of generating fake proof data. Without Supabase env vars, local development uses an in-memory proof index; production should use Supabase.
+
+Privy is used for wallet/email/social login. Mission submissions from the app use the authenticated wallet address when available, then fall back to the Privy user id.
 
 ## Development
 
