@@ -2,6 +2,10 @@
 
 Proof-backed event participation with real 0G Storage uploads.
 
+Live app: `https://proofplayed.vercel.app`
+
+Live proof ledger: `https://proofplayed.vercel.app/proofs`
+
 ## 0G Integration Proof
 
 The verification backend integrates the official 0G Storage TypeScript SDK:

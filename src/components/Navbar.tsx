@@ -24,6 +24,7 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-8 font-bold font-sans">
           <Link href="/about" className="hover:text-[var(--color-primary-500)] transition-colors">About</Link>
           <Link href="/events" className="hover:text-[var(--color-primary-500)] transition-colors">Events</Link>
+          <Link href="/proofs" className="hover:text-[var(--color-primary-500)] transition-colors">Proofs</Link>
           <Link href="/communities" className="hover:text-[var(--color-primary-500)] transition-colors">Communities</Link>
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
