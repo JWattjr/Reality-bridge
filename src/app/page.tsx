@@ -19,10 +19,10 @@ const FEATURES = [
 ];
 
 const STEPS = [
-  { step: "1", title: "Scan In", description: "Arrive at the event and scan the QR code", emoji: "📱" },
-  { step: "2", title: "Complete Missions", description: "Visit booths, attend talks, answer quizzes", emoji: "🎯" },
-  { step: "3", title: "Earn & Level Up", description: "Collect XP, unlock badges, climb the ranks", emoji: "⭐" },
-  { step: "4", title: "Build Reputation", description: "Your participation history becomes portable", emoji: "🏆" },
+  { step: "1", title: "Scan In", description: "Arrive at the event and scan the QR code" },
+  { step: "2", title: "Complete Missions", description: "Visit booths, attend talks, answer quizzes" },
+  { step: "3", title: "Earn & Level Up", description: "Collect XP, unlock badges, climb the ranks" },
+  { step: "4", title: "Build Reputation", description: "Your participation history becomes portable" },
 ];
 
 const HERO_WORDS = ["PARTICIPATION", "CONTRIBUTION", "REPUTATION"];
@@ -143,7 +143,7 @@ export default function Home() {
             className="font-display text-4xl md:text-5xl font-bold text-center mb-10 sm:mb-16"
             style={{ textShadow: "3px 3px 0px #fff" }}
           >
-            How It Works ✨
+            How It Works
           </motion.h2>
 
           <div className="grid grid-cols-1 min-[420px]:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
@@ -156,8 +156,7 @@ export default function Home() {
                 transition={{ delay: i * 0.1 }}
                 className="bubbly-card p-4 sm:p-5 bg-white text-center"
               >
-                <div className="text-4xl mb-3">{s.emoji}</div>
-                <div className="w-8 h-8 mx-auto rounded-full bg-[var(--color-pastel-purple)] border-2 border-[var(--color-primary-900)] flex items-center justify-center font-bold text-sm mb-2">
+                <div className="w-8 h-8 mx-auto rounded-full bg-[var(--color-pastel-purple)] border-2 border-[var(--color-primary-900)] flex items-center justify-center font-bold text-sm mb-3">
                   {s.step}
                 </div>
                 <h3 className="font-display font-bold text-lg">{s.title}</h3>
@@ -177,7 +176,7 @@ export default function Home() {
             className="font-display text-4xl md:text-5xl font-bold text-center mb-10 sm:mb-16"
             style={{ textShadow: "3px 3px 0px #fff" }}
           >
-            Features 🎮
+            Features
           </motion.h2>
 
           <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 sm:gap-4">
@@ -212,7 +211,7 @@ export default function Home() {
           viewport={{ once: true }}
           className="max-w-2xl mx-auto bubbly-card p-6 sm:p-10 bg-gradient-to-br from-[var(--color-pastel-purple)] to-[var(--color-pastel-pink)] text-center"
         >
-          <h2 className="font-display text-3xl md:text-4xl font-bold mb-3">Ready to prove it? 🚀</h2>
+          <h2 className="font-display text-3xl md:text-4xl font-bold mb-3">Ready to prove it?</h2>
           <p className="font-bold opacity-70 mb-6">Start turning real event contributions into portable reputation.</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link href="/app" className="bg-white px-8 py-3 rounded-full border-3 border-[var(--color-primary-900)] font-bold shadow-[3px_3px_0px_0px_#312e81] hover:translate-y-0.5 hover:shadow-[1px_1px_0px_0px_#312e81] transition-all flex items-center justify-center gap-2">
