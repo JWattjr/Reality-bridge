@@ -56,6 +56,13 @@ export default async function ProofsPage() {
                 <p className="font-bold">{proofs.length}</p>
               </div>
             </div>
+            <Link
+              href="/0g-proof"
+              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-4 py-2 text-xs font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
+            >
+              Reviewer 0G integration view
+              <ExternalLink size={13} />
+            </Link>
           </div>
         </section>
 

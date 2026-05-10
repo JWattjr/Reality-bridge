@@ -100,12 +100,6 @@ export default function Home() {
             >
               View Proofs
             </Link>
-            <Link
-              href="/0g-proof"
-              className="bg-[var(--color-pastel-blue)] text-base sm:text-lg px-7 py-3.5 rounded-full border-3 border-[var(--color-primary-900)] font-bold shadow-[4px_4px_0px_0px_#312e81] hover:translate-y-0.5 hover:shadow-[2px_2px_0px_0px_#312e81] transition-all flex items-center justify-center gap-2"
-            >
-              0G Proof
-            </Link>
           </div>
         </motion.div>
 
