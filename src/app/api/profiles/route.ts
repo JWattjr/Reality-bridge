@@ -27,9 +27,12 @@ export async function POST(request: Request) {
 
     return Response.json({ status: "saved", profile });
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Profile save failed";
+    const status = message.includes("public.user_profiles is missing") ? 503 : 500;
+
     return Response.json(
-      { status: "rejected", issues: [error instanceof Error ? error.message : "Profile save failed"] },
-      { status: 500 },
+      { status: "rejected", issues: [message] },
+      { status },
     );
   }
 }

@@ -219,7 +219,7 @@ export async function upsertUserProfile(input: {
     displayName: input.displayName ?? "ProofPlayer",
     userTag: `PP-${stableSegment(input.userId).slice(0, 6).toUpperCase()}`,
     bio: "ProofPlay attendee",
-    avatar: "🙂",
+    avatar: initialsFor(input.displayName ?? "ProofPlayer"),
   };
 
   const nextProfile = {
@@ -247,6 +247,10 @@ export async function upsertUserProfile(input: {
     .single();
 
   if (error) {
+    if (isMissingSupabaseTableError(error)) {
+      throw new Error("Supabase table public.user_profiles is missing. Run supabase/schema.sql in the Supabase SQL Editor, then retry.");
+    }
+
     throw new Error(`Failed to save user profile: ${error.message}`);
   }
 
@@ -354,6 +358,10 @@ async function findUserProfile(userId: string) {
     .maybeSingle();
 
   if (error) {
+    if (isMissingSupabaseTableError(error)) {
+      throw new Error("Supabase table public.user_profiles is missing. Run supabase/schema.sql in the Supabase SQL Editor, then retry.");
+    }
+
     throw new Error(`Failed to read user profile: ${error.message}`);
   }
 
@@ -375,6 +383,10 @@ async function findProfileByTag(userTag: string) {
     .maybeSingle();
 
   if (error) {
+    if (isMissingSupabaseTableError(error)) {
+      throw new Error("Supabase table public.user_profiles is missing. Run supabase/schema.sql in the Supabase SQL Editor, then retry.");
+    }
+
     throw new Error(`Failed to find user profile: ${error.message}`);
   }
 
@@ -502,6 +514,10 @@ function profileFromRow(row: UserProfileRow): UserProfile {
     bio: row.bio ?? undefined,
     avatar: row.avatar ?? undefined,
   };
+}
+
+function isMissingSupabaseTableError(error: { code?: string; message?: string }) {
+  return error.code === "PGRST205" || error.message?.includes("Could not find the table");
 }
 
 function applyMemoryRegistration(event: CommunityEvent, userId?: string) {
