@@ -125,7 +125,7 @@ export default function OrganizerDashboard() {
               </motion.div>
               {proofRecords.length === 0 && (
                 <p className="text-xs font-bold opacity-50">
-                  Real 0G upload receipts will appear here after /api/verification succeeds.
+                  Real 0G upload receipts will appear here after attendees complete user-paid mission uploads.
                 </p>
               )}
               {proofRecords.map((proof) => {
@@ -164,6 +164,11 @@ export default function OrganizerDashboard() {
                         </a>
                       ) : (
                         <span className="proof-shimmer shrink-0">{shortHash(proof.storage.rootHash)}</span>
+                      )}
+                      {proof.chainAnchor?.explorerUrl && (
+                        <a href={proof.chainAnchor.explorerUrl} target="_blank" rel="noreferrer" className="text-[var(--color-primary-500)] shrink-0 underline">
+                          Registry
+                        </a>
                       )}
                     </div>
                   </motion.div>

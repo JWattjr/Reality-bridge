@@ -12,6 +12,7 @@ export default async function ProofsPage() {
   const proofs = await readProofRecords();
   const contractAddress =
     process.env.ZERO_G_FLOW_CONTRACT_ADDRESS ?? ZERO_G_MAINNET.flowContractAddress;
+  const registryAddress = process.env.NEXT_PUBLIC_PROOF_REGISTRY_ADDRESS;
 
   return (
     <main className="min-h-screen bg-[var(--color-bg-base)] px-4 py-8 sm:px-6 sm:py-12">
@@ -45,6 +46,10 @@ export default async function ProofsPage() {
             <p className="text-xs font-bold opacity-60">0G mainnet Flow contract</p>
             <p className="mt-2 break-all rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-purple)] p-3 text-xs font-bold">
               {contractAddress}
+            </p>
+            <p className="mt-3 text-xs font-bold opacity-60">ProofPlay registry contract</p>
+            <p className="mt-2 break-all rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] p-3 text-xs font-bold">
+              {registryAddress ?? "Deploy ProofRegistry to enable anchors"}
             </p>
             <div className="mt-3 grid grid-cols-2 gap-2">
               <div className="rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-blue)] p-3">
@@ -129,6 +134,17 @@ export default async function ProofsPage() {
                           <ExternalLink size={13} />
                         </a>
                       )}
+                      {proof.chainAnchor?.explorerUrl && (
+                        <a
+                          href={proof.chainAnchor.explorerUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-yellow)] px-4 py-2 text-xs font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
+                        >
+                          Registry tx
+                          <ExternalLink size={13} />
+                        </a>
+                      )}
                     </div>
                   </div>
 
@@ -137,6 +153,14 @@ export default async function ProofsPage() {
                     <ProofField label="Transaction" value={proof.storage.txHash ?? "pending"} />
                     <ProofField label="Timestamp" value={new Date(proof.timestamp).toLocaleString()} />
                   </div>
+
+                  {proof.chainAnchor && (
+                    <div className="mt-3 grid gap-2 md:grid-cols-3">
+                      <ProofField label="ProofPlay contract" value={proof.chainAnchor.contractAddress} />
+                      <ProofField label="Anchor tx" value={proof.chainAnchor.txHash} />
+                      <ProofField label="Proof key" value={proof.chainAnchor.proofKey} />
+                    </div>
+                  )}
 
                   <div className="mt-3 grid gap-2 md:grid-cols-2">
                     <ProofField icon={<Wallet size={13} />} label="User" value={proof.userId} />

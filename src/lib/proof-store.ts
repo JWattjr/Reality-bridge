@@ -15,6 +15,7 @@ type ProofRecordRow = {
   evidence_label: string;
   storage: ProofRecord["storage"];
   media_storage: ProofRecord["mediaStorage"] | null;
+  chain_anchor: ProofRecord["chainAnchor"] | null;
   badge_id: string | null;
   created_at?: string;
 };
@@ -73,6 +74,7 @@ function recordToRow(record: ProofRecord): ProofRecordRow {
     evidence_label: record.evidenceLabel,
     storage: record.storage,
     media_storage: record.mediaStorage ?? null,
+    chain_anchor: record.chainAnchor ?? null,
     badge_id: record.badgeId ?? null,
   };
 }
@@ -92,6 +94,7 @@ function recordFromRow(row: ProofRecordRow): ProofRecord {
     evidenceLabel: row.evidence_label,
     storage: row.storage,
     mediaStorage: row.media_storage ?? undefined,
+    chainAnchor: row.chain_anchor ?? undefined,
     badgeId: row.badge_id ?? undefined,
   };
 }

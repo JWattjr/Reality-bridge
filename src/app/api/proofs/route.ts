@@ -17,6 +17,7 @@ export async function GET(request: Request) {
       network: ZERO_G_MAINNET.network,
       chainId: ZERO_G_MAINNET.chainId,
       contractAddress: process.env.ZERO_G_FLOW_CONTRACT_ADDRESS ?? ZERO_G_MAINNET.flowContractAddress,
+      proofRegistryAddress: process.env.NEXT_PUBLIC_PROOF_REGISTRY_ADDRESS ?? null,
       explorerBaseUrl: process.env.ZERO_G_EXPLORER_BASE_URL ?? ZERO_G_MAINNET.explorerBaseUrl,
     },
     database: {

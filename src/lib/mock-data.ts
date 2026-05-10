@@ -21,6 +21,18 @@ export interface StorageReference {
   explorerUrl?: string;
   uploadedAt: string;
   encrypted?: boolean;
+  fileName?: string;
+  contentType?: string;
+}
+
+export interface ProofChainAnchor {
+  network: "0G Mainnet" | "0G Testnet";
+  chainId: number;
+  contractAddress: string;
+  proofKey: string;
+  txHash: string;
+  explorerUrl?: string;
+  anchoredAt: string;
 }
 
 export interface User {
@@ -98,6 +110,7 @@ export interface ProofRecord {
   evidenceLabel: string;
   storage: StorageReference;
   mediaStorage?: StorageReference;
+  chainAnchor?: ProofChainAnchor;
   badgeId?: string;
 }
 

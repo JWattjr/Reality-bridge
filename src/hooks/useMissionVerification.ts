@@ -1,8 +1,15 @@
 "use client";
 
+import type { ConnectedWallet } from "@privy-io/react-auth";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useProofPlayAuth } from "@/components/ProofPlayAuthProvider";
-import { shortHash, type Mission, type ProofRecord } from "@/lib/mock-data";
+import { shortHash, type Mission, type ProofRecord, type StorageReference } from "@/lib/mock-data";
+import {
+  uploadFileToZeroGWithWallet,
+  uploadJsonToZeroGWithWallet,
+  type UserPaidZeroGWallet,
+} from "@/lib/zero-g-client";
+import { anchorProofOnRegistry, isProofRegistryConfigured } from "@/lib/proof-registry";
 
 export type SubmissionState = "idle" | "submitting" | "verified" | "error";
 
@@ -13,6 +20,20 @@ export type SubmissionStatus = {
 
 type ProofsResponse = {
   proofs?: ProofRecord[];
+};
+
+type PreparedVerificationResponse = {
+  prepared?: {
+    proofPayload: {
+      timestamp: string;
+    } & Record<string, unknown>;
+    proofRecord: Omit<ProofRecord, "storage" | "mediaStorage" | "chainAnchor">;
+    uploadKeys: {
+      proof: string;
+      media?: string;
+    };
+  };
+  issues?: string[];
 };
 
 export function useMissionVerification(eventId?: string) {
@@ -120,37 +141,97 @@ export function useMissionVerification(eventId?: string) {
         return;
       }
 
+      if (!isProofRegistryConfigured()) {
+        setSubmissionStatus((current) => ({
+          ...current,
+          [mission.id]: {
+            state: "error",
+            message: "Deploy ProofRegistry and add NEXT_PUBLIC_PROOF_REGISTRY_ADDRESS before anchoring proofs.",
+          },
+        }));
+        return;
+      }
+
       setSubmissionStatus((current) => ({
         ...current,
         [mission.id]: {
           state: "submitting",
-          message: mission.proofType === "photo_upload" ? "Uploading photo and proof to 0G..." : "Uploading proof to 0G...",
+          message: "Uploading to 0G Storage, then anchoring on ProofRegistry...",
         },
       }));
 
       try {
-        const mediaPayload = file ? await fileToBase64(file) : undefined;
-        const response = await fetch("/api/verification", {
+        const wallet = findActiveWallet(auth.wallets, auth.walletAddress);
+
+        if (!wallet) {
+          throw new Error("No Privy wallet is available for this account.");
+        }
+
+        const submission = {
+          eventId: mission.eventId,
+          missionId: mission.id,
+          proofType: mission.proofType,
+          userId: auth.userId,
+          location: mission.proofLocation,
+          checkpointPayload:
+            mission.proofType === "qr_scan" || mission.proofType === "nfc_tap"
+              ? `${mission.eventId}:${mission.id}:${mission.proofLocation ?? mission.title}`
+              : undefined,
+          organizerId: mission.proofType === "organizer_approval" ? "proofplay-organizer-demo" : undefined,
+          codeWord: mission.proofType === "quiz_code" ? "PROOFPLAY" : undefined,
+          mediaFileName: file?.name,
+          mediaMimeType: file?.type,
+        };
+
+        const preparedResponse = await fetch("/api/verification/prepare", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(submission),
+        });
+        const preparedData: PreparedVerificationResponse = await preparedResponse.json();
+
+        if (!preparedResponse.ok || !preparedData.prepared) {
+          const issues = Array.isArray(preparedData.issues) ? preparedData.issues.join(", ") : "Verification failed";
+          throw new Error(issues);
+        }
+
+        const preparedSubmission = {
+          ...submission,
+          timestamp: preparedData.prepared.proofPayload.timestamp,
+        };
+
+        const storage = await uploadJsonToZeroGWithWallet(
+          preparedData.prepared.proofPayload,
+          preparedData.prepared.uploadKeys.proof,
+          wallet,
+        );
+        let mediaStorage: StorageReference | undefined;
+
+        if (file && preparedData.prepared.uploadKeys.media) {
+          mediaStorage = {
+            ...(await uploadFileToZeroGWithWallet(file, preparedData.prepared.uploadKeys.media, wallet)),
+            fileName: file.name,
+            contentType: file.type,
+          };
+        }
+
+        const proofToAnchor: ProofRecord = {
+          ...preparedData.prepared.proofRecord,
+          storage,
+          mediaStorage,
+        };
+        const chainAnchor = await anchorProofOnRegistry(proofToAnchor, wallet);
+
+        const response = await fetch("/api/verification/complete", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            eventId: mission.eventId,
-            missionId: mission.id,
-            proofType: mission.proofType,
-            userId: auth.userId,
-            location: mission.proofLocation,
-            checkpointPayload:
-              mission.proofType === "qr_scan" || mission.proofType === "nfc_tap"
-                ? `${mission.eventId}:${mission.id}:${mission.proofLocation ?? mission.title}`
-                : undefined,
-            organizerId: mission.proofType === "organizer_approval" ? "proofplay-organizer-demo" : undefined,
-            codeWord: mission.proofType === "quiz_code" ? "PROOFPLAY" : undefined,
-            mediaFileName: file?.name,
-            mediaMimeType: file?.type,
-            mediaBase64: mediaPayload,
+            submission: preparedSubmission,
+            storage,
+            mediaStorage,
+            chainAnchor,
           }),
         });
-
         const data = await response.json();
 
         if (!response.ok) {
@@ -168,8 +249,8 @@ export function useMissionVerification(eventId?: string) {
           [mission.id]: {
             state: "verified",
             message: proofRecord.mediaStorage
-              ? `0G proof ${shortHash(proofRecord.storage.rootHash)} + media ${shortHash(proofRecord.mediaStorage.rootHash)}`
-              : `0G proof stored: ${shortHash(proofRecord.storage.rootHash)}`,
+              ? `0G ${shortHash(proofRecord.storage.rootHash)} + registry ${shortHash(proofRecord.chainAnchor?.txHash ?? "")}`
+              : `0G ${shortHash(proofRecord.storage.rootHash)} anchored: ${shortHash(proofRecord.chainAnchor?.txHash ?? "")}`,
           },
         }));
       } catch (error) {
@@ -197,11 +278,10 @@ export function useMissionVerification(eventId?: string) {
   };
 }
 
-function fileToBase64(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result ?? ""));
-    reader.onerror = () => reject(new Error("Could not read selected file"));
-    reader.readAsDataURL(file);
-  });
+function findActiveWallet(wallets: ConnectedWallet[], walletAddress: string | null): UserPaidZeroGWallet | null {
+  const activeWallet = walletAddress
+    ? wallets.find((wallet) => wallet.address.toLowerCase() === walletAddress.toLowerCase())
+    : wallets[0];
+
+  return activeWallet && "getEthereumProvider" in activeWallet ? activeWallet : null;
 }

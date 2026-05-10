@@ -132,7 +132,7 @@ export default function WalletLoginButton({ compact = false, className = "" }: W
             </div>
 
             <p className="mt-3 rounded-2xl bg-[var(--color-bg-base)] p-3 text-[10px] font-bold leading-relaxed opacity-70">
-              Send $0G to this address for user-paid gas. ProofPlay still uses the server wallet for backend 0G Storage uploads.
+              Send $0G to this address for gas. Mission proofs are uploaded to 0G Storage from this Privy wallet.
             </p>
 
             <button

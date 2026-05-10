@@ -36,13 +36,35 @@ export interface VerificationResult {
   };
 }
 
+export interface PreparedVerificationProof {
+  proofRecord: Omit<ProofRecord, "storage" | "mediaStorage">;
+  proofPayload: {
+    eventId: string;
+    userId: string;
+    missionId: string;
+    proofType: ProofType;
+    timestamp: string;
+    location: string;
+    xpEarned: number;
+    evidence: string;
+  };
+  uploadKeys: {
+    proof: string;
+    media?: string;
+  };
+}
+
 export class VerificationError extends Error {
   constructor(public readonly issues: string[]) {
     super(issues.join("; "));
   }
 }
 
-export function validateVerificationSubmission(submission: VerificationSubmission) {
+export function validateVerificationSubmission(
+  submission: VerificationSubmission,
+  options: { requireMediaPayload?: boolean } = {},
+) {
+  const requireMediaPayload = options.requireMediaPayload ?? true;
   const issues: string[] = [];
   const event = EVENTS.find((item) => item.id === submission.eventId);
   const mission = MISSIONS.find((item) => item.id === submission.missionId);
@@ -66,8 +88,14 @@ export function validateVerificationSubmission(submission: VerificationSubmissio
     issues.push(`Mission requires ${PROOF_TYPE_COPY[mission.proofType].label}`);
   }
 
-  if (submission.proofType === "photo_upload" && (!submission.mediaFileName || !submission.mediaBase64)) {
-    issues.push("Photo proof requires a media file and base64 payload");
+  if (submission.proofType === "photo_upload") {
+    if (!submission.mediaFileName) {
+      issues.push("Photo proof requires a media file");
+    }
+
+    if (requireMediaPayload && !submission.mediaBase64) {
+      issues.push("Photo proof requires a base64 payload");
+    }
   }
 
   if (submission.proofType === "quiz_code" && !submission.codeWord) {
@@ -90,8 +118,11 @@ export function validateVerificationSubmission(submission: VerificationSubmissio
   };
 }
 
-export async function createVerificationProof(submission: VerificationSubmission): Promise<VerificationResult> {
-  const validation = validateVerificationSubmission(submission);
+export function prepareVerificationProof(
+  submission: VerificationSubmission,
+  options: { requireMediaPayload?: boolean } = {},
+): PreparedVerificationProof {
+  const validation = validateVerificationSubmission(submission, options);
 
   if (!validation.ok || !validation.mission || !validation.event) {
     throw new VerificationError(validation.issues);
@@ -101,6 +132,7 @@ export async function createVerificationProof(submission: VerificationSubmission
   const timestamp = submission.timestamp ?? new Date().toISOString();
   const location = submission.location ?? mission.proofLocation ?? validation.event.location;
   const id = `proof_${mission.id}_${stableSegment(`${submission.userId}:${timestamp}`)}`;
+  const evidence = evidenceSummary(submission, mission);
 
   const proofPayload = {
     eventId: submission.eventId,
@@ -110,22 +142,10 @@ export async function createVerificationProof(submission: VerificationSubmission
     timestamp,
     location,
     xpEarned: mission.xpReward,
-    evidence: evidenceSummary(submission, mission),
+    evidence,
   };
 
-  const storage = await uploadJsonToZeroG(proofPayload, `proofs/${submission.eventId}/${submission.userId}/${id}`);
-  const mediaStorage = submission.mediaFileName && submission.mediaBase64
-    ? {
-        ...(await uploadBytesToZeroG(
-          decodeBase64(submission.mediaBase64),
-          `media/${submission.eventId}/${submission.userId}/${stableSegment(submission.mediaFileName)}`,
-        )),
-        fileName: submission.mediaFileName,
-        contentType: submission.mediaMimeType,
-      }
-    : undefined;
-
-  const proofRecord: ProofRecord = {
+  const proofRecord = {
     id,
     eventId: submission.eventId,
     userId: submission.userId,
@@ -136,10 +156,40 @@ export async function createVerificationProof(submission: VerificationSubmission
     xpEarned: mission.xpReward,
     validator: submission.proofType === "organizer_approval" ? "organizer" : "backend",
     status: "validated",
-    evidenceLabel: evidenceSummary(submission, mission),
+    evidenceLabel: evidence,
+    badgeId: mission.badgeReward,
+  } satisfies Omit<ProofRecord, "storage" | "mediaStorage">;
+
+  return {
+    proofRecord,
+    proofPayload,
+    uploadKeys: {
+      proof: `proofs/${submission.eventId}/${submission.userId}/${id}`,
+      media: submission.mediaFileName
+        ? `media/${submission.eventId}/${submission.userId}/${stableSegment(submission.mediaFileName)}`
+        : undefined,
+    },
+  };
+}
+
+export async function createVerificationProof(submission: VerificationSubmission): Promise<VerificationResult> {
+  const prepared = prepareVerificationProof(submission, { requireMediaPayload: true });
+  const storage = await uploadJsonToZeroG(prepared.proofPayload, prepared.uploadKeys.proof);
+  const mediaStorage = submission.mediaFileName && submission.mediaBase64
+    ? {
+        ...(await uploadBytesToZeroG(
+          decodeBase64(submission.mediaBase64),
+          prepared.uploadKeys.media ?? `media/${submission.eventId}/${submission.userId}/${stableSegment(submission.mediaFileName)}`,
+        )),
+        fileName: submission.mediaFileName,
+        contentType: submission.mediaMimeType,
+      }
+    : undefined;
+
+  const proofRecord: ProofRecord = {
+    ...prepared.proofRecord,
     storage,
     mediaStorage,
-    badgeId: mission.badgeReward,
   };
 
   return {
@@ -148,10 +198,10 @@ export async function createVerificationProof(submission: VerificationSubmission
       userId: submission.userId,
       eventId: submission.eventId,
       missionId: submission.missionId,
-      xpDelta: mission.xpReward,
+      xpDelta: prepared.proofRecord.xpEarned,
       missionStatus: "completed",
       proofRootHash: storage.rootHash,
-      badgeId: mission.badgeReward,
+      badgeId: prepared.proofRecord.badgeId,
     },
   };
 }

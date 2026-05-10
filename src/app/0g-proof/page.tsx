@@ -15,6 +15,7 @@ export default async function ZeroGProofPage() {
   const latestProof = proofs[0];
   const latestMediaProof = proofs.find((proof) => proof.mediaStorage);
   const contractAddress = process.env.ZERO_G_FLOW_CONTRACT_ADDRESS ?? ZERO_G_MAINNET.flowContractAddress;
+  const registryAddress = process.env.NEXT_PUBLIC_PROOF_REGISTRY_ADDRESS;
   const summary = buildReputationAgentSummary(proofs, latestProof?.userId);
 
   return (
@@ -51,6 +52,10 @@ export default async function ZeroGProofPage() {
             <p className="mt-2 break-all rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-purple)] p-3 text-xs font-bold">
               {contractAddress}
             </p>
+            <p className="mt-3 text-xs font-bold opacity-60">ProofPlay registry contract</p>
+            <p className="mt-2 break-all rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] p-3 text-xs font-bold">
+              {registryAddress ?? "Pending deployment"}
+            </p>
             <div className="mt-3 grid grid-cols-2 gap-2">
               <Metric label="Network" value={ZERO_G_MAINNET.network} />
               <Metric label="Proof receipts" value={proofs.length.toString()} />
@@ -61,14 +66,14 @@ export default async function ZeroGProofPage() {
         <section className="mt-8 grid gap-4 md:grid-cols-3">
           <RequirementCard
             icon={<Wallet size={18} />}
-            title="Contract Address"
-            body={contractAddress}
+            title="Contract Addresses"
+            body={`0G Flow: ${contractAddress}${registryAddress ? ` | ProofRegistry: ${registryAddress}` : ""}`}
           />
           <RequirementCard
             icon={<ExternalLink size={18} />}
             title="Explorer Activity"
-            body={latestProof?.storage.txHash ?? "Complete a mission to generate a tx"}
-            href={latestProof?.storage.explorerUrl}
+            body={latestProof?.chainAnchor?.txHash ?? latestProof?.storage.txHash ?? "Complete a mission to generate a tx"}
+            href={latestProof?.chainAnchor?.explorerUrl ?? latestProof?.storage.explorerUrl}
           />
           <RequirementCard
             icon={<Database size={18} />}
@@ -84,9 +89,10 @@ export default async function ZeroGProofPage() {
               <div className="mt-4 grid gap-2 text-xs font-bold">
                 {[
                   "Frontend: Privy sign-in, event registration, mission proof submission",
-                  "Backend: proof validation, XP/badge write, 0G upload orchestration",
+                  "Backend: proof validation, XP/badge write, receipt indexing",
                   "Supabase: fast index for users, events, registrations, leaderboard",
                   "0G Storage: permanent proof JSON, photos, credential snapshots",
+                  "ProofRegistry: user-paid on-chain anchor for every mission proof root",
                   "0G Compute: reputation agent inference with TEE verification requested",
                   "0G Explorer: on-chain upload transactions and contract activity",
                 ].map((item) => (
@@ -193,6 +199,12 @@ function ProofReceiptCard({ proof }: { proof: Awaited<ReturnType<typeof readProo
         <ProofField label="Proof tx" value={proof.storage.txHash ?? "pending"} href={proof.storage.explorerUrl} />
         <ProofField label="Storage ref" value={proof.storage.storageRef} />
         <ProofField label="User" value={proof.userId} />
+        {proof.chainAnchor && (
+          <>
+            <ProofField label="ProofRegistry tx" value={proof.chainAnchor.txHash} href={proof.chainAnchor.explorerUrl} />
+            <ProofField label="Proof key" value={proof.chainAnchor.proofKey} />
+          </>
+        )}
       </div>
     </div>
   );
