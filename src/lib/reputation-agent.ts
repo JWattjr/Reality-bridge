@@ -29,6 +29,19 @@ export interface ReputationAgentSummary {
     reputationLabel: string;
     strongestSignals: string[];
     nextBestActions: string[];
+    narrative?: string;
+    riskNotes?: string[];
+  };
+  compute?: {
+    provider: "0G Compute";
+    model: string;
+    baseUrl: string;
+    teeRequested: boolean;
+    teeVerified?: boolean;
+    mode: "ai_generated" | "fallback";
+    generatedAt: string;
+    rawText?: string;
+    error?: string;
   };
 }
 

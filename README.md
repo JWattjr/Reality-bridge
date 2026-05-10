@@ -13,6 +13,8 @@ Hackathon verification page: `https://proofplayed.vercel.app/0g-proof`
 The verification backend integrates the official 0G Storage TypeScript SDK:
 
 - SDK: `@0gfoundation/0g-storage-ts-sdk`
+- 0G Compute endpoint: `https://router-api.0g.ai/v1/chat/completions`
+- 0G Compute model: `zai-org/GLM-5-FP8`
 - Mainnet chain ID: `16661`
 - Mainnet RPC: `https://evmrpc.0g.ai`
 - Storage indexer: `https://indexer-storage-turbo.0g.ai`
@@ -27,7 +29,8 @@ When `/api/verification` receives a valid mission submission, it:
 4. Stores the returned root hash, transaction hash, contract address, and explorer URL in Supabase.
 5. Exposes those receipts through `/api/proofs` and the organizer proof panel.
 6. Streams uploaded media back from 0G through `/api/proofs/{proofId}/media`.
-7. Can generate a portable Proof Agent reputation summary and upload that JSON back to 0G Storage through `/api/reputation/summary`.
+7. Calls 0G Compute to generate a Proof Agent reputation assessment from verified proof records.
+8. Uploads the AI-generated reputation summary JSON back to 0G Storage through `/api/reputation/summary`.
 
 ### Live proof receipt
 
@@ -76,6 +79,9 @@ Copy `.env.example` to `.env.local` and set:
 
 ```bash
 ZERO_G_PRIVATE_KEY=0x...
+ZERO_G_COMPUTE_API_KEY=...
+ZERO_G_COMPUTE_BASE_URL=https://router-api.0g.ai/v1
+ZERO_G_COMPUTE_MODEL=zai-org/GLM-5-FP8
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-server-only-service-role-key
 NEXT_PUBLIC_PRIVY_APP_ID=your-privy-app-id

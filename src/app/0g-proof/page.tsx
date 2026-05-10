@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { connection } from "next/server";
-import { ArrowLeft, Database, ExternalLink, FileJson, ImageIcon, ShieldCheck, Wallet } from "lucide-react";
+import { ArrowLeft, Brain, Database, ExternalLink, FileJson, ImageIcon, ShieldCheck, Wallet } from "lucide-react";
 import ReputationAgentCard from "@/app/0g-proof/ReputationAgentCard";
 import { EVENTS, MISSIONS, PROOF_TYPE_COPY, shortHash } from "@/lib/mock-data";
 import { readProofRecords } from "@/lib/proof-store";
@@ -40,9 +40,9 @@ export default async function ZeroGProofPage() {
             >
               Real proof records, stored evidence, retrievable media.
             </h1>
-            <p className="mt-4 max-w-2xl text-sm font-bold leading-relaxed opacity-70 sm:text-base">
+              <p className="mt-4 max-w-2xl text-sm font-bold leading-relaxed opacity-70 sm:text-base">
               ProofPlay integrates 0G Storage as the permanent evidence layer for mission proof JSON,
-              uploaded photos, and portable reputation summaries.
+              uploaded photos, and portable summaries generated through a 0G Compute reputation agent.
             </p>
           </div>
 
@@ -73,7 +73,7 @@ export default async function ZeroGProofPage() {
           <RequirementCard
             icon={<Database size={18} />}
             title="0G Component"
-            body="0G Storage SDK uploads proof JSON, media, and reputation summaries."
+            body="0G Storage persists evidence. 0G Compute generates the reputation agent summary."
           />
         </section>
 
@@ -87,6 +87,7 @@ export default async function ZeroGProofPage() {
                   "Backend: proof validation, XP/badge write, 0G upload orchestration",
                   "Supabase: fast index for users, events, registrations, leaderboard",
                   "0G Storage: permanent proof JSON, photos, credential snapshots",
+                  "0G Compute: reputation agent inference with TEE verification requested",
                   "0G Explorer: on-chain upload transactions and contract activity",
                 ].map((item) => (
                   <div key={item} className="rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)] p-3">
@@ -131,9 +132,14 @@ export default async function ZeroGProofPage() {
             )}
 
             <div className="bubbly-card bg-white p-5">
-              <p className="font-display text-2xl font-bold">Agent Preview</p>
+              <div className="flex items-center gap-2">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-purple)]">
+                  <Brain size={18} />
+                </span>
+                <p className="font-display text-2xl font-bold">Agent Preview</p>
+              </div>
               <p className="mt-1 text-sm font-bold opacity-65">
-                A deterministic reputation agent reads stored evidence and emits a portable summary object.
+                The live action above calls 0G Compute, merges model output with verified proof records, and stores the resulting credential on 0G Storage.
               </p>
               <div className="mt-3 rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)] p-3">
                 <p className="text-[10px] font-bold uppercase opacity-50">Current assessment</p>
