@@ -30,13 +30,13 @@ export default function OrganizerDashboard() {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Welcome */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h1 className="font-display text-3xl font-bold">👋 Welcome back!</h1>
+        <h1 className="font-display text-2xl font-bold sm:text-3xl">Organizer Dashboard</h1>
         <p className="text-sm font-bold opacity-60 mt-1">Here&apos;s your event overview</p>
       </motion.div>
 
@@ -45,7 +45,7 @@ export default function OrganizerDashboard() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="grid grid-cols-2 md:grid-cols-5 gap-4"
+        className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-5"
       >
         {statCards.map((stat, i) => (
           <motion.div
@@ -55,7 +55,7 @@ export default function OrganizerDashboard() {
             whileHover={{ y: -4, scale: 1.03 }}
             whileTap={{ scale: 0.98 }}
             transition={{ delay: 0.1 + i * 0.05 }}
-            className="bubbly-card premium-glint p-4"
+            className="bubbly-card premium-glint p-3 sm:p-4"
             style={{ backgroundColor: stat.color }}
           >
             <div className="flex justify-between items-start mb-2">
@@ -76,7 +76,7 @@ export default function OrganizerDashboard() {
           transition={{ delay: 0.2 }}
         >
           <div className="flex justify-between items-end mb-3">
-            <h2 className="font-display text-xl font-bold">📅 Your Events</h2>
+            <h2 className="font-display text-xl font-bold">Your Events</h2>
             <Link href="/organizer/create" className="text-xs font-bold opacity-60 hover:opacity-100 flex items-center gap-1">
               Create <ArrowRight size={12} />
             </Link>
@@ -89,7 +89,7 @@ export default function OrganizerDashboard() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="font-bold text-sm truncate">{event.title}</p>
-                  <p className="text-xs font-bold opacity-50">{event.startDate} • {event.location}</p>
+                  <p className="text-xs font-bold opacity-50">{event.startDate} - {event.location}</p>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-[10px] font-bold bg-[var(--color-pastel-blue)] px-1.5 py-0.5 rounded-full border border-[var(--color-primary-900)]">
                       {event.attendees} attendees
@@ -174,7 +174,7 @@ export default function OrganizerDashboard() {
 
           {/* Top Missions */}
           <div>
-            <h2 className="font-display text-xl font-bold mb-3">🏅 Top Missions</h2>
+            <h2 className="font-display text-xl font-bold mb-3">Top Missions</h2>
             <div className="bubbly-card p-4 bg-white space-y-3">
               {ANALYTICS.topMissions.map((mission, i) => (
                 <motion.div key={i} className="flex items-center gap-3 rounded-xl p-1" whileHover={{ x: 3 }}>
@@ -188,7 +188,7 @@ export default function OrganizerDashboard() {
                           backgroundColor: i === 0 ? "var(--color-pastel-purple)" : i === 1 ? "var(--color-pastel-pink)" : "var(--color-pastel-blue)",
                         }}
                         initial={{ width: 0 }}
-                        animate={{ width: `${(mission.completions / ANALYTICS.topMissions[0].completions) * 100}%` }}
+                        animate={{ width: `${ANALYTICS.topMissions[0].completions ? (mission.completions / ANALYTICS.topMissions[0].completions) * 100 : 0}%` }}
                         whileHover={{ filter: "brightness(1.08)" }}
                         transition={{ type: "spring", stiffness: 85, damping: 18, delay: 0.4 + i * 0.1 }}
                       />
@@ -204,7 +204,7 @@ export default function OrganizerDashboard() {
 
           {/* Sponsor Visits */}
           <div>
-            <h2 className="font-display text-xl font-bold mb-3">🏪 Sponsor Booth Visits</h2>
+            <h2 className="font-display text-xl font-bold mb-3">Sponsor Booth Visits</h2>
             <div className="bubbly-card p-4 bg-white space-y-3">
               {ANALYTICS.sponsorVisits.map((sponsor, i) => (
                 <motion.div key={i} className="flex items-center justify-between rounded-xl p-1" whileHover={{ x: 3, backgroundColor: "rgba(255,255,255,0.55)" }}>
@@ -222,12 +222,12 @@ export default function OrganizerDashboard() {
 
           {/* Hourly Activity */}
           <div>
-            <h2 className="font-display text-xl font-bold mb-3">📊 Today&apos;s Activity</h2>
+            <h2 className="font-display text-xl font-bold mb-3">Today&apos;s Activity</h2>
             <div className="bubbly-card p-4 bg-white">
               <div className="flex items-end gap-1 h-28">
                 {ANALYTICS.hourlyActivity.map((hour, i) => {
                   const maxMissions = Math.max(...ANALYTICS.hourlyActivity.map((h) => h.missions));
-                  const height = (hour.missions / maxMissions) * 100;
+                  const height = maxMissions ? (hour.missions / maxMissions) * 100 : 0;
                   return (
                     <div key={i} className="flex-1 flex flex-col items-center gap-1">
                       <motion.div

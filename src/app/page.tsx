@@ -59,7 +59,7 @@ export default function Home() {
           </div>
 
           <h1
-            className="font-display text-[clamp(3rem,16vw,8rem)] font-bold tracking-tight text-[var(--color-primary-900)] leading-[0.86]"
+            className="font-display text-[clamp(2.35rem,12.2vw,8rem)] font-bold tracking-tight text-[var(--color-primary-900)] leading-[0.86] sm:text-[clamp(3rem,16vw,8rem)]"
             style={{
               textShadow: "3px 3px 0px #fff, -1.5px -1.5px 0px #fff, 1.5px -1.5px 0px #fff, -1.5px 1.5px 0px #fff",
               WebkitTextStroke: "1.5px var(--color-primary-900)",

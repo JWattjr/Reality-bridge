@@ -90,7 +90,7 @@ export default function CreateEventPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="mx-auto max-w-2xl space-y-5 sm:space-y-6">
       {/* Back */}
       <Link href="/organizer" className="inline-flex items-center gap-1 text-xs font-bold opacity-60 hover:opacity-100">
         <ArrowLeft size={14} /> Back to Dashboard
@@ -101,7 +101,7 @@ export default function CreateEventPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h1 className="font-display text-3xl font-bold">✨ Create Event</h1>
+        <h1 className="font-display text-2xl font-bold sm:text-3xl">Create Event</h1>
         <p className="text-sm font-bold opacity-60 mt-1">Set up your event and add missions for attendees</p>
       </motion.div>
 
@@ -131,7 +131,7 @@ export default function CreateEventPage() {
           className="space-y-4"
         >
           <div className="bubbly-card p-6 bg-white space-y-4">
-            <h2 className="font-display text-xl font-bold">📋 Event Details</h2>
+            <h2 className="font-display text-xl font-bold">Event Details</h2>
 
             <div>
               <label className="block text-xs font-bold mb-1">Event Name *</label>
@@ -155,7 +155,7 @@ export default function CreateEventPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <label className="block text-xs font-bold mb-1">Location *</label>
                 <input
@@ -178,7 +178,7 @@ export default function CreateEventPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <label className="block text-xs font-bold mb-1">Start Date *</label>
                 <input
@@ -221,7 +221,7 @@ export default function CreateEventPage() {
             onClick={() => setStep(2)}
             className="w-full bg-[var(--color-primary-900)] text-white font-bold py-3 rounded-2xl border-2 border-[var(--color-primary-900)] hover:bg-[var(--color-primary-700)] transition-colors"
           >
-            Next: Add Missions →
+            Next: Add Missions
           </button>
         </motion.div>
       )}
@@ -235,10 +235,10 @@ export default function CreateEventPage() {
         >
           {/* Templates */}
           <div className="bubbly-card p-5 bg-white">
-            <h2 className="font-display text-xl font-bold mb-1">🚀 Add Missions</h2>
+            <h2 className="font-display text-xl font-bold mb-1">Add Missions</h2>
             <p className="text-xs font-bold opacity-60 mb-3">Pick from templates or create custom ones</p>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid gap-2 sm:grid-cols-2">
               {MISSION_TEMPLATES.map((template, i) => (
                 <button
                   key={i}
@@ -262,7 +262,7 @@ export default function CreateEventPage() {
           {/* Added Missions */}
           {missions.length > 0 && (
             <div className="bubbly-card p-5 bg-white">
-              <h3 className="font-display text-lg font-bold mb-3">📋 Your Missions ({missions.length})</h3>
+              <h3 className="font-display text-lg font-bold mb-3">Your Missions ({missions.length})</h3>
               <div className="space-y-2">
                 {missions.map((mission) => (
                   <div
@@ -284,18 +284,18 @@ export default function CreateEventPage() {
             </div>
           )}
 
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
             <button
               onClick={() => setStep(1)}
               className="flex-1 bg-white font-bold py-3 rounded-2xl border-2 border-[var(--color-primary-900)] hover:bg-gray-50 transition-colors shadow-[2px_2px_0px_0px_#312e81]"
             >
-              ← Back
+              Back
             </button>
             <button
               onClick={() => setStep(3)}
               className="flex-1 bg-[var(--color-primary-900)] text-white font-bold py-3 rounded-2xl border-2 border-[var(--color-primary-900)] hover:bg-[var(--color-primary-700)] transition-colors"
             >
-              Next: Preview →
+              Next: Preview
             </button>
           </div>
         </motion.div>
@@ -309,28 +309,27 @@ export default function CreateEventPage() {
           className="space-y-4"
         >
           <div className="bubbly-card p-6 bg-gradient-to-br from-[var(--color-pastel-purple)] to-[var(--color-pastel-pink)] text-center">
-            <h2 className="font-display text-2xl font-bold mb-2">🎉 Ready to Launch!</h2>
+            <h2 className="font-display text-2xl font-bold mb-2">Ready to Launch</h2>
             <p className="text-sm font-bold opacity-70">Your event is ready. Share the QR code with attendees.</p>
 
             {/* QR Code Placeholder */}
             <div className="w-40 h-40 mx-auto mt-6 bg-white bubbly-border flex items-center justify-center shadow-[3px_3px_0px_0px_#312e81]">
               <div className="text-center">
-                <p className="text-4xl mb-1">📱</p>
                 <p className="text-[10px] font-bold opacity-60">QR Code</p>
               </div>
             </div>
 
             <div className="mt-4 bg-white/50 backdrop-blur-sm rounded-xl border-2 border-[var(--color-primary-900)] p-3 text-xs font-bold">
               <p>Event Link:</p>
-              <p className="text-[var(--color-primary-500)] mt-0.5">
+              <p className="mt-0.5 break-all text-[var(--color-primary-500)]">
                 {createdEvent ? `https://proofplayed.vercel.app${createdEvent.shareUrl}` : "Publish to generate a share link"}
               </p>
             </div>
           </div>
 
           <div className="bubbly-card p-5 bg-white">
-            <h3 className="font-display text-lg font-bold mb-3">📊 Event Summary</h3>
-            <div className="grid grid-cols-2 gap-3 text-sm">
+            <h3 className="font-display text-lg font-bold mb-3">Event Summary</h3>
+            <div className="grid gap-3 text-sm sm:grid-cols-2">
               <div className="rounded-xl bg-[var(--color-bg-base)] border-2 border-[var(--color-primary-900)] p-3 text-center">
                 <p className="font-bold text-xl">{missions.length}</p>
                 <p className="text-xs font-bold opacity-60">Missions</p>
@@ -342,18 +341,18 @@ export default function CreateEventPage() {
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
             <button
               onClick={() => setStep(2)}
               className="flex-1 bg-white font-bold py-3 rounded-2xl border-2 border-[var(--color-primary-900)] hover:bg-gray-50 transition-colors shadow-[2px_2px_0px_0px_#312e81]"
             >
-              ← Back
+              Back
             </button>
             <button
               onClick={launchEvent}
               className="flex-1 bg-[var(--color-primary-900)] text-white font-bold py-3 rounded-2xl border-2 border-[var(--color-primary-900)] hover:bg-[var(--color-primary-700)] transition-colors"
             >
-              🚀 Launch Event
+              Launch Event
             </button>
           </div>
           {submitStatus && (
