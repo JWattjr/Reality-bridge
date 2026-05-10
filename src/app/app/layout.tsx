@@ -29,7 +29,7 @@ export default function AppLayout({
           </div>
         </div>
 
-        <main className="p-4">
+        <main className="px-3 py-4 min-[380px]:px-4">
           {children}
         </main>
 

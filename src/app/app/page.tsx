@@ -87,8 +87,8 @@ export default function AppDashboard() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <div className="bubbly-card p-4 bg-white">
-          <div className="flex justify-between items-center mb-2">
+        <div className="bubbly-card bg-white p-3 min-[380px]:p-4">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-1.5">
             <span className="font-bold text-sm">Level {levelInfo.level} - {levelInfo.title}</span>
             {levelInfo.nextLevel && (
               <span className="text-xs font-bold opacity-60">
@@ -164,27 +164,27 @@ export default function AppDashboard() {
           transition={{ delay: 0.15 }}
         >
           <h2 className="font-display text-lg font-bold mb-2">Registered Event</h2>
-          <div className="bubbly-card p-4 bg-[var(--color-pastel-purple)] relative overflow-hidden">
+          <div className="bubbly-card relative overflow-hidden bg-[var(--color-pastel-purple)] p-3 min-[380px]:p-4">
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-white/20 rounded-full blur-2xl pointer-events-none" />
 
-            <div className="flex justify-between items-start mb-3">
-              <div>
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div className="min-w-0">
                 <h3 className="font-display font-bold text-xl leading-tight">{activeEvent.title}</h3>
                 <p className="font-bold text-xs flex items-center gap-1 mt-1 opacity-80">
-                  <MapPin size={12} /> {activeEvent.location}
+                  <MapPin size={12} className="shrink-0" /> <span className="truncate">{activeEvent.location}</span>
                 </p>
                 <p className="font-bold text-xs flex items-center gap-1 opacity-80">
-                  <CalendarDays size={12} /> {activeEvent.startDate} - {activeEvent.endDate}
+                  <CalendarDays size={12} className="shrink-0" /> <span className="truncate">{activeEvent.startDate} - {activeEvent.endDate}</span>
                 </p>
               </div>
               <EventIconBadge size="lg" />
             </div>
 
-            <div className="bg-white/50 p-3 rounded-xl border-2 border-[var(--color-primary-900)] flex justify-between items-center backdrop-blur-sm">
+            <div className="flex items-center justify-between gap-2 rounded-xl border-2 border-[var(--color-primary-900)] bg-white/50 p-3 backdrop-blur-sm">
               <span className="font-bold text-xs">
                 {activeEvent.isRegistered ? "Registered" : "Open"} - {activeMissions.length} missions
               </span>
-              <Link href={`/app/event/${activeEvent.id}`} className="bg-[var(--color-primary-900)] text-white text-xs font-bold px-3 py-1.5 rounded-full hover:bg-[var(--color-primary-700)] transition-colors">
+              <Link href={`/app/event/${activeEvent.id}`} className="shrink-0 rounded-full bg-[var(--color-primary-900)] px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-[var(--color-primary-700)]">
                 View
               </Link>
             </div>
@@ -193,16 +193,16 @@ export default function AppDashboard() {
       )}
 
       <motion.section
-        className="grid grid-cols-2 gap-3"
+        className="grid grid-cols-2 gap-2 min-[380px]:gap-3"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
       >
-        <Link href={activeEvent ? `/app/event/${activeEvent.id}` : "/app/missions"} className="bubbly-card p-4 bg-[var(--color-pastel-pink)] flex flex-col items-center justify-center gap-2 text-center transition-all h-20 active:translate-y-0.5 active:shadow-none">
+        <Link href={activeEvent ? `/app/event/${activeEvent.id}` : "/app/missions"} className="bubbly-card flex h-20 flex-col items-center justify-center gap-2 bg-[var(--color-pastel-pink)] p-3 text-center transition-all active:translate-y-0.5 active:shadow-none min-[380px]:p-4">
           <QrCode size={22} />
           <span className="font-bold text-xs">Scan Proof</span>
         </Link>
-        <Link href="/app/profile" className="bubbly-card p-4 bg-[var(--color-pastel-yellow)] flex flex-col items-center justify-center gap-2 text-center transition-all h-20 active:translate-y-0.5 active:shadow-none">
+        <Link href="/app/profile" className="bubbly-card flex h-20 flex-col items-center justify-center gap-2 bg-[var(--color-pastel-yellow)] p-3 text-center transition-all active:translate-y-0.5 active:shadow-none min-[380px]:p-4">
           <Users size={22} />
           <span className="font-bold text-xs">Profile Tag</span>
         </Link>
@@ -229,13 +229,13 @@ export default function AppDashboard() {
               whileHover={{ y: -3, scale: 1.01 }}
               whileTap={{ scale: 0.985 }}
               transition={{ delay: 0.4 + index * 0.05 }}
-              className="premium-glint rounded-2xl border-2 border-[var(--color-primary-900)] p-3 flex items-center justify-between transition-all bg-white hover:-translate-y-0.5 hover:shadow-[2px_2px_0px_0px_#312e81]"
+              className="premium-glint flex items-center justify-between gap-3 rounded-2xl border-2 border-[var(--color-primary-900)] bg-white p-3 transition-all hover:-translate-y-0.5 hover:shadow-[2px_2px_0px_0px_#312e81]"
             >
-              <div className="flex items-center gap-3 min-w-0">
+              <div className="flex min-w-0 flex-1 items-center gap-3">
                 <MissionIconBadge title={mission.title} type={mission.type} proofType={mission.proofType} size="sm" />
                 <div className="min-w-0">
                   <p className="font-bold text-sm truncate">{mission.title}</p>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5 min-[380px]:gap-2">
                     <motion.span
                       className="text-xs font-bold text-[var(--color-primary-500)] flex items-center gap-0.5"
                       animate={{ scale: [1, 1.08, 1] }}
@@ -247,7 +247,7 @@ export default function AppDashboard() {
                       {PROOF_TYPE_COPY[mission.proofType].label}
                     </span>
                     {getProofRecordForMission(mission.id) && (
-                      <span className="text-[10px] font-bold text-green-700">
+                      <span className="max-w-[8.5rem] truncate text-[10px] font-bold text-green-700">
                         0G {shortHash(getProofRecordForMission(mission.id)!.storage.rootHash)}
                       </span>
                     )}
@@ -257,7 +257,7 @@ export default function AppDashboard() {
               <motion.div
                 whileHover={{ x: 2, scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
-                className="bg-[var(--color-pastel-blue)] font-bold text-[10px] px-2.5 py-1 border-2 border-[var(--color-primary-900)] rounded-full hover:bg-[var(--color-primary-900)] hover:text-white transition-colors shrink-0"
+                className="shrink-0 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-blue)] px-2 py-1 text-[10px] font-bold transition-colors hover:bg-[var(--color-primary-900)] hover:text-white min-[380px]:px-2.5"
               >
                 <Link href={`/app/event/${activeEvent?.id ?? "evt_1"}`}>
                   {PROOF_TYPE_COPY[mission.proofType].action}
@@ -309,7 +309,7 @@ function EventDiscoveryCard({
       transition={{ delay: 0.12 + index * 0.04 }}
       className="bubbly-card bg-white p-3"
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-2 min-[380px]:gap-3">
         <EventIconBadge />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
@@ -318,14 +318,14 @@ function EventDiscoveryCard({
               <p className="text-[10px] font-bold opacity-60 truncate">{event.organizerName} - {event.category}</p>
             </div>
             {event.isRegistered && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-green-700 bg-green-100 px-2 py-0.5 text-[9px] font-bold text-green-700">
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-green-700 bg-green-100 px-2 py-0.5 text-[9px] font-bold text-green-700">
                 <CheckCircle size={10} /> Joined
               </span>
             )}
           </div>
           <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-bold opacity-70">
-            <span className="inline-flex items-center gap-1"><MapPin size={10} /> {event.location}</span>
-            <span className="inline-flex items-center gap-1"><Users size={10} /> {event.attendees}/{event.maxAttendees}</span>
+            <span className="inline-flex min-w-0 items-center gap-1"><MapPin size={10} className="shrink-0" /> <span className="truncate">{event.location}</span></span>
+            <span className="inline-flex items-center gap-1"><Users size={10} className="shrink-0" /> {event.attendees}/{event.maxAttendees}</span>
             <span>{event.missions.length} missions</span>
           </div>
           {event.mutuals?.length ? (
@@ -333,12 +333,12 @@ function EventDiscoveryCard({
               {event.mutuals.length} mutuals planning to attend
             </p>
           ) : null}
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
               onClick={onRegister}
               disabled={registering || event.isRegistered}
-              className="rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-pink)] px-3 py-1.5 text-[10px] font-bold disabled:opacity-60"
+              className="min-w-20 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-pink)] px-3 py-1.5 text-[10px] font-bold disabled:opacity-60"
             >
               {event.isRegistered ? "Registered" : registering ? "Registering" : "Register"}
             </button>

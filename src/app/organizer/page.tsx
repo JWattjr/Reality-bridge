@@ -45,7 +45,7 @@ export default function OrganizerDashboard() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-5"
+        className="grid grid-cols-2 gap-2 min-[380px]:gap-3 sm:gap-4 md:grid-cols-5"
       >
         {statCards.map((stat, i) => (
           <motion.div
@@ -55,14 +55,14 @@ export default function OrganizerDashboard() {
             whileHover={{ y: -4, scale: 1.03 }}
             whileTap={{ scale: 0.98 }}
             transition={{ delay: 0.1 + i * 0.05 }}
-            className="bubbly-card premium-glint p-3 sm:p-4"
+            className="bubbly-card premium-glint min-h-28 p-3 sm:p-4"
             style={{ backgroundColor: stat.color }}
           >
             <div className="flex justify-between items-start mb-2">
               {stat.icon}
             </div>
-            <p className="font-display font-bold text-2xl">{stat.value}</p>
-            <p className="text-xs font-bold opacity-70">{stat.label}</p>
+            <p className="font-display text-xl font-bold min-[380px]:text-2xl">{stat.value}</p>
+            <p className="text-[11px] font-bold leading-tight opacity-70 min-[380px]:text-xs">{stat.label}</p>
           </motion.div>
         ))}
       </motion.div>
@@ -83,14 +83,14 @@ export default function OrganizerDashboard() {
           </div>
           <div className="space-y-3">
             {EVENTS.map((event) => (
-              <div key={event.id} className="bubbly-card p-4 bg-white flex items-center gap-4 transition-all hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_#312e81]">
+              <div key={event.id} className="bubbly-card flex items-center gap-3 bg-white p-3 transition-all hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_#312e81] min-[380px]:gap-4 min-[380px]:p-4">
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl border-2 border-[var(--color-primary-900)] shrink-0" style={{ backgroundColor: event.color }}>
                   {event.emoji}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="font-bold text-sm truncate">{event.title}</p>
-                  <p className="text-xs font-bold opacity-50">{event.startDate} - {event.location}</p>
-                  <div className="flex items-center gap-2 mt-1">
+                  <p className="truncate text-xs font-bold opacity-50">{event.startDate} - {event.location}</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5 min-[380px]:gap-2">
                     <span className="text-[10px] font-bold bg-[var(--color-pastel-blue)] px-1.5 py-0.5 rounded-full border border-[var(--color-primary-900)]">
                       {event.attendees} attendees
                     </span>
@@ -121,7 +121,7 @@ export default function OrganizerDashboard() {
                 whileHover={{ scale: 1.01 }}
               >
                 <p className="text-[10px] font-bold opacity-60">0G mainnet Flow contract</p>
-                <p className="font-bold text-xs break-all">{zeroGContract}</p>
+                <p className="break-all text-[11px] font-bold min-[380px]:text-xs">{zeroGContract}</p>
               </motion.div>
               {proofRecords.length === 0 && (
                 <p className="text-xs font-bold opacity-50">
@@ -143,7 +143,7 @@ export default function OrganizerDashboard() {
                     <div className="flex items-center justify-between gap-2">
                       <div className="min-w-0">
                         <p className="font-bold text-xs truncate">{mission?.title ?? proof.missionId}</p>
-                        <p className="text-[10px] font-bold opacity-50">
+                        <p className="truncate text-[10px] font-bold opacity-50">
                           {PROOF_TYPE_COPY[proof.proofType].label} - {proof.location}
                         </p>
                       </div>
@@ -207,14 +207,14 @@ export default function OrganizerDashboard() {
             <h2 className="font-display text-xl font-bold mb-3">Sponsor Booth Visits</h2>
             <div className="bubbly-card p-4 bg-white space-y-3">
               {ANALYTICS.sponsorVisits.map((sponsor, i) => (
-                <motion.div key={i} className="flex items-center justify-between rounded-xl p-1" whileHover={{ x: 3, backgroundColor: "rgba(255,255,255,0.55)" }}>
-                  <div className="flex items-center gap-2">
+                <motion.div key={i} className="flex items-center justify-between gap-2 rounded-xl p-1" whileHover={{ x: 3, backgroundColor: "rgba(255,255,255,0.55)" }}>
+                  <div className="flex min-w-0 items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-[var(--color-pastel-yellow)] border-2 border-[var(--color-primary-900)] flex items-center justify-center text-xs font-bold">
                       {sponsor.sponsor[0]}
                     </div>
-                    <span className="font-bold text-sm">{sponsor.sponsor}</span>
+                    <span className="truncate text-sm font-bold">{sponsor.sponsor}</span>
                   </div>
-                  <motion.span className="font-bold text-sm" whileHover={{ scale: 1.08 }}>{sponsor.visits} visits</motion.span>
+                  <motion.span className="shrink-0 text-sm font-bold" whileHover={{ scale: 1.08 }}>{sponsor.visits} visits</motion.span>
                 </motion.div>
               ))}
             </div>
@@ -224,7 +224,7 @@ export default function OrganizerDashboard() {
           <div>
             <h2 className="font-display text-xl font-bold mb-3">Today&apos;s Activity</h2>
             <div className="bubbly-card p-4 bg-white">
-              <div className="flex items-end gap-1 h-28">
+              <div className="flex h-28 items-end gap-0.5 min-[380px]:gap-1">
                 {ANALYTICS.hourlyActivity.map((hour, i) => {
                   const maxMissions = Math.max(...ANALYTICS.hourlyActivity.map((h) => h.missions));
                   const height = maxMissions ? (hour.missions / maxMissions) * 100 : 0;
@@ -238,7 +238,7 @@ export default function OrganizerDashboard() {
                         title={`${hour.hour}: ${hour.missions} missions`}
                         transition={{ type: "spring", stiffness: 95, damping: 17, delay: 0.5 + i * 0.05 }}
                       />
-                      <span className="text-[8px] font-bold opacity-40">{hour.hour}</span>
+                      <span className="text-[7px] font-bold opacity-40 min-[380px]:text-[8px]">{hour.hour}</span>
                     </div>
                   );
                 })}
