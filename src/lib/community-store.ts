@@ -182,6 +182,8 @@ export async function registerForEvent(eventId: string, userId: string) {
   }
 
   const supabase = createSupabaseServerClient();
+  await ensureEventExistsForRegistration(eventId);
+
   const { error } = await supabase
     .from("event_registrations")
     .upsert({
@@ -197,6 +199,33 @@ export async function registerForEvent(eventId: string, userId: string) {
   }
 
   return { id, eventId, userId, status: "registered" };
+}
+
+async function ensureEventExistsForRegistration(eventId: string) {
+  const fallbackEvent = EVENTS.find((event) => event.id === eventId);
+  if (!fallbackEvent) return;
+
+  const supabase = createSupabaseServerClient();
+  const { data, error: readError } = await supabase
+    .from("community_events")
+    .select("id")
+    .eq("id", eventId)
+    .maybeSingle();
+
+  if (readError) {
+    throw new Error(`Failed to check event before registration: ${readError.message}`);
+  }
+
+  if (data) return;
+
+  const event = eventFromMock(fallbackEvent);
+  const { error: writeError } = await supabase
+    .from("community_events")
+    .upsert(eventToRow(event), { onConflict: "id" });
+
+  if (writeError) {
+    throw new Error(`Failed to prepare event for registration: ${writeError.message}`);
+  }
 }
 
 export async function upsertUserProfile(input: {

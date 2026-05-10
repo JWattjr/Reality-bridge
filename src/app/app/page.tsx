@@ -180,13 +180,25 @@ export default function AppDashboard() {
               <EventIconBadge size="lg" />
             </div>
 
-            <div className="flex items-center justify-between gap-2 rounded-xl border-2 border-[var(--color-primary-900)] bg-white/50 p-3 backdrop-blur-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border-2 border-[var(--color-primary-900)] bg-white/50 p-3 backdrop-blur-sm">
               <span className="font-bold text-xs">
                 {activeEvent.isRegistered ? "Registered" : "Open"} - {activeMissions.length} missions
               </span>
-              <Link href={`/app/event/${activeEvent.id}`} className="shrink-0 rounded-full bg-[var(--color-primary-900)] px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-[var(--color-primary-700)]">
-                View
-              </Link>
+              <div className="flex shrink-0 items-center gap-2">
+                {!activeEvent.isRegistered && (
+                  <button
+                    type="button"
+                    onClick={() => register(activeEvent.id)}
+                    disabled={registeringId === activeEvent.id}
+                    className="rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-pink)] px-3 py-1.5 text-xs font-bold transition-colors disabled:opacity-60"
+                  >
+                    {registeringId === activeEvent.id ? "Registering" : "Register"}
+                  </button>
+                )}
+                <Link href={`/app/event/${activeEvent.id}`} className="rounded-full bg-[var(--color-primary-900)] px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-[var(--color-primary-700)]">
+                  View
+                </Link>
+              </div>
             </div>
           </div>
         </motion.section>
