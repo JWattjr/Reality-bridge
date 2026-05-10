@@ -100,6 +100,12 @@ export default function Home() {
             >
               View Proofs
             </Link>
+            <Link
+              href="/0g-proof"
+              className="bg-[var(--color-pastel-blue)] text-base sm:text-lg px-7 py-3.5 rounded-full border-3 border-[var(--color-primary-900)] font-bold shadow-[4px_4px_0px_0px_#312e81] hover:translate-y-0.5 hover:shadow-[2px_2px_0px_0px_#312e81] transition-all flex items-center justify-center gap-2"
+            >
+              0G Proof
+            </Link>
           </div>
         </motion.div>
 
@@ -110,9 +116,9 @@ export default function Home() {
           className="absolute bottom-6 left-4 right-4 flex flex-wrap justify-center gap-x-4 gap-y-1 font-bold text-[11px] sm:bottom-8 sm:gap-8 sm:text-sm"
           style={{ textShadow: "1px 1px 0px #fff" }}
         >
-          <span>✨ 1,234 Events Hosted</span>
-          <span>✨ 450K+ Badges Minted</span>
-          <span className="hidden md:inline">✨ 46,209 Organizers</span>
+          <span>1,234 Events Hosted</span>
+          <span>450K+ Badges Minted</span>
+          <span className="hidden md:inline">46,209 Organizers</span>
         </motion.div>
       </section>
 

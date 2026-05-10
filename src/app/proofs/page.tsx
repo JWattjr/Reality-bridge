@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { connection } from "next/server";
 import { ArrowLeft, ExternalLink, ShieldCheck, Trophy, Wallet } from "lucide-react";
 import { EVENTS, MISSIONS, PROOF_TYPE_COPY, shortHash } from "@/lib/mock-data";
@@ -136,8 +137,18 @@ export default async function ProofsPage() {
                   </div>
 
                   {proof.mediaStorage && (
-                    <div className="mt-3">
+                    <div className="mt-3 grid gap-3 md:grid-cols-[0.8fr_1.2fr] md:items-start">
                       <ProofField label="Media root" value={proof.mediaStorage.rootHash} />
+                      <div className="overflow-hidden rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)]">
+                        <Image
+                          src={`/api/proofs/${proof.id}/media`}
+                          alt={`Uploaded proof media for ${proof.id}`}
+                          width={640}
+                          height={360}
+                          className="h-auto w-full object-cover"
+                          unoptimized
+                        />
+                      </div>
                     </div>
                   )}
 

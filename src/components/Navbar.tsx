@@ -24,7 +24,7 @@ export default function Navbar() {
           <Link href="/about" className="hover:text-[var(--color-primary-500)] transition-colors">About</Link>
           <Link href="/events" className="hover:text-[var(--color-primary-500)] transition-colors">Events</Link>
           <Link href="/proofs" className="hover:text-[var(--color-primary-500)] transition-colors">Proofs</Link>
-          <Link href="/communities" className="hover:text-[var(--color-primary-500)] transition-colors">Communities</Link>
+          <Link href="/0g-proof" className="hover:text-[var(--color-primary-500)] transition-colors">0G Proof</Link>
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
           <WalletLoginButton compact />
