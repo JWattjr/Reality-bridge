@@ -203,7 +203,13 @@ export async function upsertUserProfile(input: {
   userId: string;
   walletAddress?: string;
   displayName?: string;
+  handle?: string;
+  userTag?: string;
+  bio?: string;
+  avatar?: string;
+  mode?: "ensure" | "update";
 }) {
+  const mode = input.mode ?? "ensure";
   const existing = await findUserProfile(input.userId);
   const profile: UserProfile = existing ?? {
     id: input.userId,
@@ -219,7 +225,13 @@ export async function upsertUserProfile(input: {
   const nextProfile = {
     ...profile,
     walletAddress: input.walletAddress ?? profile.walletAddress,
-    displayName: input.displayName ?? profile.displayName,
+    displayName: mode === "update" ? normalizeDisplayName(input.displayName, profile.displayName) : profile.displayName,
+    handle: mode === "update" ? normalizeHandle(input.handle, profile.handle) : profile.handle,
+    userTag: mode === "update" ? normalizeUserTag(input.userTag, profile.userTag) : profile.userTag,
+    bio: mode === "update" ? normalizeBio(input.bio, profile.bio) : profile.bio,
+    avatar: mode === "update"
+      ? normalizeAvatar(input.avatar, profile.avatar, input.displayName ?? profile.displayName)
+      : normalizeAvatar(undefined, profile.avatar, profile.displayName),
   };
 
   if (!hasSupabaseConfig()) {
@@ -239,6 +251,51 @@ export async function upsertUserProfile(input: {
   }
 
   return profileFromRow(data);
+}
+
+function normalizeDisplayName(value: string | undefined, fallback: string) {
+  const normalized = value?.trim().replace(/\s+/g, " ");
+  return normalized ? normalized.slice(0, 40) : fallback;
+}
+
+function normalizeHandle(value: string | undefined, fallback: string) {
+  const normalized = value
+    ?.trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return normalized && normalized.length >= 3 ? normalized.slice(0, 24) : fallback;
+}
+
+function normalizeUserTag(value: string | undefined, fallback: string) {
+  const normalized = value
+    ?.trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  if (!normalized) return fallback;
+
+  const withPrefix = normalized.startsWith("PP-") ? normalized : `PP-${normalized}`;
+  return withPrefix.slice(0, 18);
+}
+
+function normalizeBio(value: string | undefined, fallback: string | undefined) {
+  const normalized = value?.trim().replace(/\s+/g, " ");
+  return normalized ? normalized.slice(0, 140) : fallback;
+}
+
+function normalizeAvatar(value: string | undefined, fallback: string | undefined, displayName: string) {
+  const normalized = value?.trim().toUpperCase().replace(/[^A-Z0-9]+/g, "");
+  const fallbackAvatar = fallback?.trim().toUpperCase().replace(/[^A-Z0-9]+/g, "");
+  return normalized ? normalized.slice(0, 3) : fallbackAvatar ? fallbackAvatar.slice(0, 3) : initialsFor(displayName);
+}
+
+function initialsFor(displayName: string) {
+  const words = displayName.trim().split(/\s+/).filter(Boolean);
+  const initials = words.slice(0, 2).map((word) => word[0]?.toUpperCase()).join("");
+  return initials || "PP";
 }
 
 export async function connectWithUser(input: { requesterUserId: string; targetUserTag: string; eventId?: string }) {

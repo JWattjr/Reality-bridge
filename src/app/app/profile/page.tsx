@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { CURRENT_USER, BADGES, MISSIONS, PROOF_TYPE_COPY, getLevelForXp, getRarityColor, shortHash } from "@/lib/mock-data";
 import type { ProofRecord } from "@/lib/mock-data";
-import { Calendar, Award, Target, Star, Share2, Settings, ShieldCheck } from "lucide-react";
+import { Calendar, Award, Check, Settings, Share2, ShieldCheck, Star, Target, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useProofPlayAuth } from "@/components/ProofPlayAuthProvider";
 import type { UserProfile } from "@/lib/community-store";
@@ -19,11 +19,28 @@ const STATS = [
 
 const RARITY_ORDER = ["legendary", "epic", "rare", "common"] as const;
 
+type ProfileForm = {
+  displayName: string;
+  handle: string;
+  userTag: string;
+  bio: string;
+  avatar: string;
+};
+
 export default function ProfilePage() {
   const auth = useProofPlayAuth();
   const [activeTab, setActiveTab] = useState<"badges" | "activity" | "proofs">("badges");
   const [proofRecords, setProofRecords] = useState<ProofRecord[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileStatus, setProfileStatus] = useState("");
+  const [profileForm, setProfileForm] = useState<ProfileForm>({
+    displayName: "",
+    handle: "",
+    userTag: "",
+    bio: "",
+    avatar: "",
+  });
   const [connectionCode, setConnectionCode] = useState("");
   const [connectionStatus, setConnectionStatus] = useState("");
 
@@ -49,12 +66,52 @@ export default function ProfilePage() {
         userId: auth.userId,
         walletAddress: auth.walletAddress,
         displayName: auth.displayName,
+        mode: "ensure",
       }),
     })
       .then((response) => response.json())
       .then((data: { profile?: UserProfile }) => setProfile(data.profile ?? null))
       .catch(() => setProfile(null));
   }, [auth.authenticated, auth.displayName, auth.userId, auth.walletAddress]);
+
+  const visibleProfile = {
+    displayName: profile?.displayName ?? CURRENT_USER.name,
+    avatar: profile?.avatar ?? CURRENT_USER.avatar,
+    bio: profile?.bio ?? CURRENT_USER.bio,
+    handle: profile?.handle,
+    userTag: profile?.userTag,
+  };
+
+  async function saveProfile() {
+    if (!auth.authenticated || !auth.userId) {
+      auth.login();
+      return;
+    }
+
+    setProfileStatus("Saving profile...");
+
+    try {
+      const response = await fetch("/api/profiles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: auth.userId,
+          walletAddress: auth.walletAddress,
+          mode: "update",
+          ...profileForm,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) throw new Error(data.issues?.join(", ") ?? "Profile save failed");
+
+      setProfile(data.profile ?? null);
+      setIsEditingProfile(false);
+      setProfileStatus("Profile saved.");
+    } catch (error) {
+      setProfileStatus(error instanceof Error ? error.message : "Profile save failed");
+    }
+  }
 
   async function connectWithFriend() {
     if (!auth.authenticated || !auth.userId) {
@@ -97,11 +154,14 @@ export default function ProfilePage() {
 
         <div className="relative">
           <div className="w-20 h-20 mx-auto rounded-full bg-white bubbly-border flex items-center justify-center text-4xl shadow-[3px_3px_0px_0px_#312e81]">
-            {CURRENT_USER.avatar}
+            {visibleProfile.avatar}
           </div>
 
-          <h1 className="font-display text-2xl font-bold mt-3">{CURRENT_USER.name}</h1>
-          <p className="text-xs font-bold opacity-70 mt-1">{CURRENT_USER.bio}</p>
+          <h1 className="font-display text-2xl font-bold mt-3">{visibleProfile.displayName}</h1>
+          <p className="text-xs font-bold opacity-70 mt-1">{visibleProfile.bio}</p>
+          {visibleProfile.handle && (
+            <p className="text-[10px] font-bold opacity-60 mt-1">@{visibleProfile.handle}</p>
+          )}
           <p className="mt-2 text-[10px] font-bold opacity-70">
             {auth.authenticated
               ? `Privy identity: ${auth.displayName}`
@@ -111,7 +171,7 @@ export default function ProfilePage() {
           </p>
 
           <div className="mt-3 inline-flex items-center gap-1.5 bg-white/60 backdrop-blur-sm px-3 py-1 rounded-full border-2 border-[var(--color-primary-900)] text-xs font-bold">
-            <Star size={12} fill="currentColor" /> Level {levelInfo.level} — {levelInfo.title}
+            <Star size={12} fill="currentColor" /> Level {levelInfo.level} - {levelInfo.title}
           </div>
         </div>
 
@@ -133,14 +193,107 @@ export default function ProfilePage() {
 
         {/* Action buttons */}
         <div className="flex gap-2 justify-center mt-4">
-          <button className="bg-white/60 backdrop-blur-sm px-3 py-1.5 rounded-full border-2 border-[var(--color-primary-900)] text-xs font-bold flex items-center gap-1 hover:bg-white transition-colors">
+          <button
+            type="button"
+            onClick={() => visibleProfile.userTag && navigator.clipboard.writeText(`proofplay://connect/${visibleProfile.userTag}`)}
+            className="bg-white/60 backdrop-blur-sm px-3 py-1.5 rounded-full border-2 border-[var(--color-primary-900)] text-xs font-bold flex items-center gap-1 hover:bg-white transition-colors"
+          >
             <Share2 size={12} /> Share
           </button>
-          <button className="bg-white/60 backdrop-blur-sm px-3 py-1.5 rounded-full border-2 border-[var(--color-primary-900)] text-xs font-bold flex items-center gap-1 hover:bg-white transition-colors">
+          <button
+            type="button"
+            onClick={() => {
+              if (!auth.authenticated) {
+                auth.login();
+                return;
+              }
+              setProfileForm({
+                displayName: visibleProfile.displayName,
+                handle: visibleProfile.handle ?? "",
+                userTag: visibleProfile.userTag ?? "",
+                bio: visibleProfile.bio,
+                avatar: visibleProfile.avatar,
+              });
+              setIsEditingProfile((current) => !current);
+              setProfileStatus("");
+            }}
+            className="bg-white/60 backdrop-blur-sm px-3 py-1.5 rounded-full border-2 border-[var(--color-primary-900)] text-xs font-bold flex items-center gap-1 hover:bg-white transition-colors"
+          >
             <Settings size={12} /> Edit
           </button>
         </div>
       </motion.div>
+
+      {isEditingProfile && (
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bubbly-card bg-white p-4"
+        >
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <p className="font-display text-lg font-bold">Edit profile</p>
+              <p className="text-xs font-bold opacity-60">This is what other attendees see when they connect with you.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsEditingProfile(false)}
+              className="rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)] p-2"
+            >
+              <X size={14} />
+            </button>
+          </div>
+
+          <div className="grid gap-3">
+            <ProfileField
+              label="Display name"
+              value={profileForm.displayName}
+              maxLength={40}
+              onChange={(value) => setProfileForm((current) => ({ ...current, displayName: value }))}
+            />
+            <div className="grid grid-cols-[1fr_84px] gap-2">
+              <ProfileField
+                label="Handle"
+                value={profileForm.handle}
+                maxLength={24}
+                onChange={(value) => setProfileForm((current) => ({ ...current, handle: value }))}
+              />
+              <ProfileField
+                label="Avatar"
+                value={profileForm.avatar}
+                maxLength={3}
+                onChange={(value) => setProfileForm((current) => ({ ...current, avatar: value.toUpperCase() }))}
+              />
+            </div>
+            <ProfileField
+              label="Public tag"
+              value={profileForm.userTag}
+              maxLength={18}
+              onChange={(value) => setProfileForm((current) => ({ ...current, userTag: value.toUpperCase() }))}
+            />
+            <label className="block">
+              <span className="text-[10px] font-bold uppercase opacity-50">Bio</span>
+              <textarea
+                value={profileForm.bio}
+                maxLength={140}
+                onChange={(event) => setProfileForm((current) => ({ ...current, bio: event.target.value }))}
+                className="mt-1 min-h-24 w-full rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)] px-3 py-2 text-xs font-bold outline-none"
+              />
+            </label>
+          </div>
+
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <p className="text-xs font-bold opacity-70">{profileStatus}</p>
+            <button
+              type="button"
+              onClick={saveProfile}
+              className="inline-flex items-center gap-1 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-4 py-2 text-xs font-bold"
+            >
+              <Check size={14} /> Save
+            </button>
+          </div>
+        </motion.div>
+      )}
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -364,5 +517,29 @@ export default function ProfilePage() {
         </motion.div>
       )}
     </div>
+  );
+}
+
+function ProfileField({
+  label,
+  value,
+  maxLength,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  maxLength: number;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="text-[10px] font-bold uppercase opacity-50">{label}</span>
+      <input
+        value={value}
+        maxLength={maxLength}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-1 w-full rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)] px-3 py-2 text-xs font-bold outline-none"
+      />
+    </label>
   );
 }
