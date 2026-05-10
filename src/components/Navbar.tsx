@@ -27,10 +27,7 @@ export default function Navbar() {
           <Link href="/communities" className="hover:text-[var(--color-primary-500)] transition-colors">Communities</Link>
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
-          <WalletLoginButton compact className="hidden min-[420px]:inline-flex" />
-          <Link href="/app" className="bg-[var(--color-pastel-blue)] px-6 py-2 rounded-full bubbly-card font-bold hover:bubbly-card-hover transition-all inline-block">
-            Launch App
-          </Link>
+          <WalletLoginButton compact />
         </div>
       </nav>
     );
