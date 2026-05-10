@@ -47,14 +47,21 @@ export default function ProfilePage() {
   const sortedBadges = [...BADGES].sort((a, b) => {
     return RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity);
   });
-  const proofBackedBadges = sortedBadges.filter((badge) => proofRecords.some((proof) => proof.badgeId === badge.id));
+  const visibleProofRecords = auth.userId
+    ? proofRecords.filter((proof) => proof.userId.toLowerCase() === auth.userId?.toLowerCase())
+    : [];
+  const proofBackedBadges = sortedBadges.filter((badge) => visibleProofRecords.some((proof) => proof.badgeId === badge.id));
 
   useEffect(() => {
-    fetch("/api/proofs")
+    if (!auth.authenticated || !auth.userId) return;
+
+    const params = new URLSearchParams({ userId: auth.userId });
+
+    fetch(`/api/proofs?${params.toString()}`, { cache: "no-store" })
       .then((response) => response.json())
       .then((data: { proofs?: ProofRecord[] }) => setProofRecords(data.proofs ?? []))
       .catch(() => setProofRecords([]));
-  }, []);
+  }, [auth.authenticated, auth.userId]);
 
   useEffect(() => {
     if (!auth.authenticated || !auth.userId) return;
@@ -374,7 +381,7 @@ export default function ProfilePage() {
                 : "opacity-60"
             }`}
           >
-            🏅 Badges ({BADGES.length})
+            Badges ({BADGES.length})
           </button>
           <button
             onClick={() => setActiveTab("proofs")}
@@ -384,7 +391,7 @@ export default function ProfilePage() {
                 : "opacity-60"
             }`}
           >
-            Proofs ({proofRecords.length})
+            Proofs ({visibleProofRecords.length})
           </button>
           <button
             onClick={() => setActiveTab("activity")}
@@ -394,7 +401,7 @@ export default function ProfilePage() {
                 : "opacity-60"
             }`}
           >
-            📋 Activity
+            Activity
           </button>
         </div>
       </motion.div>
@@ -426,7 +433,7 @@ export default function ProfilePage() {
               </motion.div>
               <p className="font-bold text-[10px] leading-tight">{badge.name}</p>
               <p className="text-[8px] font-bold opacity-50 mt-0.5 uppercase">{badge.rarity}</p>
-              {proofRecords.some((proof) => proof.badgeId === badge.id) && (
+              {visibleProofRecords.some((proof) => proof.badgeId === badge.id) && (
                 <p className="mt-1 inline-flex items-center gap-0.5 rounded-full border border-[var(--color-primary-900)] bg-white/70 px-1 py-0.5 text-[8px] font-bold">
                   <ShieldCheck size={8} /> Proof
                 </p>
@@ -444,7 +451,7 @@ export default function ProfilePage() {
           className="space-y-2"
         >
           {proofBackedBadges.map((badge, i) => {
-            const proof = proofRecords.find((item) => item.badgeId === badge.id);
+            const proof = visibleProofRecords.find((item) => item.badgeId === badge.id);
             const mission = proof ? MISSIONS.find((item) => item.id === proof.missionId) : undefined;
 
             if (!proof) return null;
@@ -492,6 +499,12 @@ export default function ProfilePage() {
               </motion.div>
             );
           })}
+          {proofBackedBadges.length === 0 && (
+            <div className="rounded-2xl border-2 border-[var(--color-primary-900)] bg-white p-4 text-center">
+              <p className="text-sm font-bold">No proof records for this account yet.</p>
+              <p className="mt-1 text-xs font-bold opacity-60">Complete a mission to add user-specific proof receipts here.</p>
+            </div>
+          )}
         </motion.div>
       )}
 

@@ -54,7 +54,9 @@ export function useMissionVerification(eventId?: string) {
     setProofsLoading(true);
 
     try {
-      const response = await fetch("/api/proofs", { cache: "no-store" });
+      const params = new URLSearchParams({ userId: auth.userId });
+      if (eventId) params.set("eventId", eventId);
+      const response = await fetch(`/api/proofs?${params.toString()}`, { cache: "no-store" });
       const data: ProofsResponse = await response.json();
 
       if (!response.ok) throw new Error("Could not read proof receipts");
@@ -63,7 +65,7 @@ export function useMissionVerification(eventId?: string) {
     } finally {
       setProofsLoading(false);
     }
-  }, [auth.authenticated, auth.userId]);
+  }, [auth.authenticated, auth.userId, eventId]);
 
   useEffect(() => {
     refreshProofs().catch(() => {

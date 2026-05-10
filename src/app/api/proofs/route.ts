@@ -2,8 +2,15 @@ import { readProofRecords } from "@/lib/proof-store";
 import { hasSupabaseConfig } from "@/lib/supabase-server";
 import { ZERO_G_MAINNET } from "@/lib/zero-g";
 
-export async function GET() {
-  const proofs = await readProofRecords();
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const userId = url.searchParams.get("userId");
+  const eventId = url.searchParams.get("eventId");
+  const proofs = (await readProofRecords()).filter((proof) => {
+    const sameUser = userId ? proof.userId.toLowerCase() === userId.toLowerCase() : true;
+    const sameEvent = eventId ? proof.eventId === eventId : true;
+    return sameUser && sameEvent;
+  });
 
   return Response.json({
     zeroG: {
