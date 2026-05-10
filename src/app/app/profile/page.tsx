@@ -480,6 +480,14 @@ export default function ProfilePage() {
                       </a>
                     </div>
                   )}
+                  {proof.mediaStorage && (
+                    <div className="flex justify-between gap-2 mt-1">
+                      <span>Media</span>
+                      <a href={`/api/proofs/${proof.id}/media`} target="_blank" rel="noreferrer" className="text-[var(--color-primary-500)] underline">
+                        View upload
+                      </a>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             );

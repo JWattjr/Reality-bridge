@@ -115,10 +115,14 @@ export async function createVerificationProof(submission: VerificationSubmission
 
   const storage = await uploadJsonToZeroG(proofPayload, `proofs/${submission.eventId}/${submission.userId}/${id}`);
   const mediaStorage = submission.mediaFileName && submission.mediaBase64
-    ? await uploadBytesToZeroG(
-        decodeBase64(submission.mediaBase64),
-        `media/${submission.eventId}/${submission.userId}/${stableSegment(submission.mediaFileName)}`,
-      )
+    ? {
+        ...(await uploadBytesToZeroG(
+          decodeBase64(submission.mediaBase64),
+          `media/${submission.eventId}/${submission.userId}/${stableSegment(submission.mediaFileName)}`,
+        )),
+        fileName: submission.mediaFileName,
+        contentType: submission.mediaMimeType,
+      }
     : undefined;
 
   const proofRecord: ProofRecord = {

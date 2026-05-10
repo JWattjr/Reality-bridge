@@ -101,6 +101,23 @@ export async function uploadBytesToZeroG(bytes: Uint8Array, key: string): Promis
   };
 }
 
+export async function downloadBlobFromZeroG(rootHash: string): Promise<Blob> {
+  if (!rootHash.startsWith("0x")) {
+    throw new Error("A valid 0G root hash is required.");
+  }
+
+  const indexerUrl = process.env.ZERO_G_INDEXER_URL ?? ZERO_G_MAINNET.indexerUrl;
+  const { Indexer } = await import("@0gfoundation/0g-storage-ts-sdk");
+  const indexer = new Indexer(indexerUrl);
+  const [blob, error] = await indexer.downloadToBlob(rootHash);
+
+  if (error) {
+    throw error;
+  }
+
+  return blob;
+}
+
 function normalizeUploadResult(
   result:
     | { txHash: string; rootHash: string; txSeq: number }

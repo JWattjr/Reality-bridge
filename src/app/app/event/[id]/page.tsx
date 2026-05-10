@@ -259,9 +259,17 @@ export default function EventDetailPage() {
                   </p>
                 )}
                 {proof?.mediaStorage && (
-                  <p className="mt-1 text-[10px] font-bold text-green-700">
-                    Media on 0G: {shortHash(proof.mediaStorage.rootHash)}
-                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-bold text-green-700">
+                    <span>Media on 0G: {shortHash(proof.mediaStorage.rootHash)}</span>
+                    <a
+                      href={`/api/proofs/${proof.id}/media`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-full border border-green-700 bg-green-100 px-2 py-0.5"
+                    >
+                      View media
+                    </a>
+                  </div>
                 )}
               </motion.div>
             );

@@ -251,7 +251,17 @@ function MissionProofDetails({ mission, proof }: { mission: Mission; proof?: Pro
           <p className="font-bold text-green-600">0G root: {shortHash(proof.storage.rootHash)}</p>
           <p className="opacity-60 truncate">{proof.storage.storageRef}</p>
           {proof.mediaStorage && (
-            <p className="font-bold text-green-600">Media root: {shortHash(proof.mediaStorage.rootHash)}</p>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-bold text-green-600">Media root: {shortHash(proof.mediaStorage.rootHash)}</p>
+              <a
+                href={`/api/proofs/${proof.id}/media`}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full border border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-2 py-0.5 text-[10px] font-bold"
+              >
+                View media
+              </a>
+            </div>
           )}
         </div>
       ) : (

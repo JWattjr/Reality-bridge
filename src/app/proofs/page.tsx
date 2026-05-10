@@ -98,17 +98,30 @@ export default async function ProofsPage() {
                       </p>
                     </div>
 
-                    {proof.storage.explorerUrl && (
-                      <a
-                        href={proof.storage.explorerUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-blue)] px-4 py-2 text-xs font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
-                      >
-                        Explorer
-                        <ExternalLink size={13} />
-                      </a>
-                    )}
+                    <div className="flex shrink-0 flex-wrap gap-2">
+                      {proof.mediaStorage && (
+                        <a
+                          href={`/api/proofs/${proof.id}/media`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-4 py-2 text-xs font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
+                        >
+                          View media
+                          <ExternalLink size={13} />
+                        </a>
+                      )}
+                      {proof.storage.explorerUrl && (
+                        <a
+                          href={proof.storage.explorerUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-blue)] px-4 py-2 text-xs font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
+                        >
+                          Explorer
+                          <ExternalLink size={13} />
+                        </a>
+                      )}
+                    </div>
                   </div>
 
                   <div className="mt-4 grid gap-2 md:grid-cols-3">
@@ -121,6 +134,12 @@ export default async function ProofsPage() {
                     <ProofField icon={<Wallet size={13} />} label="User" value={proof.userId} />
                     <ProofField icon={<Trophy size={13} />} label="Proof id" value={proof.id} />
                   </div>
+
+                  {proof.mediaStorage && (
+                    <div className="mt-3">
+                      <ProofField label="Media root" value={proof.mediaStorage.rootHash} />
+                    </div>
+                  )}
 
                   <p className="mt-3 rounded-2xl border-2 border-dashed border-[var(--color-primary-900)]/30 bg-[var(--color-bg-base)] p-3 text-xs font-bold opacity-70">
                     {proof.evidenceLabel}
