@@ -332,21 +332,6 @@ export const BADGES: Badge[] = [
   { id: "badge_photo", name: "Venue Lens", description: "Uploaded the best venue photo", emoji: "PX", rarity: "epic", eventName: "BlockNova Event", earnedAt: "2026-05-15", color: "var(--color-pastel-yellow)" },
 ];
 
-export const LEADERBOARD: LeaderboardEntry[] = [
-  { rank: 1, userId: "user_9", name: "Sophia Chen", avatar: "SC", xp: 2850, missionsCompleted: 18, level: 5 },
-  { rank: 2, userId: "user_5", name: "Marcus Johnson", avatar: "MJ", xp: 2340, missionsCompleted: 16, level: 5 },
-  { rank: 3, userId: "user_12", name: "Aisha Bello", avatar: "AB", xp: 1980, missionsCompleted: 14, level: 5 },
-  { rank: 4, userId: "user_1", name: "Alex Rivera", avatar: "AR", xp: 1240, missionsCompleted: 11, level: 4 },
-  { rank: 5, userId: "user_7", name: "Kim Soo-yeon", avatar: "KS", xp: 1100, missionsCompleted: 10, level: 4 },
-  { rank: 6, userId: "user_3", name: "Liam O'Brien", avatar: "LO", xp: 950, missionsCompleted: 9, level: 4 },
-  { rank: 7, userId: "user_8", name: "Priya Patel", avatar: "PP", xp: 820, missionsCompleted: 8, level: 4 },
-  { rank: 8, userId: "user_2", name: "Jordan Blake", avatar: "JB", xp: 680, missionsCompleted: 7, level: 3 },
-  { rank: 9, userId: "user_6", name: "Emma Williams", avatar: "EW", xp: 540, missionsCompleted: 5, level: 3 },
-  { rank: 10, userId: "user_4", name: "Tomas Garcia", avatar: "TG", xp: 390, missionsCompleted: 4, level: 3 },
-  { rank: 11, userId: "user_10", name: "Fatima Zahra", avatar: "FZ", xp: 280, missionsCompleted: 3, level: 2 },
-  { rank: 12, userId: "user_11", name: "Chris Taylor", avatar: "CT", xp: 150, missionsCompleted: 2, level: 2 },
-];
-
 export const ANALYTICS = {
   totalCheckIns: 0,
   activeAttendees: 0,

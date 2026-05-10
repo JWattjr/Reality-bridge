@@ -47,6 +47,10 @@ export function validateVerificationSubmission(submission: VerificationSubmissio
   const event = EVENTS.find((item) => item.id === submission.eventId);
   const mission = MISSIONS.find((item) => item.id === submission.missionId);
 
+  if (!submission.userId) {
+    issues.push("Privy sign-in is required before completing missions");
+  }
+
   if (!event) issues.push("Unknown event");
   if (!mission) issues.push("Unknown mission");
 

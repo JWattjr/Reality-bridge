@@ -2,8 +2,8 @@
 
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { EVENTS, MISSIONS, LEADERBOARD, PROOF_TYPE_COPY, shortHash } from "@/lib/mock-data";
-import type { Mission } from "@/lib/mock-data";
+import { EVENTS, MISSIONS, PROOF_TYPE_COPY, shortHash } from "@/lib/mock-data";
+import type { LeaderboardEntry, Mission } from "@/lib/mock-data";
 import { MapPin, CalendarDays, Users, Zap, ArrowLeft, Share2, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -17,9 +17,11 @@ export default function EventDetailPage() {
   const eventId = params.id as string;
   const mockEvent = EVENTS.find((e) => e.id === eventId);
   const [liveEvent, setLiveEvent] = useState<CommunityEvent | null>(null);
+  const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
   const event = mockEvent ?? liveEvent;
   const [checkedIn, setCheckedIn] = useState(mockEvent?.checkedIn ?? false);
   const {
+    auth,
     proofsLoading,
     getMissionProof,
     submissionStatus,
@@ -37,6 +39,13 @@ export default function EventDetailPage() {
       })
       .catch(() => setLiveEvent(null));
   }, [eventId, mockEvent]);
+
+  useEffect(() => {
+    fetch(`/api/leaderboard?eventId=${encodeURIComponent(eventId)}`, { cache: "no-store" })
+      .then((response) => response.json())
+      .then((data: { entries?: LeaderboardEntry[] }) => setLeaderboardEntries(data.entries ?? []))
+      .catch(() => setLeaderboardEntries([]));
+  }, [eventId]);
 
   if (!event) {
     return (
@@ -63,6 +72,11 @@ export default function EventDetailPage() {
   const checkInMission = eventMissions.find((mission) => mission.id === "m1" || mission.title.toLowerCase().includes("check in"));
   const checkInStatus = checkInMission ? submissionStatus[checkInMission.id] : undefined;
   const isCheckedIn = checkedIn || Boolean(checkInMission && getMissionProof(checkInMission.id));
+  const checkInLabel = !auth.authenticated
+    ? "Sign in to check in"
+    : checkInStatus?.state === "submitting"
+      ? "Uploading check-in proof..."
+      : "Check In";
   const completedMissions = eventMissions.filter((m) => m.status === "completed").length;
   const earnedXp = eventMissions.filter((m) => m.status === "completed").reduce((sum, m) => sum + m.xpReward, 0);
 
@@ -113,7 +127,7 @@ export default function EventDetailPage() {
               }}
               className="flex-1 bg-[var(--color-primary-900)] text-white font-bold text-sm py-2.5 rounded-full border-2 border-[var(--color-primary-900)] hover:bg-[var(--color-primary-700)] transition-colors"
             >
-              {checkInStatus?.state === "submitting" ? "Uploading check-in proof..." : "Check In"}
+              {checkInLabel}
             </button>
           ) : (
             <div className="flex-1 bg-white/60 backdrop-blur-sm font-bold text-sm py-2.5 rounded-full border-2 border-[var(--color-primary-900)] text-center">
@@ -268,7 +282,7 @@ export default function EventDetailPage() {
           </Link>
         </div>
         <div className="space-y-1.5">
-          {LEADERBOARD.slice(0, 5).map((entry) => (
+          {leaderboardEntries.slice(0, 5).map((entry) => (
             <div key={entry.userId} className="rounded-2xl border-2 border-[var(--color-primary-900)] p-2.5 bg-white flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-xs w-5 text-center opacity-50">#{entry.rank}</span>
@@ -278,6 +292,11 @@ export default function EventDetailPage() {
               <span className="font-bold text-xs opacity-70">{entry.xp} XP</span>
             </div>
           ))}
+          {leaderboardEntries.length === 0 && (
+            <div className="rounded-2xl border-2 border-[var(--color-primary-900)] p-3 bg-white text-center">
+              <p className="text-xs font-bold opacity-60">No proof-backed rankings yet.</p>
+            </div>
+          )}
         </div>
       </motion.section>
     </div>

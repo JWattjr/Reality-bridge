@@ -257,6 +257,27 @@ export async function upsertUserProfile(input: {
   return profileFromRow(data);
 }
 
+export async function listUserProfiles(): Promise<UserProfile[]> {
+  if (!hasSupabaseConfig()) {
+    return [...memoryProfiles.values()];
+  }
+
+  const supabase = createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("user_profiles")
+    .select("*");
+
+  if (error) {
+    if (isMissingSupabaseTableError(error)) {
+      return [];
+    }
+
+    throw new Error(`Failed to read user profiles: ${error.message}`);
+  }
+
+  return (data ?? []).map(profileFromRow);
+}
+
 function normalizeDisplayName(value: string | undefined, fallback: string) {
   const normalized = value?.trim().replace(/\s+/g, " ");
   return normalized ? normalized.slice(0, 40) : fallback;

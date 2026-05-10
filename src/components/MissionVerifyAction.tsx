@@ -1,9 +1,10 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, LogIn } from "lucide-react";
 import { PROOF_TYPE_COPY, type Mission } from "@/lib/mock-data";
 import type { SubmissionStatus } from "@/hooks/useMissionVerification";
+import { useProofPlayAuth } from "@/components/ProofPlayAuthProvider";
 
 type MissionVerifyActionProps = {
   mission: Mission;
@@ -21,6 +22,7 @@ export function MissionVerifyAction({
   onVerify,
   compact = false,
 }: MissionVerifyActionProps) {
+  const auth = useProofPlayAuth();
   const proofCopy = PROOF_TYPE_COPY[mission.proofType];
   const isSubmitting = status?.state === "submitting";
   const isCompleted = mission.status === "completed";
@@ -32,6 +34,24 @@ export function MissionVerifyAction({
         <CheckCircle size={compact ? 10 : 12} />
         Done
       </span>
+    );
+  }
+
+  if (!auth.authenticated) {
+    return (
+      <motion.button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          auth.login();
+        }}
+        whileHover={{ x: 2, scale: 1.04 }}
+        whileTap={{ scale: 0.96 }}
+        className={`${buttonClass} ${sizeClass} inline-flex items-center gap-1 bg-[var(--color-pastel-green)]`}
+      >
+        <LogIn size={compact ? 10 : 12} />
+        Sign in
+      </motion.button>
     );
   }
 
