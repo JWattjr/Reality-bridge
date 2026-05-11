@@ -78,6 +78,10 @@ const privyConfig: PrivyProviderProps["config"] = {
     ethereum: {
       createOnLogin: "users-without-wallets",
     },
+    // Skip transaction confirmation popups for embedded wallets.
+    // ProofPlay transactions are low-value proof anchors, so auto-signing
+    // makes the experience seamless instead of prompting 3+ times per mission.
+    showWalletUIs: false,
   },
 };
 
