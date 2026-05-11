@@ -11,7 +11,7 @@ export async function readLeaderboard(eventId?: string): Promise<LeaderboardEntr
   const grouped = new Map<string, { xp: number; missionIds: Set<string> }>();
 
   for (const proof of proofs) {
-    if (proof.status !== "validated") continue;
+    if (proof.status !== "validated" && (proof.status as string) !== "verified") continue;
     if (eventId && proof.eventId !== eventId) continue;
 
     const current = grouped.get(proof.userId) ?? { xp: 0, missionIds: new Set<string>() };
