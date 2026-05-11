@@ -2,14 +2,17 @@
 
 import Navbar from "@/components/Navbar";
 import WalletLoginButton from "@/components/WalletLoginButton";
-import { Trophy, User } from "lucide-react";
+import { Trophy, User, LockKeyhole } from "lucide-react";
 import Link from "next/link";
+import { useProofPlayAuth } from "@/components/ProofPlayAuthProvider";
 
 export default function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const auth = useProofPlayAuth();
+
   return (
     <div className="min-h-screen bg-[var(--color-bg-base)] pb-24">
       <div className="relative mx-auto min-h-screen max-w-md border-x-4 border-[var(--color-primary-900)] bg-white">
@@ -30,7 +33,30 @@ export default function AppLayout({
         </div>
 
         <main className="px-3 py-4 min-[380px]:px-4">
-          {children}
+          {!auth.ready ? (
+            <div className="flex h-[60vh] items-center justify-center">
+              <div className="h-10 w-10 animate-spin rounded-full border-4 border-[var(--color-primary-900)] border-t-[var(--color-pastel-blue)]" />
+            </div>
+          ) : !auth.authenticated ? (
+            <div className="flex h-[60vh] items-center justify-center">
+              <div className="bubbly-card bg-white p-8 text-center max-w-sm mx-auto">
+                <LockKeyhole className="mx-auto text-[var(--color-primary-900)]" size={32} />
+                <p className="mt-4 font-display text-2xl font-bold">Sign in required</p>
+                <p className="mt-2 text-sm font-bold opacity-60">
+                  You need to connect your wallet or sign in with email to access the platform.
+                </p>
+                <button
+                  type="button"
+                  onClick={auth.login}
+                  className="mt-6 inline-flex rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-6 py-2.5 text-sm font-bold shadow-[3px_3px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
+                >
+                  Sign in now
+                </button>
+              </div>
+            </div>
+          ) : (
+            children
+          )}
         </main>
 
         <Navbar />
