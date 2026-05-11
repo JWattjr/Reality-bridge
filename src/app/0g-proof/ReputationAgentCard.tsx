@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Brain, ExternalLink, Loader2 } from "lucide-react";
 import { shortHash, type StorageReference } from "@/lib/mock-data";
 import type { ReputationAgentSummary } from "@/lib/reputation-agent";
+import { useProofPlayAuth } from "@/components/ProofPlayAuthProvider";
 
 type AgentResponse =
   | {
@@ -17,6 +18,7 @@ type AgentResponse =
     };
 
 export default function ReputationAgentCard({ defaultUserId }: { defaultUserId?: string }) {
+  const auth = useProofPlayAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<AgentResponse | null>(null);
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
@@ -26,10 +28,12 @@ export default function ReputationAgentCard({ defaultUserId }: { defaultUserId?:
     setResult(null);
 
     try {
-      const response = await fetch("/api/reputation/summary", {
+      const headers = await auth.authHeaders();
+      const userId = auth.userId ?? defaultUserId;
+      const params = userId ? `?${new URLSearchParams({ userId }).toString()}` : "";
+      const response = await fetch(`/api/reputation/summary${params}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: defaultUserId }),
+        headers: { "Content-Type": "application/json", ...headers },
       });
       const data = await response.json();
       setResult(data);

@@ -75,9 +75,10 @@ export function useMissionVerification(eventId?: string) {
     setProofsLoading(true);
 
     try {
+      const headers = await auth.authHeaders();
       const params = new URLSearchParams({ userId: auth.userId });
       if (eventId) params.set("eventId", eventId);
-      const response = await fetch(`/api/proofs?${params.toString()}`, { cache: "no-store" });
+      const response = await fetch(`/api/proofs?${params.toString()}`, { cache: "no-store", headers });
       const data: ProofsResponse = await response.json();
 
       if (!response.ok) throw new Error("Could not read proof receipts");
@@ -86,7 +87,7 @@ export function useMissionVerification(eventId?: string) {
     } finally {
       setProofsLoading(false);
     }
-  }, [auth.authenticated, auth.userId, eventId]);
+  }, [auth, eventId]);
 
   useEffect(() => {
     refreshProofs().catch(() => {
@@ -183,9 +184,11 @@ export function useMissionVerification(eventId?: string) {
           mediaMimeType: file?.type,
         };
 
+        const tokenHeaders = await auth.authHeaders();
+
         const preparedResponse = await fetch("/api/verification/prepare", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...tokenHeaders },
           body: JSON.stringify(submission),
         });
         const preparedData: PreparedVerificationResponse = await preparedResponse.json();
@@ -224,7 +227,7 @@ export function useMissionVerification(eventId?: string) {
 
         const response = await fetch("/api/verification/complete", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...tokenHeaders },
           body: JSON.stringify({
             submission: preparedSubmission,
             storage,

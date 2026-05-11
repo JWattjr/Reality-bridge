@@ -1,3 +1,4 @@
+import { authenticateRequest } from "@/lib/privy-server";
 import { readProofRecords } from "@/lib/proof-store";
 import { buildReputationAgentSummary } from "@/lib/reputation-agent";
 import { uploadJsonToZeroG } from "@/lib/zero-g";
@@ -11,13 +12,12 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const body = await safeJson(request);
-  const userId = typeof body.userId === "string" && body.userId ? body.userId : undefined;
+  const { userId, error, status } = await authenticateRequest(request);
 
-  if (!userId) {
+  if (error || !userId) {
     return Response.json(
-      { status: "wallet_required", issues: ["Reputation summaries must be scoped to the signed-in Privy wallet."] },
-      { status: 401 },
+      { status: "wallet_required", issues: [error ?? "Reputation summaries must be scoped to the signed-in Privy wallet."] },
+      { status },
     );
   }
 
@@ -62,13 +62,5 @@ export async function POST(request: Request) {
       },
       { status: 502 },
     );
-  }
-}
-
-async function safeJson(request: Request): Promise<Record<string, unknown>> {
-  try {
-    return await request.json();
-  } catch {
-    return {};
   }
 }

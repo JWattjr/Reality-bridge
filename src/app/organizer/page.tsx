@@ -6,20 +6,34 @@ import { EVENTS, ANALYTICS, MISSIONS, PROOF_TYPE_COPY, shortHash } from "@/lib/m
 import type { ProofRecord } from "@/lib/mock-data";
 import { Users, Target, TrendingUp, BarChart3, ArrowRight, ShieldCheck } from "lucide-react";
 import Link from "next/link";
+import { useProofPlayAuth } from "@/components/ProofPlayAuthProvider";
 
 export default function OrganizerDashboard() {
+  const auth = useProofPlayAuth();
   const [proofRecords, setProofRecords] = useState<ProofRecord[]>([]);
   const [zeroGContract, setZeroGContract] = useState("0x62D4144dB0F0a6fBBaeb6296c785C71B3D57C526");
 
   useEffect(() => {
-    fetch("/api/proofs")
-      .then((response) => response.json())
-      .then((data: { proofs?: ProofRecord[]; zeroG?: { contractAddress?: string } }) => {
+    if (!auth.ready || !auth.authenticated || !auth.userId) {
+      setProofRecords([]);
+      return;
+    }
+
+    const userId = auth.userId;
+
+    (async () => {
+      try {
+        const headers = await auth.authHeaders();
+        const params = new URLSearchParams({ userId });
+        const response = await fetch(`/api/proofs?${params.toString()}`, { headers });
+        const data: { proofs?: ProofRecord[]; zeroG?: { contractAddress?: string } } = await response.json();
         setProofRecords(data.proofs ?? []);
         if (data.zeroG?.contractAddress) setZeroGContract(data.zeroG.contractAddress);
-      })
-      .catch(() => setProofRecords([]));
-  }, []);
+      } catch {
+        setProofRecords([]);
+      }
+    })();
+  }, [auth]);
 
   const statCards = [
     { label: "Check-ins", value: ANALYTICS.totalCheckIns.toLocaleString(), icon: <Users size={20} />, color: "var(--color-pastel-blue)" },

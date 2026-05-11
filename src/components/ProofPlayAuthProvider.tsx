@@ -9,6 +9,7 @@ import {
 } from "@privy-io/react-auth";
 import {
   createContext,
+  useCallback,
   useContext,
   type ReactNode,
 } from "react";
@@ -23,6 +24,10 @@ type ProofPlayAuth = {
   displayName: string;
   login: () => void;
   logout: () => void;
+  /** Returns a Privy access token for server-side verification, or null. */
+  getAccessToken: () => Promise<string | null>;
+  /** Returns fetch headers with the Authorization bearer token attached. */
+  authHeaders: () => Promise<Record<string, string>>;
 };
 
 const fallbackAuth: ProofPlayAuth = {
@@ -35,6 +40,8 @@ const fallbackAuth: ProofPlayAuth = {
   displayName: "Connect wallet",
   login: () => undefined,
   logout: () => undefined,
+  getAccessToken: async () => null,
+  authHeaders: async () => ({}),
 };
 
 const ProofPlayAuthContext = createContext<ProofPlayAuth>(fallbackAuth);
@@ -99,13 +106,28 @@ export function useProofPlayAuth() {
 }
 
 function PrivyAuthBridge({ children }: { children: ReactNode }) {
-  const { ready, authenticated, user, login, logout } = usePrivy();
+  const { ready, authenticated, user, login, logout, getAccessToken: privyGetAccessToken } = usePrivy();
   const { wallets } = useWallets();
   const walletAddress = user?.wallet?.address ?? null;
   const userId = authenticated ? walletAddress ?? user?.id ?? null : null;
   const displayName = walletAddress
     ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
     : user?.email?.address ?? "Signed in";
+
+  const getAccessToken = useCallback(async () => {
+    if (!authenticated) return null;
+    try {
+      return await privyGetAccessToken();
+    } catch {
+      return null;
+    }
+  }, [authenticated, privyGetAccessToken]);
+
+  const authHeaders = useCallback(async (): Promise<Record<string, string>> => {
+    const token = await getAccessToken();
+    if (!token) return {};
+    return { Authorization: `Bearer ${token}` };
+  }, [getAccessToken]);
 
   return (
     <ProofPlayAuthContext.Provider
@@ -119,6 +141,8 @@ function PrivyAuthBridge({ children }: { children: ReactNode }) {
         displayName,
         login,
         logout,
+        getAccessToken,
+        authHeaders,
       }}
     >
       {children}

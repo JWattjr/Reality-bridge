@@ -1,20 +1,22 @@
+import { authenticateRequest } from "@/lib/privy-server";
 import { readProofRecords } from "@/lib/proof-store";
 import { hasSupabaseConfig } from "@/lib/supabase-server";
 import { ZERO_G_MAINNET } from "@/lib/zero-g";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const userId = url.searchParams.get("userId");
   const eventId = url.searchParams.get("eventId");
 
-  if (!userId) {
+  const { userId, error, status } = await authenticateRequest(request);
+
+  if (error || !userId) {
     return Response.json(
       {
         status: "wallet_required",
-        issues: ["Proof reads must be scoped to the signed-in Privy wallet."],
+        issues: [error ?? "Proof reads must be scoped to the signed-in Privy wallet."],
         proofs: [],
       },
-      { status: 401 },
+      { status },
     );
   }
 
@@ -38,3 +40,4 @@ export async function GET(request: Request) {
     proofs,
   });
 }
+

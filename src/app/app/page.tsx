@@ -59,9 +59,10 @@ export default function AppDashboard() {
     setStatusMessage("");
 
     try {
+      const headers = await auth.authHeaders();
       const response = await fetch(`/api/events/${eventId}/register`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...headers },
         body: JSON.stringify({ userId: auth.userId }),
       });
       const data = await response.json();

@@ -1,3 +1,4 @@
+import { authenticateRequest } from "@/lib/privy-server";
 import { readProofRecords } from "@/lib/proof-store";
 import { downloadBlobFromZeroG } from "@/lib/zero-g";
 
@@ -6,13 +7,13 @@ export const runtime = "nodejs";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const url = new URL(request.url);
-  const userId = url.searchParams.get("userId");
 
-  if (!userId) {
+  const { userId, error, status } = await authenticateRequest(request);
+
+  if (error || !userId) {
     return Response.json(
-      { status: "wallet_required", issues: ["Media reads must be scoped to the signed-in Privy wallet."] },
-      { status: 401 },
+      { status: "wallet_required", issues: [error ?? "Media reads must be scoped to the signed-in Privy wallet."] },
+      { status },
     );
   }
 

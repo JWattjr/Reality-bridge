@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import AuthenticatedImage from "@/components/AuthenticatedImage";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type React from "react";
@@ -36,26 +36,30 @@ export default function ProofsPage() {
     const params = new URLSearchParams({ userId: auth.userId });
 
     setStatus("loading");
-    fetch(`/api/proofs?${params.toString()}`, {
-      cache: "no-store",
-      signal: controller.signal,
-    })
-      .then(async (response) => {
+
+    (async () => {
+      try {
+        const headers = await auth.authHeaders();
+        const response = await fetch(`/api/proofs?${params.toString()}`, {
+          cache: "no-store",
+          signal: controller.signal,
+          headers,
+        });
         const data = (await response.json()) as ProofsResponse;
         if (!response.ok) throw new Error(data.issues?.join(", ") ?? "Could not load your proofs");
         setProofs(data.proofs ?? []);
         setStatus("idle");
         setIssue("");
-      })
-      .catch((error) => {
+      } catch (error) {
         if (controller.signal.aborted) return;
         setProofs([]);
         setStatus("error");
         setIssue(error instanceof Error ? error.message : "Could not load your proofs");
-      });
+      }
+    })();
 
     return () => controller.abort();
-  }, [auth.authenticated, auth.ready, auth.userId]);
+  }, [auth]);
 
   const scopedProofs = useMemo(() => {
     if (!auth.userId) return [];
@@ -122,7 +126,7 @@ export default function ProofsPage() {
               actionLabel="Open missions"
             />
           ) : (
-            scopedProofs.map((proof) => <ProofCard key={proof.id} proof={proof} userId={auth.userId ?? ""} />)
+            scopedProofs.map((proof) => <ProofCard key={proof.id} proof={proof} />)
           )}
         </section>
       </div>
@@ -130,11 +134,11 @@ export default function ProofsPage() {
   );
 }
 
-function ProofCard({ proof, userId }: { proof: ProofRecord; userId: string }) {
+function ProofCard({ proof }: { proof: ProofRecord }) {
   const event = EVENTS.find((item) => item.id === proof.eventId);
   const mission = MISSIONS.find((item) => item.id === proof.missionId);
   const proofCopy = PROOF_TYPE_COPY[proof.proofType];
-  const mediaUrl = `/api/proofs/${proof.id}/media?${new URLSearchParams({ userId }).toString()}`;
+  const mediaUrl = `/api/proofs/${proof.id}/media`;
 
   return (
     <article className="bubbly-card premium-glint bg-white p-4 sm:p-5">
@@ -159,9 +163,7 @@ function ProofCard({ proof, userId }: { proof: ProofRecord; userId: string }) {
         <div className="flex shrink-0 flex-wrap gap-2">
           {proof.mediaStorage && (
             <a
-              href={mediaUrl}
-              target="_blank"
-              rel="noreferrer"
+              href={`#media-${proof.id}`}
               className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-4 py-2 text-xs font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
             >
               View media
@@ -197,16 +199,15 @@ function ProofCard({ proof, userId }: { proof: ProofRecord; userId: string }) {
       </div>
 
       {proof.mediaStorage && (
-        <div className="mt-3 grid gap-3 md:grid-cols-[0.8fr_1.2fr] md:items-start">
+        <div id={`media-${proof.id}`} className="mt-3 grid gap-3 md:grid-cols-[0.8fr_1.2fr] md:items-start">
           <ProofField label="Media root" value={proof.mediaStorage.rootHash} />
           <div className="overflow-hidden rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)]">
-            <Image
+            <AuthenticatedImage
               src={mediaUrl}
               alt={`Uploaded proof media for ${proof.id}`}
               width={640}
               height={360}
               className="h-auto w-full object-cover"
-              unoptimized
             />
           </div>
         </div>
