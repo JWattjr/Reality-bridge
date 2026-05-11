@@ -24,20 +24,6 @@ export async function readLeaderboard(eventId?: string): Promise<LeaderboardEntr
     entryFromScore(userId, score, profileById.get(userId))
   );
 
-  const seedUsers: LeaderboardEntry[] = [
-    { rank: 0, userId: "seed_1", name: "David O.", avatar: "DO", xp: 480, missionsCompleted: 5, level: getLevelForXp(480).level },
-    { rank: 0, userId: "seed_2", name: "Sarah M.", avatar: "SM", xp: 350, missionsCompleted: 4, level: getLevelForXp(350).level },
-    { rank: 0, userId: "seed_3", name: "Chen W.", avatar: "CW", xp: 210, missionsCompleted: 2, level: getLevelForXp(210).level },
-    { rank: 0, userId: "seed_4", name: "Amara K.", avatar: "AK", xp: 150, missionsCompleted: 2, level: getLevelForXp(150).level },
-    { rank: 0, userId: "seed_5", name: "James L.", avatar: "JL", xp: 90, missionsCompleted: 1, level: getLevelForXp(90).level },
-  ];
-
-  for (const seed of seedUsers) {
-    if (!entries.some((e) => e.userId === seed.userId)) {
-      entries.push(seed);
-    }
-  }
-
   return entries
     .sort((a, b) => b.xp - a.xp || b.missionsCompleted - a.missionsCompleted)
     .map((entry, index) => ({ ...entry, rank: index + 1 }));
