@@ -3,7 +3,7 @@
 import type { ConnectedWallet } from "@privy-io/react-auth";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useProofPlayAuth } from "@/components/ProofPlayAuthProvider";
-import { shortHash, type Mission, type ProofChainAnchor, type ProofRecord, type StorageReference } from "@/lib/mock-data";
+import { shortHash, MISSIONS, type Mission, type ProofChainAnchor, type ProofRecord, type StorageReference } from "@/lib/mock-data";
 import {
   uploadFileToZeroGWithWallet,
   uploadJsonToZeroGWithWallet,
@@ -157,6 +157,18 @@ export function useMissionVerification(eventId?: string) {
         setSubmissionStatus((current) => ({
           ...current,
           [mission.id]: { state: "error", message: "Choose a photo to upload as proof." },
+        }));
+        return;
+      }
+
+      // Enforce event check-in before allowing other missions
+      const eventMissions = MISSIONS.filter((m) => m.eventId === mission.eventId);
+      const checkInMission = eventMissions.find((m) => m.id === "m1" || m.title.toLowerCase().includes("check in"));
+      
+      if (checkInMission && mission.id !== checkInMission.id && !getMissionProof(checkInMission.id)) {
+        setSubmissionStatus((current) => ({
+          ...current,
+          [mission.id]: { state: "error", message: "Please complete the event check-in mission first." },
         }));
         return;
       }

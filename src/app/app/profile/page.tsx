@@ -32,6 +32,7 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<"badges" | "activity" | "proofs">("badges");
   const [proofRecords, setProofRecords] = useState<ProofRecord[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileStatus, setProfileStatus] = useState("");
   const [profileForm, setProfileForm] = useState<ProfileForm>({
@@ -77,8 +78,14 @@ export default function ProfilePage() {
       }),
     })
       .then((response) => response.json())
-      .then((data: { profile?: UserProfile }) => setProfile(data.profile ?? null))
-      .catch(() => setProfile(null));
+      .then((data: { profile?: UserProfile }) => {
+        setProfile(data.profile ?? null);
+        setIsLoading(false);
+      })
+      .catch(() => {
+        setProfile(null);
+        setIsLoading(false);
+      });
   }, [auth.authenticated, auth.displayName, auth.userId, auth.walletAddress]);
 
   const visibleProfile = {
@@ -146,6 +153,17 @@ export default function ProfilePage() {
     } catch (error) {
       setConnectionStatus(error instanceof Error ? error.message : "Connection failed");
     }
+  }
+
+  if (isLoading && auth.authenticated) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-[var(--color-primary-900)] border-t-[var(--color-pastel-blue)]" />
+          <p className="text-sm font-bold opacity-60">Loading profile...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
