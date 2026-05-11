@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 
     const hasChainAnchor = isProofChainAnchor(body.chainAnchor);
 
-    const proofStatus = hasChainAnchor ? "verified" : "pending_anchor";
+    const proofStatus = hasChainAnchor ? "validated" : "pending_anchor";
 
     const proofRecord: ProofRecord = {
       ...prepared.proofRecord,
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
         eventId: proofRecord.eventId,
         missionId: proofRecord.missionId,
         xpDelta: proofRecord.xpEarned,
-        missionStatus: proofStatus === "verified" ? "completed" : "pending_anchor",
+        missionStatus: proofStatus === "validated" ? "completed" : "pending_anchor",
         proofRootHash: proofRecord.storage.rootHash,
         badgeId: proofRecord.badgeId,
       },
