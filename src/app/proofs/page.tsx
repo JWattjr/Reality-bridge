@@ -138,7 +138,7 @@ function ProofCard({ proof }: { proof: ProofRecord }) {
   const event = EVENTS.find((item) => item.id === proof.eventId);
   const mission = MISSIONS.find((item) => item.id === proof.missionId);
   const proofCopy = PROOF_TYPE_COPY[proof.proofType];
-  const mediaUrl = `/api/proofs/${proof.id}/media`;
+  const mediaUrl = `/api/proofs/${proof.id}/media?${new URLSearchParams({ userId: proof.userId }).toString()}`;
 
   return (
     <article className="bubbly-card premium-glint bg-white p-4 sm:p-5">
