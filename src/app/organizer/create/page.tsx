@@ -6,6 +6,7 @@ import { Plus, Trash2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { PROOF_TYPE_COPY, type ProofType } from "@/lib/mock-data";
 import type { CommunityEvent } from "@/lib/community-store";
+import MissionQRCodePanel from "@/components/MissionQRCodePanel";
 
 const MISSION_TEMPLATES = [
   { title: "Check in at entrance", type: "qr", proofType: "qr_scan", xp: 50, description: "Scan the venue entrance QR code." },
@@ -309,15 +310,12 @@ export default function CreateEventPage() {
           className="space-y-4"
         >
           <div className="bubbly-card p-6 bg-gradient-to-br from-[var(--color-pastel-purple)] to-[var(--color-pastel-pink)] text-center">
-            <h2 className="font-display text-2xl font-bold mb-2">Ready to Launch</h2>
-            <p className="text-sm font-bold opacity-70">Your event is ready. Share the QR code with attendees.</p>
-
-            {/* QR Code Placeholder */}
-            <div className="w-40 h-40 mx-auto mt-6 bg-white bubbly-border flex items-center justify-center shadow-[3px_3px_0px_0px_#312e81]">
-              <div className="text-center">
-                <p className="text-[10px] font-bold opacity-60">QR Code</p>
-              </div>
-            </div>
+            <h2 className="font-display text-2xl font-bold mb-2">{createdEvent ? "Event Live!" : "Ready to Launch"}</h2>
+            <p className="text-sm font-bold opacity-70">
+              {createdEvent
+                ? "Your event is live. Print the QR codes below and place them at each checkpoint."
+                : "Review your event, then hit Launch to publish."}
+            </p>
 
             <div className="mt-4 bg-white/50 backdrop-blur-sm rounded-xl border-2 border-[var(--color-primary-900)] p-3 text-xs font-bold">
               <p>Event Link:</p>
@@ -326,6 +324,21 @@ export default function CreateEventPage() {
               </p>
             </div>
           </div>
+
+          {/* QR Code Generation */}
+          <MissionQRCodePanel
+            eventId={createdEvent?.id ?? `draft-${Date.now()}`}
+            eventTitle={eventDetails.title || "Untitled Event"}
+            missions={missions.map((m) => ({
+              id: createdEvent
+                ? (createdEvent.missions.find((cm) => cm.title === m.title)?.id ?? `mission_${m.id}`)
+                : `mission_${m.id}`,
+              title: m.title,
+              type: m.type,
+              proofType: m.proofType,
+              xpReward: m.xp,
+            }))}
+          />
 
           <div className="bubbly-card p-5 bg-white">
             <h3 className="font-display text-lg font-bold mb-3">Event Summary</h3>

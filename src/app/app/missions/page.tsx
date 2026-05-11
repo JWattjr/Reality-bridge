@@ -204,7 +204,7 @@ export default function MissionsPage() {
                         <span className="opacity-60">Type: {mission.type.toUpperCase()}</span>
                         <span className="opacity-60">Max: {mission.maxCompletions}x</span>
                       </div>
-                            <MissionProofDetails mission={mission} proof={proof} userId={auth.userId} />
+                            <MissionProofDetails mission={mission} proof={proof ?? undefined} userId={auth.userId} />
                       {submissionStatus[mission.id]?.message && (
                         <p
                           className={`mt-2 font-bold ${

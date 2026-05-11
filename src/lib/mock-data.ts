@@ -106,7 +106,7 @@ export interface ProofRecord {
   location: string;
   xpEarned: number;
   validator: "backend" | "organizer";
-  status: "validated" | "pending_review";
+  status: "validated" | "pending_review" | "pending_anchor";
   evidenceLabel: string;
   storage: StorageReference;
   mediaStorage?: StorageReference;

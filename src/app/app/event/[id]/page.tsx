@@ -26,6 +26,7 @@ export default function EventDetailPage() {
     getMissionProof,
     submissionStatus,
     verifyMission,
+    retryAnchor,
     withProofStatus,
   } = useMissionVerification(eventId);
 
@@ -254,9 +255,25 @@ export default function EventDetailPage() {
                   />
                 </div>
                 {status?.message && (
-                  <p className={`mt-2 text-[10px] font-bold ${status.state === "error" ? "text-red-600" : "text-green-700"}`}>
+                  <p className={`mt-2 text-[10px] font-bold ${
+                    status.state === "error" ? "text-red-600"
+                    : status.state === "pending_anchor" ? "text-amber-700"
+                    : "text-green-700"
+                  }`}>
                     {status.message}
                   </p>
+                )}
+                {proof?.status === "pending_anchor" && !status?.message?.includes("Retrying") && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      retryAnchor(proof);
+                    }}
+                    className="mt-2 inline-flex items-center gap-1 rounded-full border-2 border-amber-600 bg-amber-100 px-3 py-1 text-[10px] font-bold text-amber-700 transition-all hover:translate-y-0.5"
+                  >
+                    ⟳ Retry anchor
+                  </button>
                 )}
                 {proof?.mediaStorage && auth.userId && (
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-bold text-green-700">

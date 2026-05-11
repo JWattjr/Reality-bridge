@@ -33,21 +33,22 @@ export async function POST(request: Request) {
       return Response.json({ status: "rejected", issues: ["Photo proof requires a 0G media storage receipt"] }, { status: 422 });
     }
 
-    if (!isProofChainAnchor(body.chainAnchor)) {
-      return Response.json({ status: "rejected", issues: ["ProofPlay contract anchor is required"] }, { status: 422 });
-    }
+    const hasChainAnchor = isProofChainAnchor(body.chainAnchor);
+
+    const proofStatus = hasChainAnchor ? "verified" : "pending_anchor";
 
     const proofRecord: ProofRecord = {
       ...prepared.proofRecord,
+      status: proofStatus as ProofRecord["status"],
       storage: body.storage,
       mediaStorage: body.mediaStorage,
-      chainAnchor: body.chainAnchor,
+      chainAnchor: hasChainAnchor ? body.chainAnchor : undefined,
     };
 
     await appendProofRecord(proofRecord);
 
     return Response.json({
-      status: "verified",
+      status: proofStatus,
       uploadMode: "user_paid",
       proofRecord,
       databaseWrite: {
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
         eventId: proofRecord.eventId,
         missionId: proofRecord.missionId,
         xpDelta: proofRecord.xpEarned,
-        missionStatus: "completed",
+        missionStatus: proofStatus === "verified" ? "completed" : "pending_anchor",
         proofRootHash: proofRecord.storage.rootHash,
         badgeId: proofRecord.badgeId,
       },

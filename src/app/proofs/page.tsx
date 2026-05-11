@@ -151,6 +151,11 @@ function ProofCard({ proof }: { proof: ProofRecord }) {
             <span className="rounded-full border-2 border-[var(--color-primary-900)] bg-white px-2.5 py-1 text-[10px] font-bold">
               {proof.xpEarned} XP
             </span>
+            {proof.status === "pending_anchor" && (
+              <span className="rounded-full border-2 border-amber-600 bg-amber-100 px-2.5 py-1 text-[10px] font-bold text-amber-700">
+                ⚠ Pending anchor
+              </span>
+            )}
           </div>
           <h2 className="mt-3 font-display text-2xl font-bold text-[var(--color-primary-900)]">
             {mission?.title ?? proof.missionId}

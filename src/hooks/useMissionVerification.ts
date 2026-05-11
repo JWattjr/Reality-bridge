@@ -3,7 +3,7 @@
 import type { ConnectedWallet } from "@privy-io/react-auth";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useProofPlayAuth } from "@/components/ProofPlayAuthProvider";
-import { shortHash, type Mission, type ProofRecord, type StorageReference } from "@/lib/mock-data";
+import { shortHash, type Mission, type ProofChainAnchor, type ProofRecord, type StorageReference } from "@/lib/mock-data";
 import {
   uploadFileToZeroGWithWallet,
   uploadJsonToZeroGWithWallet,
@@ -11,7 +11,7 @@ import {
 } from "@/lib/zero-g-client";
 import { anchorProofOnRegistry, isProofRegistryConfigured } from "@/lib/proof-registry";
 
-export type SubmissionState = "idle" | "submitting" | "verified" | "error";
+export type SubmissionState = "idle" | "submitting" | "verified" | "pending_anchor" | "error";
 
 export type SubmissionStatus = {
   state: SubmissionState;
@@ -58,13 +58,16 @@ export function useMissionVerification(eventId?: string) {
     const map = new Map<string, ProofRecord>();
 
     for (const proof of userProofRecords) {
-      if (!map.has(proof.missionId)) {
-        map.set(proof.missionId, proof);
-      }
+      map.set(proof.missionId, proof);
     }
 
     return map;
   }, [userProofRecords]);
+
+  const getMissionProof = useCallback(
+    (missionId: string) => proofByMission.get(missionId) ?? null,
+    [proofByMission],
+  );
 
   const refreshProofs = useCallback(async () => {
     if (!auth.authenticated || !auth.userId) {
@@ -91,44 +94,60 @@ export function useMissionVerification(eventId?: string) {
 
   useEffect(() => {
     refreshProofs().catch(() => {
-      setProofsLoading(false);
+      /* swallow – auth not ready */
     });
   }, [refreshProofs]);
-
-  const getMissionProof = useCallback((missionId: string) => proofByMission.get(missionId), [proofByMission]);
 
   const withProofStatus = useCallback(
     (mission: Mission): Mission => {
       const proof = getMissionProof(mission.id);
 
-      if (!proof) return mission;
+      if (proof) {
+        return { ...mission, status: proof.status === "pending_anchor" ? "available" : "completed" };
+      }
 
-      return {
-        ...mission,
-        status: "completed",
-        completedAt: proof.timestamp,
-        proofRecordId: proof.id,
-        completionCount: Math.max(mission.completionCount, 1),
-      };
+      return mission;
     },
     [getMissionProof],
   );
 
-  const verifyMission = useCallback(
-    async (mission: Mission, file?: File) => {
-      if (!auth.configured) {
-        setSubmissionStatus((current) => ({
-          ...current,
-          [mission.id]: {
-            state: "error",
-            message: "Add NEXT_PUBLIC_PRIVY_APP_ID before live wallet proofs.",
-          },
-        }));
-        return;
+  /**
+   * Save the proof to Supabase. Called twice during the flow:
+   * 1. After 0G upload (without chain anchor) — ensures proof data is never lost
+   * 2. After successful on-chain anchor — updates the record with the chain receipt
+   */
+  const saveProofToServer = useCallback(
+    async (
+      preparedSubmission: Record<string, unknown>,
+      storage: StorageReference,
+      mediaStorage?: StorageReference,
+      chainAnchor?: ProofChainAnchor,
+    ) => {
+      const tokenHeaders = await auth.authHeaders();
+      const response = await fetch("/api/verification/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...tokenHeaders },
+        body: JSON.stringify({
+          submission: preparedSubmission,
+          storage,
+          mediaStorage,
+          chainAnchor,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        const issues = Array.isArray(data.issues) ? data.issues.join(", ") : "Verification failed";
+        throw new Error(issues);
       }
 
-      if (!auth.ready) return;
+      return data.proofRecord as ProofRecord;
+    },
+    [auth],
+  );
 
+  const verifyMission = useCallback(
+    async (mission: Mission, file?: File) => {
       if (!auth.authenticated || !auth.userId) {
         auth.login();
         return;
@@ -157,7 +176,7 @@ export function useMissionVerification(eventId?: string) {
         ...current,
         [mission.id]: {
           state: "submitting",
-          message: "Uploading to 0G Storage, then anchoring on ProofRegistry...",
+          message: "Uploading to 0G Storage...",
         },
       }));
 
@@ -203,6 +222,7 @@ export function useMissionVerification(eventId?: string) {
           timestamp: preparedData.prepared.proofPayload.timestamp,
         };
 
+        // Phase 1: Upload to 0G Storage (user-paid)
         const storage = await uploadJsonToZeroGWithWallet(
           preparedData.prepared.proofPayload,
           preparedData.prepared.uploadKeys.proof,
@@ -218,50 +238,140 @@ export function useMissionVerification(eventId?: string) {
           };
         }
 
-        const proofToAnchor: ProofRecord = {
-          ...preparedData.prepared.proofRecord,
-          storage,
-          mediaStorage,
-        };
-        const chainAnchor = await anchorProofOnRegistry(proofToAnchor, wallet);
-
-        const response = await fetch("/api/verification/complete", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...tokenHeaders },
-          body: JSON.stringify({
-            submission: preparedSubmission,
-            storage,
-            mediaStorage,
-            chainAnchor,
-          }),
-        });
-        const data = await response.json();
-
-        if (!response.ok) {
-          const issues = Array.isArray(data.issues) ? data.issues.join(", ") : "Verification failed";
-          throw new Error(issues);
-        }
-
-        const proofRecord = data.proofRecord as ProofRecord;
-        setProofRecords((current) => [
-          proofRecord,
-          ...current.filter((proof) => proof.id !== proofRecord.id),
-        ]);
+        // Phase 2: Save proof to Supabase IMMEDIATELY (without chain anchor)
+        // This ensures the proof is never lost even if anchoring fails
         setSubmissionStatus((current) => ({
           ...current,
           [mission.id]: {
-            state: "verified",
-            message: proofRecord.mediaStorage
-              ? `0G ${shortHash(proofRecord.storage.rootHash)} + registry ${shortHash(proofRecord.chainAnchor?.txHash ?? "")}`
-              : `0G ${shortHash(proofRecord.storage.rootHash)} anchored: ${shortHash(proofRecord.chainAnchor?.txHash ?? "")}`,
+            state: "submitting",
+            message: "0G upload complete. Saving receipt and anchoring on-chain...",
           },
         }));
+
+        let savedProof = await saveProofToServer(preparedSubmission, storage, mediaStorage);
+
+        // Phase 3: Attempt on-chain anchoring
+        try {
+          const proofToAnchor: ProofRecord = {
+            ...preparedData.prepared.proofRecord,
+            storage,
+            mediaStorage,
+          };
+          const chainAnchor = await anchorProofOnRegistry(proofToAnchor, wallet);
+
+          // Update the saved record with the chain anchor
+          savedProof = await saveProofToServer(preparedSubmission, storage, mediaStorage, chainAnchor);
+
+          setProofRecords((current) => [
+            savedProof,
+            ...current.filter((proof) => proof.id !== savedProof.id),
+          ]);
+          setSubmissionStatus((current) => ({
+            ...current,
+            [mission.id]: {
+              state: "verified",
+              message: savedProof.mediaStorage
+                ? `0G ${shortHash(savedProof.storage.rootHash)} + registry ${shortHash(savedProof.chainAnchor?.txHash ?? "")}`
+                : `0G ${shortHash(savedProof.storage.rootHash)} anchored: ${shortHash(savedProof.chainAnchor?.txHash ?? "")}`,
+            },
+          }));
+        } catch (anchorError) {
+          // Anchoring failed — proof is safely stored on 0G + Supabase
+          setProofRecords((current) => [
+            savedProof,
+            ...current.filter((proof) => proof.id !== savedProof.id),
+          ]);
+          setSubmissionStatus((current) => ({
+            ...current,
+            [mission.id]: {
+              state: "pending_anchor",
+              message: `Proof saved on 0G (${shortHash(savedProof.storage.rootHash)}) but chain anchor failed: ${anchorError instanceof Error ? anchorError.message : "Transaction failed"}. Tap "Retry anchor" to try again.`,
+            },
+          }));
+        }
       } catch (error) {
         setSubmissionStatus((current) => ({
           ...current,
           [mission.id]: {
             state: "error",
             message: error instanceof Error ? error.message : "Verification failed",
+          },
+        }));
+      }
+    },
+    [auth, saveProofToServer],
+  );
+
+  /**
+   * Retry anchoring a proof that was uploaded to 0G but failed to anchor on-chain.
+   */
+  const retryAnchor = useCallback(
+    async (proof: ProofRecord) => {
+      if (!auth.authenticated || !auth.userId) {
+        auth.login();
+        return;
+      }
+
+      setSubmissionStatus((current) => ({
+        ...current,
+        [proof.missionId]: {
+          state: "submitting",
+          message: "Retrying on-chain anchor...",
+        },
+      }));
+
+      try {
+        const wallet = findActiveWallet(auth.wallets, auth.walletAddress);
+
+        if (!wallet) {
+          throw new Error("No Privy wallet is available for this account.");
+        }
+
+        const chainAnchor = await anchorProofOnRegistry(proof, wallet);
+
+        // Update the record with the chain anchor
+        const tokenHeaders = await auth.authHeaders();
+        const response = await fetch("/api/verification/complete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...tokenHeaders },
+          body: JSON.stringify({
+            submission: {
+              eventId: proof.eventId,
+              missionId: proof.missionId,
+              proofType: proof.proofType,
+              userId: proof.userId,
+              location: proof.location,
+              timestamp: proof.timestamp,
+            },
+            storage: proof.storage,
+            mediaStorage: proof.mediaStorage,
+            chainAnchor,
+          }),
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(Array.isArray(data.issues) ? data.issues.join(", ") : "Anchor update failed");
+        }
+
+        const updatedProof = data.proofRecord as ProofRecord;
+        setProofRecords((current) => [
+          updatedProof,
+          ...current.filter((p) => p.id !== updatedProof.id),
+        ]);
+        setSubmissionStatus((current) => ({
+          ...current,
+          [proof.missionId]: {
+            state: "verified",
+            message: `Anchored: ${shortHash(updatedProof.chainAnchor?.txHash ?? "")}`,
+          },
+        }));
+      } catch (error) {
+        setSubmissionStatus((current) => ({
+          ...current,
+          [proof.missionId]: {
+            state: "pending_anchor",
+            message: `Retry failed: ${error instanceof Error ? error.message : "Transaction failed"}. Try again when you have gas.`,
           },
         }));
       }
@@ -277,6 +387,7 @@ export function useMissionVerification(eventId?: string) {
     refreshProofs,
     submissionStatus,
     verifyMission,
+    retryAnchor,
     withProofStatus,
   };
 }
