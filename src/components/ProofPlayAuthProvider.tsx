@@ -71,7 +71,7 @@ const zeroGMainnetChain = {
 };
 
 const privyConfig: PrivyProviderProps["config"] = {
-  loginMethods: ["wallet", "email", "google", "twitter"],
+  loginMethods: ["email", "google", "twitter"],
   supportedChains: [zeroGMainnetChain],
   defaultChain: zeroGMainnetChain,
   embeddedWallets: {
