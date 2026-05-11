@@ -27,6 +27,7 @@ const STATUS_FILTERS: { label: string; value: MissionStatus | "all" }[] = [
 
 export default function MissionsPage() {
   const {
+    auth,
     proofsLoading,
     getMissionProof,
     submissionStatus,
@@ -203,7 +204,7 @@ export default function MissionsPage() {
                         <span className="opacity-60">Type: {mission.type.toUpperCase()}</span>
                         <span className="opacity-60">Max: {mission.maxCompletions}x</span>
                       </div>
-                      <MissionProofDetails mission={mission} proof={proof} />
+                            <MissionProofDetails mission={mission} proof={proof} userId={auth.userId} />
                       {submissionStatus[mission.id]?.message && (
                         <p
                           className={`mt-2 font-bold ${
@@ -239,7 +240,19 @@ export default function MissionsPage() {
   );
 }
 
-function MissionProofDetails({ mission, proof }: { mission: Mission; proof?: ProofRecord }) {
+function MissionProofDetails({
+  mission,
+  proof,
+  userId,
+}: {
+  mission: Mission;
+  proof?: ProofRecord;
+  userId: string | null;
+}) {
+  const mediaUrl = proof && userId
+    ? `/api/proofs/${proof.id}/media?${new URLSearchParams({ userId }).toString()}`
+    : undefined;
+
   return (
     <div className="mt-2 rounded-xl border-2 border-[var(--color-primary-900)] bg-white/70 p-2">
       <div className="flex items-center justify-between gap-2">
@@ -250,11 +263,11 @@ function MissionProofDetails({ mission, proof }: { mission: Mission; proof?: Pro
         <div className="mt-1 space-y-1">
           <p className="font-bold text-green-600">0G root: {shortHash(proof.storage.rootHash)}</p>
           <p className="opacity-60 truncate">{proof.storage.storageRef}</p>
-          {proof.mediaStorage && (
+          {proof.mediaStorage && mediaUrl && (
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="font-bold text-green-600">Media root: {shortHash(proof.mediaStorage.rootHash)}</p>
               <a
-                href={`/api/proofs/${proof.id}/media`}
+                href={mediaUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="rounded-full border border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-2 py-0.5 text-[10px] font-bold"

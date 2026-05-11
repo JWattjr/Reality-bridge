@@ -4,13 +4,27 @@ import { downloadBlobFromZeroG } from "@/lib/zero-g";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const url = new URL(request.url);
+  const userId = url.searchParams.get("userId");
+
+  if (!userId) {
+    return Response.json(
+      { status: "wallet_required", issues: ["Media reads must be scoped to the signed-in Privy wallet."] },
+      { status: 401 },
+    );
+  }
+
   const proofs = await readProofRecords();
   const proof = proofs.find((item) => item.id === id);
 
   if (!proof) {
     return Response.json({ status: "not_found", issues: ["Proof record not found"] }, { status: 404 });
+  }
+
+  if (proof.userId.toLowerCase() !== userId.toLowerCase()) {
+    return Response.json({ status: "forbidden", issues: ["This media does not belong to the signed-in wallet."] }, { status: 403 });
   }
 
   if (!proof.mediaStorage) {

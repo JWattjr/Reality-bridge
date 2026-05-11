@@ -6,8 +6,20 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const userId = url.searchParams.get("userId");
   const eventId = url.searchParams.get("eventId");
+
+  if (!userId) {
+    return Response.json(
+      {
+        status: "wallet_required",
+        issues: ["Proof reads must be scoped to the signed-in Privy wallet."],
+        proofs: [],
+      },
+      { status: 401 },
+    );
+  }
+
   const proofs = (await readProofRecords()).filter((proof) => {
-    const sameUser = userId ? proof.userId.toLowerCase() === userId.toLowerCase() : true;
+    const sameUser = proof.userId.toLowerCase() === userId.toLowerCase();
     const sameEvent = eventId ? proof.eventId === eventId : true;
     return sameUser && sameEvent;
   });

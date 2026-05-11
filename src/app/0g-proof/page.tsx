@@ -11,7 +11,7 @@ import { ZERO_G_MAINNET } from "@/lib/zero-g";
 export default async function ZeroGProofPage() {
   await connection();
 
-  const proofs = await readProofRecords();
+  const proofs: Awaited<ReturnType<typeof readProofRecords>> = [];
   const latestProof = proofs[0];
   const latestMediaProof = proofs.find((proof) => proof.mediaStorage);
   const contractAddress = process.env.ZERO_G_FLOW_CONTRACT_ADDRESS ?? ZERO_G_MAINNET.flowContractAddress;

@@ -258,11 +258,11 @@ export default function EventDetailPage() {
                     {status.message}
                   </p>
                 )}
-                {proof?.mediaStorage && (
+                {proof?.mediaStorage && auth.userId && (
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-bold text-green-700">
                     <span>Media on 0G: {shortHash(proof.mediaStorage.rootHash)}</span>
                     <a
-                      href={`/api/proofs/${proof.id}/media`}
+                      href={`/api/proofs/${proof.id}/media?${new URLSearchParams({ userId: auth.userId }).toString()}`}
                       target="_blank"
                       rel="noreferrer"
                       className="rounded-full border border-green-700 bg-green-100 px-2 py-0.5"

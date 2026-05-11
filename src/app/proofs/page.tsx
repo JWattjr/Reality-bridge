@@ -1,18 +1,67 @@
-import Link from "next/link";
+"use client";
+
 import Image from "next/image";
-import { connection } from "next/server";
-import { ArrowLeft, ExternalLink, ShieldCheck, Trophy, Wallet } from "lucide-react";
-import { EVENTS, MISSIONS, PROOF_TYPE_COPY, shortHash } from "@/lib/mock-data";
-import { readProofRecords } from "@/lib/proof-store";
-import { ZERO_G_MAINNET } from "@/lib/zero-g";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import type React from "react";
+import { ArrowLeft, ExternalLink, LockKeyhole, ShieldCheck, Trophy, Wallet } from "lucide-react";
+import { useProofPlayAuth } from "@/components/ProofPlayAuthProvider";
+import { EVENTS, MISSIONS, PROOF_TYPE_COPY, shortHash, type ProofRecord } from "@/lib/mock-data";
 
-export default async function ProofsPage() {
-  await connection();
+const ZERO_G_NETWORK = "0G Mainnet";
+const ZERO_G_FLOW_CONTRACT = "0x62D4144dB0F0a6fBBaeb6296c785C71B3D57C526";
+const PROOF_REGISTRY_CONTRACT = "0xbEE85061D8CAd149006977d7943cBf6063A57cb0";
 
-  const proofs = await readProofRecords();
-  const contractAddress =
-    process.env.ZERO_G_FLOW_CONTRACT_ADDRESS ?? ZERO_G_MAINNET.flowContractAddress;
-  const registryAddress = process.env.NEXT_PUBLIC_PROOF_REGISTRY_ADDRESS;
+type ProofsResponse = {
+  proofs?: ProofRecord[];
+  issues?: string[];
+};
+
+export default function ProofsPage() {
+  const auth = useProofPlayAuth();
+  const [proofs, setProofs] = useState<ProofRecord[]>([]);
+  const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [issue, setIssue] = useState("");
+
+  useEffect(() => {
+    if (!auth.ready) return;
+
+    if (!auth.authenticated || !auth.userId) {
+      setProofs([]);
+      setStatus("idle");
+      return;
+    }
+
+    const controller = new AbortController();
+    const params = new URLSearchParams({ userId: auth.userId });
+
+    setStatus("loading");
+    fetch(`/api/proofs?${params.toString()}`, {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const data = (await response.json()) as ProofsResponse;
+        if (!response.ok) throw new Error(data.issues?.join(", ") ?? "Could not load your proofs");
+        setProofs(data.proofs ?? []);
+        setStatus("idle");
+        setIssue("");
+      })
+      .catch((error) => {
+        if (controller.signal.aborted) return;
+        setProofs([]);
+        setStatus("error");
+        setIssue(error instanceof Error ? error.message : "Could not load your proofs");
+      });
+
+    return () => controller.abort();
+  }, [auth.authenticated, auth.ready, auth.userId]);
+
+  const scopedProofs = useMemo(() => {
+    if (!auth.userId) return [];
+    const userId = auth.userId.toLowerCase();
+    return proofs.filter((proof) => proof.userId.toLowerCase() === userId);
+  }, [auth.userId, proofs]);
 
   return (
     <main className="min-h-screen bg-[var(--color-bg-base)] px-4 py-8 sm:px-6 sm:py-12">
@@ -29,170 +78,214 @@ export default async function ProofsPage() {
           <div>
             <p className="inline-flex items-center gap-2 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-3 py-1.5 text-xs font-bold">
               <ShieldCheck size={14} />
-              Public 0G proof ledger
+              Wallet-scoped proof vault
             </p>
             <h1
               className="mt-5 font-display text-5xl font-bold leading-[0.95] text-[var(--color-primary-900)] sm:text-6xl"
               style={{ textShadow: "3px 3px 0px #fff" }}
             >
-              Stored evidence for real-world missions.
+              Proofs signed by your Privy wallet.
             </h1>
             <p className="mt-4 max-w-2xl text-sm font-bold leading-relaxed opacity-70 sm:text-base">
-              Each verified action creates a proof record, uploads that proof to 0G Storage, and stores the returned root hash for badges and reputation.
+              This page only loads proof records whose owner matches your signed-in wallet. Other accounts do not appear here.
             </p>
           </div>
 
           <div className="bubbly-card bg-white p-4">
-            <p className="text-xs font-bold opacity-60">0G mainnet Flow contract</p>
+            <p className="text-xs font-bold opacity-60">Signed-in wallet</p>
             <p className="mt-2 break-all rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-purple)] p-3 text-xs font-bold">
-              {contractAddress}
+              {auth.authenticated ? auth.userId : "Sign in to load your proofs"}
             </p>
             <p className="mt-3 text-xs font-bold opacity-60">ProofPlay registry contract</p>
             <p className="mt-2 break-all rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] p-3 text-xs font-bold">
-              {registryAddress ?? "Deploy ProofRegistry to enable anchors"}
+              {PROOF_REGISTRY_CONTRACT}
             </p>
             <div className="mt-3 grid grid-cols-2 gap-2">
-              <div className="rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-blue)] p-3">
-                <p className="text-[10px] font-bold opacity-60">Network</p>
-                <p className="font-bold">{ZERO_G_MAINNET.network}</p>
-              </div>
-              <div className="rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-yellow)] p-3">
-                <p className="text-[10px] font-bold opacity-60">Receipts</p>
-                <p className="font-bold">{proofs.length}</p>
-              </div>
+              <Metric label="Network" value={ZERO_G_NETWORK} />
+              <Metric label="Your proofs" value={scopedProofs.length.toString()} />
             </div>
-            <Link
-              href="/0g-proof"
-              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-4 py-2 text-xs font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
-            >
-              Reviewer 0G integration view
-              <ExternalLink size={13} />
-            </Link>
           </div>
         </section>
 
         <section className="mt-8 space-y-3">
-          {proofs.length === 0 ? (
-            <div className="bubbly-card bg-white p-6 text-center">
-              <p className="font-display text-2xl font-bold">No proof receipts yet</p>
-              <p className="mt-2 text-sm font-bold opacity-60">
-                Complete a mission from the app to create a live 0G Storage receipt.
-              </p>
-              <Link
-                href="/app/missions"
-                className="mt-5 inline-flex rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-pink)] px-5 py-2 text-sm font-bold shadow-[3px_3px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
-              >
-                Open missions
-              </Link>
-            </div>
+          {!auth.authenticated ? (
+            <GateCard onLogin={auth.login} />
+          ) : status === "loading" ? (
+            <EmptyCard title="Loading your proofs" body="Reading proof records for your signed-in Privy wallet." />
+          ) : status === "error" ? (
+            <EmptyCard title="Could not load proofs" body={issue} />
+          ) : scopedProofs.length === 0 ? (
+            <EmptyCard
+              title="No proofs for this wallet yet"
+              body="Complete a mission from this account to create a 0G Storage receipt and ProofRegistry anchor."
+              actionHref="/app/missions"
+              actionLabel="Open missions"
+            />
           ) : (
-            proofs.map((proof) => {
-              const event = EVENTS.find((item) => item.id === proof.eventId);
-              const mission = MISSIONS.find((item) => item.id === proof.missionId);
-              const proofCopy = PROOF_TYPE_COPY[proof.proofType];
-
-              return (
-                <article key={proof.id} className="bubbly-card premium-glint bg-white p-4 sm:p-5">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-2.5 py-1 text-[10px] font-bold">
-                          {proofCopy.label}
-                        </span>
-                        <span className="rounded-full border-2 border-[var(--color-primary-900)] bg-white px-2.5 py-1 text-[10px] font-bold">
-                          {proof.xpEarned} XP
-                        </span>
-                      </div>
-                      <h2 className="mt-3 font-display text-2xl font-bold text-[var(--color-primary-900)]">
-                        {mission?.title ?? proof.missionId}
-                      </h2>
-                      <p className="mt-1 text-xs font-bold opacity-60">
-                        {event?.title ?? proof.eventId} - {proof.location}
-                      </p>
-                    </div>
-
-                    <div className="flex shrink-0 flex-wrap gap-2">
-                      {proof.mediaStorage && (
-                        <a
-                          href={`/api/proofs/${proof.id}/media`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-4 py-2 text-xs font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
-                        >
-                          View media
-                          <ExternalLink size={13} />
-                        </a>
-                      )}
-                      {proof.storage.explorerUrl && (
-                        <a
-                          href={proof.storage.explorerUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-blue)] px-4 py-2 text-xs font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
-                        >
-                          Explorer
-                          <ExternalLink size={13} />
-                        </a>
-                      )}
-                      {proof.chainAnchor?.explorerUrl && (
-                        <a
-                          href={proof.chainAnchor.explorerUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-yellow)] px-4 py-2 text-xs font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
-                        >
-                          Registry tx
-                          <ExternalLink size={13} />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid gap-2 md:grid-cols-3">
-                    <ProofField label="Root hash" value={proof.storage.rootHash} />
-                    <ProofField label="Transaction" value={proof.storage.txHash ?? "pending"} />
-                    <ProofField label="Timestamp" value={new Date(proof.timestamp).toLocaleString()} />
-                  </div>
-
-                  {proof.chainAnchor && (
-                    <div className="mt-3 grid gap-2 md:grid-cols-3">
-                      <ProofField label="ProofPlay contract" value={proof.chainAnchor.contractAddress} />
-                      <ProofField label="Anchor tx" value={proof.chainAnchor.txHash} />
-                      <ProofField label="Proof key" value={proof.chainAnchor.proofKey} />
-                    </div>
-                  )}
-
-                  <div className="mt-3 grid gap-2 md:grid-cols-2">
-                    <ProofField icon={<Wallet size={13} />} label="User" value={proof.userId} />
-                    <ProofField icon={<Trophy size={13} />} label="Proof id" value={proof.id} />
-                  </div>
-
-                  {proof.mediaStorage && (
-                    <div className="mt-3 grid gap-3 md:grid-cols-[0.8fr_1.2fr] md:items-start">
-                      <ProofField label="Media root" value={proof.mediaStorage.rootHash} />
-                      <div className="overflow-hidden rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)]">
-                        <Image
-                          src={`/api/proofs/${proof.id}/media`}
-                          alt={`Uploaded proof media for ${proof.id}`}
-                          width={640}
-                          height={360}
-                          className="h-auto w-full object-cover"
-                          unoptimized
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  <p className="mt-3 rounded-2xl border-2 border-dashed border-[var(--color-primary-900)]/30 bg-[var(--color-bg-base)] p-3 text-xs font-bold opacity-70">
-                    {proof.evidenceLabel}
-                  </p>
-                </article>
-              );
-            })
+            scopedProofs.map((proof) => <ProofCard key={proof.id} proof={proof} userId={auth.userId ?? ""} />)
           )}
         </section>
       </div>
     </main>
+  );
+}
+
+function ProofCard({ proof, userId }: { proof: ProofRecord; userId: string }) {
+  const event = EVENTS.find((item) => item.id === proof.eventId);
+  const mission = MISSIONS.find((item) => item.id === proof.missionId);
+  const proofCopy = PROOF_TYPE_COPY[proof.proofType];
+  const mediaUrl = `/api/proofs/${proof.id}/media?${new URLSearchParams({ userId }).toString()}`;
+
+  return (
+    <article className="bubbly-card premium-glint bg-white p-4 sm:p-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-2.5 py-1 text-[10px] font-bold">
+              {proofCopy.label}
+            </span>
+            <span className="rounded-full border-2 border-[var(--color-primary-900)] bg-white px-2.5 py-1 text-[10px] font-bold">
+              {proof.xpEarned} XP
+            </span>
+          </div>
+          <h2 className="mt-3 font-display text-2xl font-bold text-[var(--color-primary-900)]">
+            {mission?.title ?? proof.missionId}
+          </h2>
+          <p className="mt-1 text-xs font-bold opacity-60">
+            {event?.title ?? proof.eventId} - {proof.location}
+          </p>
+        </div>
+
+        <div className="flex shrink-0 flex-wrap gap-2">
+          {proof.mediaStorage && (
+            <a
+              href={mediaUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-4 py-2 text-xs font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
+            >
+              View media
+              <ExternalLink size={13} />
+            </a>
+          )}
+          {proof.storage.explorerUrl && (
+            <ProofLink href={proof.storage.explorerUrl} label="0G tx" color="var(--color-pastel-blue)" />
+          )}
+          {proof.chainAnchor?.explorerUrl && (
+            <ProofLink href={proof.chainAnchor.explorerUrl} label="Registry tx" color="var(--color-pastel-yellow)" />
+          )}
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-2 md:grid-cols-3">
+        <ProofField label="Root hash" value={proof.storage.rootHash} />
+        <ProofField label="Storage tx" value={proof.storage.txHash ?? "pending"} />
+        <ProofField label="Timestamp" value={new Date(proof.timestamp).toLocaleString()} />
+      </div>
+
+      {proof.chainAnchor && (
+        <div className="mt-3 grid gap-2 md:grid-cols-3">
+          <ProofField label="ProofPlay contract" value={proof.chainAnchor.contractAddress} />
+          <ProofField label="Anchor tx" value={proof.chainAnchor.txHash} />
+          <ProofField label="Proof key" value={proof.chainAnchor.proofKey} />
+        </div>
+      )}
+
+      <div className="mt-3 grid gap-2 md:grid-cols-2">
+        <ProofField icon={<Wallet size={13} />} label="Wallet" value={proof.userId} />
+        <ProofField icon={<Trophy size={13} />} label="Proof id" value={proof.id} />
+      </div>
+
+      {proof.mediaStorage && (
+        <div className="mt-3 grid gap-3 md:grid-cols-[0.8fr_1.2fr] md:items-start">
+          <ProofField label="Media root" value={proof.mediaStorage.rootHash} />
+          <div className="overflow-hidden rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)]">
+            <Image
+              src={mediaUrl}
+              alt={`Uploaded proof media for ${proof.id}`}
+              width={640}
+              height={360}
+              className="h-auto w-full object-cover"
+              unoptimized
+            />
+          </div>
+        </div>
+      )}
+
+      <p className="mt-3 rounded-2xl border-2 border-dashed border-[var(--color-primary-900)]/30 bg-[var(--color-bg-base)] p-3 text-xs font-bold opacity-70">
+        {proof.evidenceLabel}
+      </p>
+    </article>
+  );
+}
+
+function GateCard({ onLogin }: { onLogin: () => void }) {
+  return (
+    <div className="bubbly-card bg-white p-6 text-center">
+      <LockKeyhole className="mx-auto text-[var(--color-primary-900)]" size={28} />
+      <p className="mt-3 font-display text-2xl font-bold">Sign in to view your proofs</p>
+      <p className="mt-2 text-sm font-bold opacity-60">
+        Proof records are scoped to the Privy wallet that created them.
+      </p>
+      <button
+        type="button"
+        onClick={onLogin}
+        className="mt-5 inline-flex rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-5 py-2 text-sm font-bold shadow-[3px_3px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
+      >
+        Sign in
+      </button>
+    </div>
+  );
+}
+
+function EmptyCard({
+  title,
+  body,
+  actionHref,
+  actionLabel,
+}: {
+  title: string;
+  body: string;
+  actionHref?: string;
+  actionLabel?: string;
+}) {
+  return (
+    <div className="bubbly-card bg-white p-6 text-center">
+      <p className="font-display text-2xl font-bold">{title}</p>
+      <p className="mt-2 text-sm font-bold opacity-60">{body}</p>
+      {actionHref && actionLabel && (
+        <Link
+          href={actionHref}
+          className="mt-5 inline-flex rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-pink)] px-5 py-2 text-sm font-bold shadow-[3px_3px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
+        >
+          {actionLabel}
+        </Link>
+      )}
+    </div>
+  );
+}
+
+function ProofLink({ href, label, color }: { href: string; label: string; color: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-[var(--color-primary-900)] px-4 py-2 text-xs font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
+      style={{ background: color }}
+    >
+      {label}
+      <ExternalLink size={13} />
+    </a>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)] p-3">
+      <p className="text-[10px] font-bold opacity-60">{label}</p>
+      <p className="font-bold">{value}</p>
+    </div>
   );
 }
 

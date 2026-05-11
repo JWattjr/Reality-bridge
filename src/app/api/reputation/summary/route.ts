@@ -13,6 +13,14 @@ export const runtime = "nodejs";
 export async function POST(request: Request) {
   const body = await safeJson(request);
   const userId = typeof body.userId === "string" && body.userId ? body.userId : undefined;
+
+  if (!userId) {
+    return Response.json(
+      { status: "wallet_required", issues: ["Reputation summaries must be scoped to the signed-in Privy wallet."] },
+      { status: 401 },
+    );
+  }
+
   const proofs = await readProofRecords();
   const deterministicSummary = buildReputationAgentSummary(proofs, userId);
 
