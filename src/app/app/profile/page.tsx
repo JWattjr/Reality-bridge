@@ -7,6 +7,7 @@ import { Calendar, Award, Check, Settings, Share2, ShieldCheck, Star, Target, X 
 import { useEffect, useState } from "react";
 import { useProofPlayAuth } from "@/components/ProofPlayAuthProvider";
 import type { UserProfile } from "@/lib/community-store";
+import ReputationAgentCard from "@/app/0g-proof/ReputationAgentCard";
 
 const levelInfo = getLevelForXp(CURRENT_USER.totalXp);
 
@@ -366,6 +367,15 @@ export default function ProfilePage() {
         {connectionStatus && (
           <p className="mt-2 text-xs font-bold opacity-70">{connectionStatus}</p>
         )}
+      </motion.div>
+
+      {/* 0G Compute Agent Analysis */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.08 }}
+      >
+        <ReputationAgentCard />
       </motion.div>
 
       {/* Stats Grid */}
