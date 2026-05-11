@@ -54,14 +54,13 @@ export default function OrganizerDashboard() {
         <p className="text-xs font-bold opacity-60 mt-1 sm:text-sm">Here&apos;s your event overview</p>
       </motion.div>
 
-      {/* Stats — horizontal scroll on mobile, grid on desktop */}
+      {/* Stats — 3 col grid on mobile, 5 col on desktop */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="-mx-4 px-4 sm:mx-0 sm:px-0"
       >
-        <div className="flex gap-2 overflow-x-auto pb-2 snap-x snap-mandatory sm:grid sm:grid-cols-5 sm:gap-3 sm:overflow-visible sm:pb-0">
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 sm:gap-3">
           {statCards.map((stat, i) => (
             <motion.div
               key={stat.label}
@@ -70,7 +69,7 @@ export default function OrganizerDashboard() {
               whileHover={{ y: -4, scale: 1.03 }}
               whileTap={{ scale: 0.98 }}
               transition={{ delay: 0.1 + i * 0.05 }}
-              className="bubbly-card premium-glint snap-start shrink-0 w-[7.5rem] p-3 sm:w-auto sm:p-4"
+              className="bubbly-card premium-glint p-3 sm:p-4"
               style={{ backgroundColor: stat.color }}
             >
               <div className="mb-1.5 sm:mb-2">{stat.icon}</div>
