@@ -24,15 +24,18 @@ import {
 import type { CommunityEvent } from "@/lib/community-store";
 import { useProofPlayAuth } from "@/components/ProofPlayAuthProvider";
 import { EventIconBadge, MissionIconBadge } from "@/components/ProofPlayIcons";
-
-const levelInfo = getLevelForXp(CURRENT_USER.totalXp);
+import { useMissionVerification } from "@/hooks/useMissionVerification";
 
 export default function AppDashboard() {
   const auth = useProofPlayAuth();
+  const { proofRecords } = useMissionVerification();
   const [events, setEvents] = useState<CommunityEvent[]>([]);
   const [query, setQuery] = useState("");
   const [registeringId, setRegisteringId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
+
+  const totalXp = proofRecords.reduce((sum, proof) => sum + proof.xpEarned, 0);
+  const levelInfo = getLevelForXp(totalXp);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -93,7 +96,7 @@ export default function AppDashboard() {
             <span className="font-bold text-sm">Level {levelInfo.level} - {levelInfo.title}</span>
             {levelInfo.nextLevel && (
               <span className="text-xs font-bold opacity-60">
-                {CURRENT_USER.totalXp} / {levelInfo.nextLevel.minXp} XP
+                {totalXp} / {levelInfo.nextLevel.minXp} XP
               </span>
             )}
           </div>

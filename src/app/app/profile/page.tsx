@@ -9,15 +9,6 @@ import { useProofPlayAuth } from "@/components/ProofPlayAuthProvider";
 import type { UserProfile } from "@/lib/community-store";
 import ReputationAgentCard from "@/app/0g-proof/ReputationAgentCard";
 
-const levelInfo = getLevelForXp(CURRENT_USER.totalXp);
-
-const STATS = [
-  { label: "Events", value: CURRENT_USER.eventsAttended, icon: <Calendar size={16} />, color: "var(--color-pastel-blue)" },
-  { label: "Missions", value: CURRENT_USER.missionsCompleted, icon: <Target size={16} />, color: "var(--color-pastel-green)" },
-  { label: "Badges", value: CURRENT_USER.badgesEarned, icon: <Award size={16} />, color: "var(--color-pastel-pink)" },
-  { label: "Level", value: levelInfo.level, icon: <Star size={16} />, color: "var(--color-pastel-yellow)" },
-];
-
 const RARITY_ORDER = ["legendary", "epic", "rare", "common"] as const;
 
 type ProfileForm = {
@@ -53,6 +44,16 @@ export default function ProfilePage() {
     ? proofRecords.filter((proof) => proof.userId.toLowerCase() === auth.userId?.toLowerCase())
     : [];
   const proofBackedBadges = sortedBadges.filter((badge) => visibleProofRecords.some((proof) => proof.badgeId === badge.id));
+  
+  const totalXp = visibleProofRecords.reduce((sum, proof) => sum + proof.xpEarned, 0);
+  const levelInfo = getLevelForXp(totalXp);
+
+  const dynamicStats = [
+    { label: "Events", value: new Set(visibleProofRecords.map((p) => p.eventId)).size, icon: <Calendar size={16} />, color: "var(--color-pastel-blue)" },
+    { label: "Missions", value: visibleProofRecords.length, icon: <Target size={16} />, color: "var(--color-pastel-green)" },
+    { label: "Badges", value: proofBackedBadges.length, icon: <Award size={16} />, color: "var(--color-pastel-pink)" },
+    { label: "Level", value: levelInfo.level, icon: <Star size={16} />, color: "var(--color-pastel-yellow)" },
+  ];
 
   useEffect(() => {
     if (!auth.authenticated || !auth.userId) return;
@@ -204,7 +205,7 @@ export default function ProfilePage() {
         {/* XP Bar */}
         <div className="mt-4">
           <div className="flex justify-between text-[10px] font-bold opacity-60 mb-1">
-            <span>{CURRENT_USER.totalXp} XP</span>
+            <span>{totalXp} XP</span>
             {levelInfo.nextLevel && <span>{levelInfo.nextLevel.minXp} XP</span>}
           </div>
           <div className="w-full h-3 bg-white/40 rounded-full border-2 border-[var(--color-primary-900)] overflow-hidden">
@@ -385,7 +386,7 @@ export default function ProfilePage() {
         transition={{ delay: 0.1 }}
         className="grid grid-cols-4 gap-2"
       >
-        {STATS.map((stat) => (
+        {dynamicStats.map((stat) => (
           <div key={stat.label} className="bubbly-card p-2.5 text-center" style={{ backgroundColor: stat.color }}>
             <div className="flex justify-center mb-1">{stat.icon}</div>
             <p className="font-bold text-lg leading-none">{stat.value}</p>
