@@ -121,13 +121,14 @@ export default function AboutPage() {
           <div className="bubbly-card bg-white p-5">
             <p className="font-display text-2xl font-bold">The problem</p>
             <p className="mt-3 text-sm font-bold leading-relaxed opacity-70">
-              Most event badges only prove someone registered or showed up. They do not show what
-              the person actually did, who they met, what they learned, or how they contributed.
+              Most people walk into physical events without a clear path. They do not know who to meet,
+              which booths matter, what sessions to join, or how to turn attendance into real opportunity.
+              That confusion can make even good events feel passive, boring, or easy to waste.
             </p>
             <div className="mt-4 rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-purple)] p-4">
               <p className="text-xs font-bold uppercase opacity-60">Our answer</p>
               <p className="mt-1 font-display text-2xl font-bold leading-tight">
-                A proof-backed reputation system for physical communities.
+                A mission layer that guides people through events and turns participation into reputation.
               </p>
             </div>
           </div>
