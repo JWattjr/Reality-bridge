@@ -1,6 +1,6 @@
 # ProofPlay
 
-**Gamified participation layer for physical events.**
+**The Reputation Layer for Physical Communities.**
 
 ProofPlay turns real-world event activity — check-ins, booth visits, networking, knowledge quizzes — into tamper-proof, on-chain evidence. Every mission completed by an attendee produces a verifiable proof record stored on **0G Storage**, anchored on-chain via a custom **ProofRegistry** contract, and scored by an AI **Reputation Agent** running on **0G Compute**.
 
@@ -10,7 +10,7 @@ The result: a portable, sybil-resistant reputation layer that event organizers, 
 |---|---|
 | **Live app** | https://proofplayed.vercel.app |
 | **Proof ledger** | https://proofplayed.vercel.app/proofs |
-| **Trust console** | https://proofplayed.vercel.app/0g-proof |
+| **About** | https://proofplayed.vercel.app/about |
 | **GitHub** | https://github.com/JWattjr/Proofplay |
 
 ### 0G Components Used
@@ -151,7 +151,7 @@ This repo has produced real 0G Storage receipts for BlockNova mission proofs:
 3. Register for BlockNova Event from `/app`.
 4. Complete a QR or photo mission.
 5. Open `/proofs` to inspect proof root hashes, transaction links, and uploaded media.
-6. Open `/0g-proof` for the trust console: storage roots, registry anchors, and reputation agent output.
+6. Open `/about` for the product vision, trust model, and participation flow.
 7. Click `Generate 0G reputation summary` to upload a portable Proof Agent summary JSON to 0G Storage.
 
 ## Supabase Proof Index

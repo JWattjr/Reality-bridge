@@ -21,7 +21,7 @@ export default function Navbar() {
           </span>
         </div>
         <div className="hidden md:flex items-center gap-8 font-bold font-sans">
-          <Link href="/0g-proof" className="hover:text-[var(--color-primary-500)] transition-colors">About</Link>
+          <Link href="/about" className="hover:text-[var(--color-primary-500)] transition-colors">About</Link>
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
           <WalletLoginButton compact />
