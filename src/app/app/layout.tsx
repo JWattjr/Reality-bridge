@@ -18,9 +18,7 @@ export default function AppLayout({
       <div className="relative mx-auto min-h-screen max-w-md border-x-4 border-[var(--color-primary-900)] bg-white">
         <div className="sticky top-0 z-40 flex h-14 items-center justify-between gap-2 border-b-4 border-[var(--color-primary-900)] bg-[var(--color-pastel-blue)] px-3 shadow-sm">
           <Link href="/" className="flex min-w-0 items-center gap-2 font-display text-lg font-bold tracking-tight text-[var(--color-primary-900)]">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-[var(--color-primary-900)] bg-white">
-              <img src="/logo.png" alt="ProofPlay Logo" className="h-full w-full object-cover" />
-            </div>
+            <img src="/logo.png" alt="ProofPlay Logo" className="h-8 w-8 shrink-0 object-contain" />
             <span className="truncate">ProofPlay</span>
           </Link>
           <div className="flex shrink-0 items-center gap-1.5">

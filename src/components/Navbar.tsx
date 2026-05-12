@@ -13,9 +13,7 @@ export default function Navbar() {
     return (
       <nav className="fixed top-0 left-0 right-0 z-50 p-6 flex justify-between items-center bg-transparent">
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 overflow-hidden rounded-full bubbly-border flex items-center justify-center bg-white">
-            <img src="/logo.png" alt="ProofPlay Logo" className="w-full h-full object-cover" />
-          </div>
+          <img src="/logo.png" alt="ProofPlay Logo" className="h-10 w-10 object-contain" />
           <span className="font-display font-bold text-2xl tracking-tight text-[var(--color-primary-900)]" style={{ textShadow: "2px 2px 0px #fff" }}>
             ProofPlay
           </span>
