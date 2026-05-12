@@ -1,12 +1,26 @@
 # ProofPlay
 
-Proof-backed event participation with real 0G Storage uploads and user-paid ProofRegistry anchors.
+**Gamified proof-of-participation for physical events, powered by 0G.**
 
-Live app: `https://proofplayed.vercel.app`
+ProofPlay turns real-world event activity — check-ins, booth visits, networking, knowledge quizzes — into tamper-proof, on-chain evidence. Every mission completed by an attendee produces a verifiable proof record stored on **0G Storage**, anchored on-chain via a custom **ProofRegistry** contract, and scored by an AI **Reputation Agent** running on **0G Compute**.
 
-Live proof ledger: `https://proofplayed.vercel.app/proofs`
+The result: a portable, sybil-resistant reputation layer that event organizers, sponsors, and protocols can trust.
 
-Hackathon verification page: `https://proofplayed.vercel.app/0g-proof`
+| | Link |
+|---|---|
+| **Live app** | https://proofplayed.vercel.app |
+| **Proof ledger** | https://proofplayed.vercel.app/proofs |
+| **0G verification page** | https://proofplayed.vercel.app/0g-proof |
+| **GitHub** | https://github.com/JWattjr/Proofplay |
+
+### 0G Components Used
+
+| Component | Status | How it's used |
+|---|---|---|
+| **0G Storage** | ✅ Live | Permanent storage for proof JSON, uploaded photos, and AI reputation credentials |
+| **0G Compute** | ✅ Live | Reputation Agent runs `zai-org/GLM-5-FP8` to generate AI-assessed reputation summaries from proof history |
+| **0G Chain** | ✅ Live | Custom `ProofRegistry.sol` deployed on mainnet — every proof root is anchored with a user-signed tx |
+| **Agent ID (ERC-7857)** | 🗺️ Planned | Mint reputation summaries as sovereign iNFTs so users own and port their agent identity (see Roadmap) |
 
 ## Architecture
 
@@ -30,7 +44,10 @@ flowchart TD
         F["0G Storage"]
         G["ProofRegistry Contract"]
         H["0G Compute (AI Agent)"]
+        I["Agent ID (ERC-7857)"]:::planned
     end
+
+    classDef planned stroke-dasharray: 5 5,stroke:#9333ea,fill:#f3e8ff
 
     A -->|"Sign in (Email / Google / Twitter)"| B
     B -->|"Complete mission"| C
@@ -42,6 +59,7 @@ flowchart TD
     D -->|"Feed leaderboard"| E
     C -->|"Generate reputation summary"| H
     H -->|"AI credential JSON"| F
+    H -.->|"Mint iNFT (planned)"| I
     F -->|"Explorer tx link"| A
 ```
 
@@ -72,6 +90,45 @@ When a signed-in user completes a mission, ProofPlay:
 8. Streams uploaded media back from 0G through `/api/proofs/{proofId}/media`.
 9. Calls 0G Compute to generate a Proof Agent reputation assessment from verified proof records.
 10. Uploads the AI-generated reputation summary JSON back to 0G Storage through `/api/reputation/summary`.
+
+## Roadmap: Agent ID Integration
+
+ProofPlay's Reputation Agent currently generates a JSON credential stored on 0G Storage. The planned next phase tokenizes this credential as a sovereign **ERC-7857 Agent ID (iNFT)** on 0G Chain.
+
+### Why Agent ID?
+
+Today, a user's reputation lives as a JSON blob on 0G Storage — readable and verifiable, but not ownable. With Agent ID:
+
+- **Ownership** — The reputation becomes an NFT the user holds in their wallet. They control who can read it.
+- **Portability** — Users carry their ProofPlay reputation agent to other events, protocols, or DAOs without re-proving anything.
+- **Delegated access** — Sponsors can pay to query a user's agent without the user transferring ownership. This enables "Reputation-as-a-Service."
+- **Evolution** — As the user attends more events, the agent's encrypted metadata updates on-chain, reflecting their latest reputation state.
+- **Secure transfer** — If a user sells their agent (e.g., a high-reputation account), TEE-based re-encryption ensures the seller loses access and the buyer gains it atomically.
+
+### Planned flow
+
+```
+User completes missions
+  → 0G Storage stores proof JSON + media
+    → 0G Compute generates AI reputation summary
+      → Mint ERC-7857 iNFT containing:
+          • encrypted proof history
+          • XP / level / badges
+          • AI-generated reputation label & narrative
+          • behavioral signals for sybil detection
+        → User owns a sovereign, portable reputation agent
+```
+
+### Agent use cases enabled
+
+| Agent | Description |
+|---|---|
+| **Sponsor Matchmaking Agent** | Sponsors query Agent IDs to find attendees who completed specific missions (e.g., "visited our booth + attended ZK workshop") |
+| **Sybil Detection Agent** | An autonomous fraud agent analyzes Agent ID metadata across events to detect impossible-travel, photo forgery, and bot-farm clustering |
+| **Automated Airdrop Agent** | Protocols deploy treasury agents that airdrop tokens to wallets holding Agent IDs above a reputation threshold |
+| **Dynamic Ticketing Agent** | Future events query Agent IDs to offer discounted tickets to high-engagement users |
+
+This positions ProofPlay not just as an event app, but as the **data infrastructure layer** for an agentic economy built on 0G.
 
 ### Live proof receipt
 
