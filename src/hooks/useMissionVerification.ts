@@ -314,7 +314,7 @@ export function useMissionVerification(eventId?: string) {
         }));
       }
     },
-    [auth, saveProofToServer],
+    [auth, saveProofToServer, getMissionProof],
   );
 
   /**

@@ -12,6 +12,20 @@ type ErrorPattern = {
 };
 
 const ERROR_PATTERNS: ErrorPattern[] = [
+  // Contract-specific errors should be checked before generic ethers errors.
+  {
+    match: /proof already anchored/i,
+    friendly: "This proof already appears to be anchored on-chain. Refresh your proofs; if it still shows pending, retry once.",
+  },
+  {
+    match: /proof id required/i,
+    friendly: "The proof id was missing before the on-chain anchor. Please refresh and try again.",
+  },
+  {
+    match: /0g root hash required/i,
+    friendly: "The 0G proof root was missing before the on-chain anchor. Please refresh and try again.",
+  },
+
   // Gas / fee errors
   {
     match: /replacement.*(fee|transaction).*underpriced/i,
@@ -40,8 +54,20 @@ const ERROR_PATTERNS: ErrorPattern[] = [
     friendly: "Unable to reach the 0G network. Please check your connection and try again.",
   },
   {
+    match: /could not coalesce error|internal json-rpc error|json-rpc/i,
+    friendly: "The 0G RPC returned a temporary network error. Your proof is saved; retry the anchor in a moment.",
+  },
+  {
+    match: /wrong network|unsupported chain|chain.*not.*configured/i,
+    friendly: "Your wallet is not fully switched to 0G Mainnet. Switch networks and retry the anchor.",
+  },
+  {
     match: /timeout/i,
     friendly: "The request took too long. Please try again.",
+  },
+  {
+    match: /CALL_EXCEPTION/i,
+    friendly: "The on-chain transaction failed after reaching the contract. This is not always a gas issue; retry once, then refresh your proofs.",
   },
   {
     match: /CALL_EXCEPTION/i,
@@ -53,6 +79,10 @@ const ERROR_PATTERNS: ErrorPattern[] = [
   },
 
   // Wallet / auth errors
+  {
+    match: /ACTION_REJECTED/i,
+    friendly: "The wallet did not approve the transaction. Tap retry when you're ready.",
+  },
   {
     match: /user (rejected|denied|cancelled)/i,
     friendly: "You cancelled the transaction. Tap the button again when you're ready.",
