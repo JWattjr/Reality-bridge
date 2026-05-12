@@ -442,33 +442,41 @@ export default function ProfilePage() {
           animate={{ opacity: 1 }}
           className="grid grid-cols-3 gap-2"
         >
-          {sortedBadges.map((badge, i) => (
-            <motion.div
-              key={badge.id}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              whileHover={{ y: -4, rotate: badge.rarity === "legendary" ? 1.4 : 0.8, scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
-              transition={{ delay: 0.2 + i * 0.05 }}
-              className="bubbly-card premium-glint p-3 text-center cursor-pointer active:translate-y-0.5 active:shadow-none transition-all"
-              style={{ backgroundColor: getRarityColor(badge.rarity) }}
-            >
+          {sortedBadges.map((badge, i) => {
+            const hasBadge = visibleProofRecords.some((proof) => proof.badgeId === badge.id);
+            
+            return (
               <motion.div
-                className="text-3xl mb-1"
-                animate={badge.rarity === "legendary" ? { rotate: [-2, 2, -2] } : undefined}
-                transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+                key={badge.id}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                whileHover={hasBadge ? { y: -4, rotate: badge.rarity === "legendary" ? 1.4 : 0.8, scale: 1.04 } : undefined}
+                whileTap={hasBadge ? { scale: 0.96 } : undefined}
+                transition={{ delay: 0.2 + i * 0.05 }}
+                className={`bubbly-card p-3 text-center transition-all ${
+                  hasBadge 
+                    ? "premium-glint cursor-pointer active:translate-y-0.5 active:shadow-none" 
+                    : "opacity-50 grayscale"
+                }`}
+                style={{ backgroundColor: hasBadge ? getRarityColor(badge.rarity) : "var(--color-bg-base)" }}
               >
-                {badge.emoji}
+                <motion.div
+                  className="text-3xl mb-1"
+                  animate={hasBadge && badge.rarity === "legendary" ? { rotate: [-2, 2, -2] } : undefined}
+                  transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  {badge.emoji}
+                </motion.div>
+                <p className="font-bold text-[10px] leading-tight">{badge.name}</p>
+                <p className="text-[8px] font-bold opacity-50 mt-0.5 uppercase">{badge.rarity}</p>
+                {hasBadge && (
+                  <p className="mt-1 inline-flex items-center gap-0.5 rounded-full border border-[var(--color-primary-900)] bg-white/70 px-1 py-0.5 text-[8px] font-bold">
+                    <ShieldCheck size={8} /> Proof
+                  </p>
+                )}
               </motion.div>
-              <p className="font-bold text-[10px] leading-tight">{badge.name}</p>
-              <p className="text-[8px] font-bold opacity-50 mt-0.5 uppercase">{badge.rarity}</p>
-              {visibleProofRecords.some((proof) => proof.badgeId === badge.id) && (
-                <p className="mt-1 inline-flex items-center gap-0.5 rounded-full border border-[var(--color-primary-900)] bg-white/70 px-1 py-0.5 text-[8px] font-bold">
-                  <ShieldCheck size={8} /> Proof
-                </p>
-              )}
-            </motion.div>
-          ))}
+            );
+          })}
         </motion.div>
       )}
 
