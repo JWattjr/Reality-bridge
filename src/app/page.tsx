@@ -224,7 +224,7 @@ export default function Home() {
 
       <footer className="relative z-10 py-8 px-6 text-center border-t-3 border-[var(--color-primary-900)]">
         <div className="flex items-center justify-center gap-2 mb-2">
-          <img src="/logo.png" alt="ProofPlay Logo" className="h-8 w-8 object-contain" />
+          <img src="/logo.png" alt="ProofPlay Logo" className="h-8 w-8 object-contain mix-blend-multiply" />
           <span className="font-display font-bold text-lg">ProofPlay</span>
         </div>
         <p className="text-xs font-bold opacity-40">© 2026 ProofPlay. Proof of Participation for everyone.</p>
