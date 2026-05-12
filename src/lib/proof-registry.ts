@@ -51,6 +51,20 @@ export async function anchorProofOnRegistry(
     ZERO_G_CHAIN_ID,
   );
   const signer = await provider.getSigner();
+
+  // Fetch fresh fee data to avoid "replacement transaction underpriced" errors.
+  // This happens when a previous tx is stuck and the retry uses the same nonce
+  // with an equal or lower gas price. We bump fees by 20% to guarantee replacement.
+  const feeData = await provider.getFeeData();
+  const gasOptions: Record<string, bigint> = {};
+
+  if (feeData.maxFeePerGas && feeData.maxPriorityFeePerGas) {
+    gasOptions.maxFeePerGas = (feeData.maxFeePerGas * 120n) / 100n;
+    gasOptions.maxPriorityFeePerGas = (feeData.maxPriorityFeePerGas * 120n) / 100n;
+  } else if (feeData.gasPrice) {
+    gasOptions.gasPrice = (feeData.gasPrice * 120n) / 100n;
+  }
+
   const contract = new Contract(contractAddress, PROOF_REGISTRY_ABI, signer);
   const tx = await contract.anchorProof(
     proofRecord.id,
@@ -59,6 +73,7 @@ export async function anchorProofOnRegistry(
     proofRecord.storage.rootHash,
     proofRecord.mediaStorage?.rootHash ?? "",
     proofRecord.xpEarned,
+    gasOptions,
   );
   const receipt = await tx.wait();
   const txHash = receipt?.hash ?? tx.hash;
@@ -73,3 +88,4 @@ export async function anchorProofOnRegistry(
     anchoredAt: new Date().toISOString(),
   };
 }
+

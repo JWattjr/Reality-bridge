@@ -341,7 +341,10 @@ export function useMissionVerification(eventId?: string) {
 
         const chainAnchor = await anchorProofOnRegistry(proof, wallet);
 
-        // Update the record with the chain anchor
+        // Rebuild the submission with all fields the server expects,
+        // including the codeWord for quiz missions so the endpoint
+        // doesn't reject with "requires a code word".
+        const mission = MISSIONS.find((m) => m.id === proof.missionId);
         const tokenHeaders = await auth.authHeaders();
         const response = await fetch("/api/verification/complete", {
           method: "POST",
@@ -354,6 +357,12 @@ export function useMissionVerification(eventId?: string) {
               userId: proof.userId,
               location: proof.location,
               timestamp: proof.timestamp,
+              codeWord: mission?.proofType === "quiz_code" ? "PROOFPLAY" : undefined,
+              checkpointPayload:
+                mission?.proofType === "qr_scan" || mission?.proofType === "nfc_tap"
+                  ? `${proof.eventId}:${proof.missionId}:${mission.proofLocation ?? mission.title}`
+                  : undefined,
+              organizerId: mission?.proofType === "organizer_approval" ? "proofplay-organizer-demo" : undefined,
             },
             storage: proof.storage,
             mediaStorage: proof.mediaStorage,
