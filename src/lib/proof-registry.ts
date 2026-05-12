@@ -59,10 +59,10 @@ export async function anchorProofOnRegistry(
   const gasOptions: Record<string, bigint> = {};
 
   if (feeData.maxFeePerGas && feeData.maxPriorityFeePerGas) {
-    gasOptions.maxFeePerGas = (feeData.maxFeePerGas * 120n) / 100n;
-    gasOptions.maxPriorityFeePerGas = (feeData.maxPriorityFeePerGas * 120n) / 100n;
+    gasOptions.maxFeePerGas = (feeData.maxFeePerGas * BigInt(120)) / BigInt(100);
+    gasOptions.maxPriorityFeePerGas = (feeData.maxPriorityFeePerGas * BigInt(120)) / BigInt(100);
   } else if (feeData.gasPrice) {
-    gasOptions.gasPrice = (feeData.gasPrice * 120n) / 100n;
+    gasOptions.gasPrice = (feeData.gasPrice * BigInt(120)) / BigInt(100);
   }
 
   const contract = new Contract(contractAddress, PROOF_REGISTRY_ABI, signer);
