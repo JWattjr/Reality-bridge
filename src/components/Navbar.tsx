@@ -13,17 +13,15 @@ export default function Navbar() {
     return (
       <nav className="fixed top-0 left-0 right-0 z-50 p-6 flex justify-between items-center bg-transparent">
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-full bg-[var(--color-pastel-purple)] bubbly-border flex items-center justify-center">
-            <Trophy size={20} className="text-[var(--color-primary-900)]" />
+          <div className="w-10 h-10 overflow-hidden rounded-full bubbly-border flex items-center justify-center bg-white">
+            <img src="/logo.png" alt="ProofPlay Logo" className="w-full h-full object-cover" />
           </div>
           <span className="font-display font-bold text-2xl tracking-tight text-[var(--color-primary-900)]" style={{ textShadow: "2px 2px 0px #fff" }}>
             ProofPlay
           </span>
         </div>
         <div className="hidden md:flex items-center gap-8 font-bold font-sans">
-          <Link href="/about" className="hover:text-[var(--color-primary-500)] transition-colors">About</Link>
-          <Link href="/events" className="hover:text-[var(--color-primary-500)] transition-colors">Events</Link>
-          <Link href="/proofs" className="hover:text-[var(--color-primary-500)] transition-colors">Proofs</Link>
+          <Link href="/0g-proof" className="hover:text-[var(--color-primary-500)] transition-colors">About</Link>
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
           <WalletLoginButton compact />

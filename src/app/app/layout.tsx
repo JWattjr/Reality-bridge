@@ -43,7 +43,7 @@ export default function AppLayout({
                 <LockKeyhole className="mx-auto text-[var(--color-primary-900)]" size={32} />
                 <p className="mt-4 font-display text-2xl font-bold">Sign in required</p>
                 <p className="mt-2 text-sm font-bold opacity-60">
-                  You need to connect your wallet or sign in with email to access the platform.
+                  Sign in with your email, Google, or Twitter account to access the platform.
                 </p>
                 <button
                   type="button"

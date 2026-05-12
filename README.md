@@ -8,6 +8,44 @@ Live proof ledger: `https://proofplayed.vercel.app/proofs`
 
 Hackathon verification page: `https://proofplayed.vercel.app/0g-proof`
 
+## Architecture
+
+```mermaid
+flowchart TD
+    subgraph User
+        A["Attendee (Privy Wallet)"]
+    end
+
+    subgraph ProofPlay App
+        B["Mission UI"]
+        C["API Routes"]
+    end
+
+    subgraph Supabase
+        D["Proof Index"]
+        E["Leaderboard / Profiles"]
+    end
+
+    subgraph 0G Network
+        F["0G Storage"]
+        G["ProofRegistry Contract"]
+        H["0G Compute (AI Agent)"]
+    end
+
+    A -->|"Sign in (Email / Google / Twitter)"| B
+    B -->|"Complete mission"| C
+    C -->|"Upload proof JSON + media"| F
+    F -->|"Return root hash"| C
+    C -->|"Anchor proof root"| G
+    G -->|"Emit ProofAnchored event"| C
+    C -->|"Index receipt"| D
+    D -->|"Feed leaderboard"| E
+    C -->|"Generate reputation summary"| H
+    H -->|"AI credential JSON"| F
+    F -->|"Explorer tx link"| A
+```
+
+
 ## 0G Integration Proof
 
 The verification flow integrates 0G Storage, 0G Compute, and a small ProofPlay registry contract:

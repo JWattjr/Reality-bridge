@@ -110,9 +110,9 @@ export default function Home() {
           className="absolute bottom-6 left-4 right-4 flex flex-wrap justify-center gap-x-4 gap-y-1 font-bold text-[11px] sm:bottom-8 sm:gap-8 sm:text-sm"
           style={{ textShadow: "1px 1px 0px #fff" }}
         >
-          <span>1,234 Events Hosted</span>
-          <span>450K+ Badges Minted</span>
-          <span className="hidden md:inline">46,209 Organizers</span>
+          <span>Powered by 0G Storage</span>
+          <span>On-Chain Proof Anchoring</span>
+          <span className="hidden md:inline">0G Compute AI Agent</span>
         </motion.div>
       </section>
 
