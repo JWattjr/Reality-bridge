@@ -98,8 +98,12 @@ export function validateVerificationSubmission(
     }
   }
 
-  if (submission.proofType === "quiz_code" && !submission.codeWord) {
-    issues.push("Quiz/code word proof requires a code word");
+  if (submission.proofType === "quiz_code") {
+    if (!submission.codeWord) {
+      issues.push("Quiz/code word proof requires a code word");
+    } else if (submission.codeWord.trim().toLowerCase() !== "proofplay") {
+      issues.push("Incorrect code word");
+    }
   }
 
   if (submission.proofType === "organizer_approval" && !submission.organizerId) {
