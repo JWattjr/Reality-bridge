@@ -10,6 +10,7 @@ import {
   type UserPaidZeroGWallet,
 } from "@/lib/zero-g-client";
 import { anchorProofOnRegistry, isProofRegistryConfigured } from "@/lib/proof-registry";
+import { friendlyError, friendlyAnchorError } from "@/lib/friendly-errors";
 
 export type SubmissionState = "idle" | "submitting" | "verified" | "pending_anchor" | "error";
 
@@ -297,7 +298,7 @@ export function useMissionVerification(eventId?: string) {
             ...current,
             [mission.id]: {
               state: "pending_anchor",
-              message: `Proof saved on 0G (${shortHash(savedProof.storage.rootHash)}) but chain anchor failed: ${anchorError instanceof Error ? anchorError.message : "Transaction failed"}. Tap "Retry anchor" to try again.`,
+              message: friendlyAnchorError(anchorError, savedProof.storage.rootHash),
             },
           }));
         }
@@ -306,7 +307,7 @@ export function useMissionVerification(eventId?: string) {
           ...current,
           [mission.id]: {
             state: "error",
-            message: error instanceof Error ? error.message : "Verification failed",
+            message: friendlyError(error),
           },
         }));
       }
@@ -392,7 +393,7 @@ export function useMissionVerification(eventId?: string) {
           ...current,
           [proof.missionId]: {
             state: "pending_anchor",
-            message: `Retry failed: ${error instanceof Error ? error.message : "Transaction failed"}. Try again when you have gas.`,
+            message: friendlyAnchorError(error, proof.storage.rootHash),
           },
         }));
       }
