@@ -13,7 +13,9 @@ export default function Navbar() {
     return (
       <nav className="fixed top-0 left-0 right-0 z-50 p-6 flex justify-between items-center bg-transparent">
         <div className="flex items-center gap-2">
-          <img src="/logo.png" alt="ProofPlay Logo" className="h-10 w-10 object-contain mix-blend-multiply" />
+          <div className="w-10 h-10 rounded-full bg-[var(--color-pastel-purple)] bubbly-border flex items-center justify-center">
+            <Trophy size={20} className="text-[var(--color-primary-900)]" />
+          </div>
           <span className="font-display font-bold text-2xl tracking-tight text-[var(--color-primary-900)]" style={{ textShadow: "2px 2px 0px #fff" }}>
             ProofPlay
           </span>
