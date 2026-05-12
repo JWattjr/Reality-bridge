@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { QrCode, User, Trophy, Calendar } from "lucide-react";
+import { Info, QrCode, User, Trophy, Calendar } from "lucide-react";
 import { usePathname } from "next/navigation";
 import WalletLoginButton from "@/components/WalletLoginButton";
 import { motion } from "framer-motion";
@@ -25,6 +25,13 @@ export default function Navbar() {
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
           <WalletLoginButton compact />
+          <Link
+            href="/about"
+            aria-label="About ProofPlay"
+            className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[var(--color-primary-900)] bg-white text-[var(--color-primary-900)] shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none md:hidden"
+          >
+            <Info size={18} strokeWidth={2.8} />
+          </Link>
         </div>
       </nav>
     );
