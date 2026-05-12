@@ -1,4 +1,5 @@
 import { PROOF_TYPE_COPY } from "@/lib/mock-data";
+import { authenticateWalletRequest } from "@/lib/privy-server";
 import {
   VerificationError,
   prepareVerificationProof,
@@ -15,7 +16,21 @@ export async function POST(request: Request) {
     return Response.json({ status: "rejected", issues: ["Invalid JSON body"] }, { status: 400 });
   }
 
+  if (!submission || typeof submission !== "object") {
+    return Response.json({ status: "rejected", issues: ["Invalid verification submission"] }, { status: 400 });
+  }
+
   try {
+    const { userId, error, status } = await authenticateWalletRequest(request, submission.userId);
+
+    if (error || !userId) {
+      return Response.json(
+        { status: "wallet_required", issues: [error ?? "Sign in with the wallet that will pay for this proof."] },
+        { status },
+      );
+    }
+
+    submission = { ...submission, userId };
     const prepared = prepareVerificationProof(submission, { requireMediaPayload: false });
 
     return Response.json({

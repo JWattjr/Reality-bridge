@@ -2,12 +2,12 @@
 
 import { motion } from "framer-motion";
 import { CURRENT_USER, BADGES, MISSIONS, PROOF_TYPE_COPY, getLevelForXp, getRarityColor, shortHash } from "@/lib/mock-data";
-import type { ProofRecord } from "@/lib/mock-data";
 import { Calendar, Award, Check, Settings, Share2, ShieldCheck, Star, Target, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useProofPlayAuth } from "@/components/ProofPlayAuthProvider";
 import type { UserProfile } from "@/lib/community-store";
 import ReputationAgentCard from "@/app/0g-proof/ReputationAgentCard";
+import { useMissionVerification } from "@/hooks/useMissionVerification";
 
 const RARITY_ORDER = ["legendary", "epic", "rare", "common"] as const;
 
@@ -21,8 +21,8 @@ type ProfileForm = {
 
 export default function ProfilePage() {
   const auth = useProofPlayAuth();
+  const { proofRecords, proofsLoading, refreshProofs } = useMissionVerification();
   const [activeTab, setActiveTab] = useState<"badges" | "activity" | "proofs">("badges");
-  const [proofRecords, setProofRecords] = useState<ProofRecord[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -58,17 +58,6 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!auth.authenticated || !auth.userId) return;
 
-    const params = new URLSearchParams({ userId: auth.userId });
-
-    fetch(`/api/proofs?${params.toString()}`, { cache: "no-store" })
-      .then((response) => response.json())
-      .then((data: { proofs?: ProofRecord[] }) => setProofRecords(data.proofs ?? []))
-      .catch(() => setProofRecords([]));
-  }, [auth.authenticated, auth.userId]);
-
-  useEffect(() => {
-    if (!auth.authenticated || !auth.userId) return;
-
     fetch("/api/profiles", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -87,8 +76,16 @@ export default function ProfilePage() {
       .catch(() => {
         setProfile(null);
         setIsLoading(false);
-      });
+    });
   }, [auth.authenticated, auth.displayName, auth.userId, auth.walletAddress]);
+
+  useEffect(() => {
+    if (!auth.authenticated || !auth.userId) return;
+
+    refreshProofs().catch(() => {
+      /* profile proof sync is best-effort */
+    });
+  }, [auth.authenticated, auth.userId, refreshProofs]);
 
   const visibleProfile = {
     displayName: profile?.displayName ?? CURRENT_USER.name,
@@ -200,6 +197,9 @@ export default function ProfilePage() {
           <div className="mt-3 inline-flex items-center gap-1.5 bg-white/60 backdrop-blur-sm px-3 py-1 rounded-full border-2 border-[var(--color-primary-900)] text-xs font-bold">
             <Star size={12} fill="currentColor" /> Level {levelInfo.level} - {levelInfo.title}
           </div>
+          {proofsLoading && (
+            <p className="mt-2 text-[10px] font-bold opacity-60">Syncing latest XP...</p>
+          )}
         </div>
 
         {/* XP Bar */}

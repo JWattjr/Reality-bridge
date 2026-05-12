@@ -33,13 +33,13 @@ export default async function ZeroGProofPage() {
           <div>
             <p className="inline-flex items-center gap-2 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-3 py-1.5 text-xs font-bold">
               <ShieldCheck size={14} />
-              0G APAC Hackathon verification
+              ProofPlay trust console
             </p>
             <h1
               className="mt-5 font-display text-5xl font-bold leading-[0.92] text-[var(--color-primary-900)] sm:text-6xl"
               style={{ textShadow: "3px 3px 0px #fff" }}
             >
-              Real proof records, stored evidence, retrievable media.
+              Proof infrastructure for real-world reputation.
             </h1>
               <p className="mt-4 max-w-2xl text-sm font-bold leading-relaxed opacity-70 sm:text-base">
               ProofPlay integrates 0G Storage as the permanent evidence layer for mission proof JSON,
@@ -71,14 +71,14 @@ export default async function ZeroGProofPage() {
           />
           <RequirementCard
             icon={<ExternalLink size={18} />}
-            title="Explorer Activity"
+            title="On-chain Activity"
             body={latestProof?.chainAnchor?.txHash ?? latestProof?.storage.txHash ?? "Complete a mission to generate a tx"}
             href={latestProof?.chainAnchor?.explorerUrl ?? latestProof?.storage.explorerUrl}
           />
           <RequirementCard
             icon={<Database size={18} />}
-            title="0G Component"
-            body="0G Storage persists evidence. 0G Compute generates the reputation agent summary."
+            title="Evidence Layer"
+            body="0G Storage persists evidence. 0G Compute turns verified activity into reputation credentials."
           />
         </section>
 

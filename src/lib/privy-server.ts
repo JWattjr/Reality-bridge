@@ -2,6 +2,13 @@ import { PrivyClient } from "@privy-io/node";
 
 let _privyClient: PrivyClient | null = null;
 
+type AuthenticatedWalletRequest = {
+  userId: string | null;
+  privyUserId: string | null;
+  error: string | null;
+  status: number;
+};
+
 function getPrivyClient(): PrivyClient | null {
   if (_privyClient) return _privyClient;
 
@@ -20,12 +27,6 @@ export function hasPrivyServerConfig() {
 
 /**
  * Verify the Privy access token from an Authorization header.
- *
- * Returns the authenticated Privy user id (DID) on success,
- * or null when verification fails or is not configured.
- *
- * The caller is responsible for mapping the Privy DID to the
- * wallet address used as userId in ProofPlay records.
  */
 export async function verifyPrivyToken(request: Request): Promise<{
   privyUserId: string | null;
@@ -34,9 +35,6 @@ export async function verifyPrivyToken(request: Request): Promise<{
   const privy = getPrivyClient();
 
   if (!privy) {
-    // When PRIVY_APP_SECRET is not set (e.g. local dev), fall back to
-    // trusting the client-supplied userId. Log a warning so production
-    // deployments are obvious.
     return { privyUserId: null, error: null };
   }
 
@@ -57,55 +55,102 @@ export async function verifyPrivyToken(request: Request): Promise<{
 }
 
 /**
- * Extract the authenticated userId from a request.
- *
- * When Privy server auth is configured, the userId comes exclusively from
- * the verified access token. Otherwise, falls back to the query-param userId
- * for local development.
- *
- * Returns { userId, error, status }. When error is set, the caller should
- * return the error response with the given status code.
+ * Extract the authenticated wallet address from a request query string.
  */
-export async function authenticateRequest(request: Request): Promise<{
-  userId: string | null;
-  error: string | null;
-  status: number;
-}> {
+export async function authenticateRequest(request: Request): Promise<AuthenticatedWalletRequest> {
   const url = new URL(request.url);
-  const queryUserId = url.searchParams.get("userId");
+  return authenticateWalletRequest(request, url.searchParams.get("userId"));
+}
+
+/**
+ * Verify that the signed-in Privy user owns the wallet address used for proof reads/writes.
+ */
+export async function authenticateWalletRequest(
+  request: Request,
+  requestedUserId: string | null | undefined,
+): Promise<AuthenticatedWalletRequest> {
+  const requestedWallet = requestedUserId?.trim() || null;
 
   if (hasPrivyServerConfig()) {
     const { privyUserId, error } = await verifyPrivyToken(request);
 
     if (error) {
-      return { userId: null, error, status: 401 };
+      return { userId: null, privyUserId: null, error, status: 401 };
     }
 
     if (!privyUserId) {
       return {
         userId: null,
+        privyUserId: null,
         error: "Privy server auth is configured but token verification returned no user.",
         status: 401,
       };
     }
 
-    // The Privy DID is the canonical identity. If the client also sent a
-    // query-param userId (wallet address), we trust the token's DID but
-    // allow the client to specify which wallet address to scope to — as
-    // long as the request came from an authenticated session. The wallet
-    // address is the userId stored in proof records.
-    return { userId: queryUserId ?? privyUserId, error: null, status: 200 };
-  }
+    const walletAddresses = await getPrivyUserWalletAddresses(privyUserId);
 
-  // Privy server auth is not configured — accept the query-param userId
-  // for local development.
-  if (!queryUserId) {
+    if (requestedWallet) {
+      const ownsRequestedWallet = walletAddresses.some(
+        (address) => address.toLowerCase() === requestedWallet.toLowerCase(),
+      );
+
+      if (!ownsRequestedWallet) {
+        return {
+          userId: null,
+          privyUserId,
+          error: "This signed-in Privy account does not own the requested wallet.",
+          status: 403,
+        };
+      }
+
+      return { userId: requestedWallet, privyUserId, error: null, status: 200 };
+    }
+
+    if (walletAddresses[0]) {
+      return { userId: walletAddresses[0], privyUserId, error: null, status: 200 };
+    }
+
     return {
       userId: null,
+      privyUserId,
+      error: "No Privy wallet found for this signed-in account.",
+      status: 401,
+    };
+  }
+
+  // Privy server auth is not configured - accept the query-param userId for local development.
+  if (!requestedWallet) {
+    return {
+      userId: null,
+      privyUserId: null,
       error: "Sign in required. Proof reads must be scoped to a signed-in wallet.",
       status: 401,
     };
   }
 
-  return { userId: queryUserId, error: null, status: 200 };
+  return { userId: requestedWallet, privyUserId: null, error: null, status: 200 };
+}
+
+async function getPrivyUserWalletAddresses(privyUserId: string): Promise<string[]> {
+  const privy = getPrivyClient();
+  if (!privy) return [];
+
+  try {
+    const user = await privy.users()._get(privyUserId);
+    return user.linked_accounts
+      .map((account) => {
+        if (
+          (account.type === "wallet" || account.type === "smart_wallet") &&
+          "address" in account &&
+          typeof account.address === "string"
+        ) {
+          return account.address;
+        }
+
+        return null;
+      })
+      .filter((address): address is string => Boolean(address));
+  } catch {
+    return [];
+  }
 }

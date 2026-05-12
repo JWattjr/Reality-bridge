@@ -1,6 +1,6 @@
 # ProofPlay
 
-**Gamified proof-of-participation for physical events, powered by 0G.**
+**Gamified participation layer for physical events.**
 
 ProofPlay turns real-world event activity — check-ins, booth visits, networking, knowledge quizzes — into tamper-proof, on-chain evidence. Every mission completed by an attendee produces a verifiable proof record stored on **0G Storage**, anchored on-chain via a custom **ProofRegistry** contract, and scored by an AI **Reputation Agent** running on **0G Compute**.
 
@@ -10,7 +10,7 @@ The result: a portable, sybil-resistant reputation layer that event organizers, 
 |---|---|
 | **Live app** | https://proofplayed.vercel.app |
 | **Proof ledger** | https://proofplayed.vercel.app/proofs |
-| **0G verification page** | https://proofplayed.vercel.app/0g-proof |
+| **Trust console** | https://proofplayed.vercel.app/0g-proof |
 | **GitHub** | https://github.com/JWattjr/Proofplay |
 
 ### 0G Components Used
@@ -64,7 +64,7 @@ flowchart TD
 ```
 
 
-## 0G Integration Proof
+## Evidence Infrastructure
 
 The verification flow integrates 0G Storage, 0G Compute, and a small ProofPlay registry contract:
 
@@ -144,14 +144,14 @@ This repo has produced real 0G Storage receipts for BlockNova mission proofs:
 - Browser media retrieval: `https://proofplayed.vercel.app/api/proofs/proof_m5_66ad2f6e66ad/media`
 - Supabase index: `/api/proofs` returns `database.provider = "supabase"` with the stored proof receipt.
 
-## Hackathon Reviewer Flow
+## Product Walkthrough
 
 1. Open `https://proofplayed.vercel.app`.
 2. Sign in with Privy.
 3. Register for BlockNova Event from `/app`.
 4. Complete a QR or photo mission.
 5. Open `/proofs` to inspect proof root hashes, transaction links, and uploaded media.
-6. Open `/0g-proof` for the judge-facing 0G integration summary.
+6. Open `/0g-proof` for the trust console: storage roots, registry anchors, and reputation agent output.
 7. Click `Generate 0G reputation summary` to upload a portable Proof Agent summary JSON to 0G Storage.
 
 ## Supabase Proof Index

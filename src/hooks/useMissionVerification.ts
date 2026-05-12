@@ -279,6 +279,7 @@ export function useMissionVerification(eventId?: string) {
             savedProof,
             ...current.filter((proof) => proof.id !== savedProof.id),
           ]);
+          notifyProofRecordsChanged();
           setSubmissionStatus((current) => ({
             ...current,
             [mission.id]: {
@@ -294,6 +295,7 @@ export function useMissionVerification(eventId?: string) {
             savedProof,
             ...current.filter((proof) => proof.id !== savedProof.id),
           ]);
+          notifyProofRecordsChanged();
           setSubmissionStatus((current) => ({
             ...current,
             [mission.id]: {
@@ -381,6 +383,7 @@ export function useMissionVerification(eventId?: string) {
           updatedProof,
           ...current.filter((p) => p.id !== updatedProof.id),
         ]);
+        notifyProofRecordsChanged();
         setSubmissionStatus((current) => ({
           ...current,
           [proof.missionId]: {
@@ -401,6 +404,36 @@ export function useMissionVerification(eventId?: string) {
     [auth],
   );
 
+  useEffect(() => {
+    if (!auth.authenticated || !auth.userId) return;
+
+    const refresh = () => {
+      refreshProofs().catch(() => {
+        /* best-effort background sync */
+      });
+    };
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    const refreshFromStorage = (event: StorageEvent) => {
+      if (event.key === PROOF_RECORDS_UPDATED_KEY) refresh();
+    };
+
+    window.addEventListener(PROOF_RECORDS_UPDATED_EVENT, refresh);
+    window.addEventListener("focus", refresh);
+    window.addEventListener("storage", refreshFromStorage);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    const interval = window.setInterval(refresh, 20_000);
+
+    return () => {
+      window.removeEventListener(PROOF_RECORDS_UPDATED_EVENT, refresh);
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("storage", refreshFromStorage);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+      window.clearInterval(interval);
+    };
+  }, [auth.authenticated, auth.userId, refreshProofs]);
+
   return {
     auth,
     proofsLoading,
@@ -412,6 +445,21 @@ export function useMissionVerification(eventId?: string) {
     retryAnchor,
     withProofStatus,
   };
+}
+
+const PROOF_RECORDS_UPDATED_EVENT = "proofplay:proofs-updated";
+const PROOF_RECORDS_UPDATED_KEY = "proofplay:proofs-updated-at";
+
+function notifyProofRecordsChanged() {
+  if (typeof window === "undefined") return;
+
+  window.dispatchEvent(new Event(PROOF_RECORDS_UPDATED_EVENT));
+
+  try {
+    window.localStorage.setItem(PROOF_RECORDS_UPDATED_KEY, Date.now().toString());
+  } catch {
+    /* ignore private browsing/storage-disabled cases */
+  }
 }
 
 function findActiveWallet(wallets: ConnectedWallet[], walletAddress: string | null): UserPaidZeroGWallet | null {

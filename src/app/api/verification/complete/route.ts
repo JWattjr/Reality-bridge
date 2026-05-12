@@ -1,4 +1,5 @@
 import type { ProofChainAnchor, ProofRecord, StorageReference } from "@/lib/mock-data";
+import { authenticateWalletRequest } from "@/lib/privy-server";
 import { appendProofRecord } from "@/lib/proof-store";
 import {
   VerificationError,
@@ -22,7 +23,28 @@ export async function POST(request: Request) {
     return Response.json({ status: "rejected", issues: ["Invalid JSON body"] }, { status: 400 });
   }
 
+  if (!body?.submission || typeof body.submission !== "object") {
+    return Response.json({ status: "rejected", issues: ["Invalid verification completion"] }, { status: 400 });
+  }
+
   try {
+    const { userId, error, status } = await authenticateWalletRequest(request, body.submission?.userId);
+
+    if (error || !userId) {
+      return Response.json(
+        { status: "wallet_required", issues: [error ?? "Sign in with the wallet that owns this proof."] },
+        { status },
+      );
+    }
+
+    body = {
+      ...body,
+      submission: {
+        ...body.submission,
+        userId,
+      },
+    };
+
     const prepared = prepareVerificationProof(body.submission, { requireMediaPayload: false });
 
     if (!isZeroGStorageReference(body.storage)) {
