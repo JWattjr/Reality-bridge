@@ -9,7 +9,8 @@ import { useProofPlayAuth } from "@/components/ProofPlayAuthProvider";
 type MissionVerifyActionProps = {
   mission: Mission;
   status?: SubmissionStatus;
-  onVerify: (mission: Mission, file?: File) => void;
+  onVerify: (mission: Mission, file?: File, codeWord?: string) => void;
+  onQuizClick?: (mission: Mission) => void;
   compact?: boolean;
 };
 
@@ -20,6 +21,7 @@ export function MissionVerifyAction({
   mission,
   status,
   onVerify,
+  onQuizClick,
   compact = false,
 }: MissionVerifyActionProps) {
   const auth = useProofPlayAuth();
@@ -85,7 +87,11 @@ export function MissionVerifyAction({
       disabled={isSubmitting}
       onClick={(event) => {
         event.stopPropagation();
-        onVerify(mission);
+        if (mission.proofType === "quiz_code" && onQuizClick) {
+          onQuizClick(mission);
+        } else {
+          onVerify(mission);
+        }
       }}
       whileHover={{ x: 2, scale: 1.04 }}
       whileTap={{ scale: 0.96 }}

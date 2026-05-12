@@ -185,6 +185,10 @@ export default function MissionsPage() {
                   mission={mission}
                   status={submissionStatus[mission.id]}
                   onVerify={verifyMission}
+                  onQuizClick={() => {
+                    setExpandedMission(mission.id);
+                    setTimeout(() => document.getElementById(`quiz-input-${mission.id}`)?.focus(), 100);
+                  }}
                 />
               </div>
 
@@ -204,7 +208,37 @@ export default function MissionsPage() {
                         <span className="opacity-60">Type: {mission.type.toUpperCase()}</span>
                         <span className="opacity-60">Max: {mission.maxCompletions}x</span>
                       </div>
-                            <MissionProofDetails mission={mission} proof={proof ?? undefined} userId={auth.userId} />
+                      
+                      {mission.proofType === "quiz_code" && mission.status === "available" && (
+                        <div className="mt-3 mb-1">
+                          <form
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              const input = document.getElementById(`quiz-input-${mission.id}`) as HTMLInputElement;
+                              if (input?.value) verifyMission(mission, undefined, input.value);
+                            }}
+                            className="flex gap-2"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <input
+                              id={`quiz-input-${mission.id}`}
+                              type="text"
+                              placeholder="Enter secret code..."
+                              autoComplete="off"
+                              className="flex-1 rounded-full border-2 border-[var(--color-primary-900)] bg-white px-3 py-1.5 text-xs font-bold shadow-inner focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
+                            />
+                            <button
+                              type="submit"
+                              disabled={submissionStatus[mission.id]?.state === "submitting"}
+                              className="shrink-0 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-4 py-1.5 text-xs font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none disabled:opacity-70 disabled:cursor-wait"
+                            >
+                              Submit
+                            </button>
+                          </form>
+                        </div>
+                      )}
+
+                      <MissionProofDetails mission={mission} proof={proof ?? undefined} userId={auth.userId} />
                       {submissionStatus[mission.id]?.message && (
                         <p
                           className={`mt-2 font-bold ${

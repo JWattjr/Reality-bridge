@@ -148,7 +148,7 @@ export function useMissionVerification(eventId?: string) {
   );
 
   const verifyMission = useCallback(
-    async (mission: Mission, file?: File) => {
+    async (mission: Mission, file?: File, codeWord?: string) => {
       if (!auth.authenticated || !auth.userId) {
         auth.login();
         return;
@@ -211,7 +211,7 @@ export function useMissionVerification(eventId?: string) {
               ? `${mission.eventId}:${mission.id}:${mission.proofLocation ?? mission.title}`
               : undefined,
           organizerId: mission.proofType === "organizer_approval" ? "proofplay-organizer-demo" : undefined,
-          codeWord: mission.proofType === "quiz_code" ? "PROOFPLAY" : undefined,
+          codeWord: mission.proofType === "quiz_code" ? (codeWord || "PROOFPLAY") : undefined,
           mediaFileName: file?.name,
           mediaMimeType: file?.type,
         };

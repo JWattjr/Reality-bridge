@@ -18,6 +18,7 @@ export default function EventDetailPage() {
   const mockEvent = EVENTS.find((e) => e.id === eventId);
   const [liveEvent, setLiveEvent] = useState<CommunityEvent | null>(null);
   const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
+  const [expandedQuizId, setExpandedQuizId] = useState<string | null>(null);
   const event = mockEvent ?? liveEvent;
   const [checkedIn, setCheckedIn] = useState(mockEvent?.checkedIn ?? false);
   const {
@@ -251,9 +252,42 @@ export default function EventDetailPage() {
                     mission={mission}
                     status={status}
                     onVerify={verifyMission}
+                    onQuizClick={() => {
+                      setExpandedQuizId(expandedQuizId === mission.id ? null : mission.id);
+                      setTimeout(() => document.getElementById(`event-quiz-input-${mission.id}`)?.focus(), 100);
+                    }}
                     compact
                   />
                 </div>
+
+                {expandedQuizId === mission.id && (
+                  <div className="mt-3 mb-1 pt-3 border-t-2 border-dashed border-[var(--color-primary-900)]/20">
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const input = document.getElementById(`event-quiz-input-${mission.id}`) as HTMLInputElement;
+                        if (input?.value) verifyMission(mission, undefined, input.value);
+                      }}
+                      className="flex gap-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <input
+                        id={`event-quiz-input-${mission.id}`}
+                        type="text"
+                        placeholder="Enter secret code..."
+                        autoComplete="off"
+                        className="flex-1 rounded-full border-2 border-[var(--color-primary-900)] bg-white px-3 py-1 text-[10px] font-bold shadow-inner focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
+                      />
+                      <button
+                        type="submit"
+                        disabled={status?.state === "submitting"}
+                        className="shrink-0 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-3 py-1 text-[10px] font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none disabled:opacity-70 disabled:cursor-wait"
+                      >
+                        Submit
+                      </button>
+                    </form>
+                  </div>
+                )}
                 {status?.message && (
                   <p className={`mt-2 text-[10px] font-bold ${
                     status.state === "error" ? "text-red-600"
