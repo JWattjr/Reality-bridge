@@ -11,6 +11,8 @@ export interface CommunityMission {
   proofLocation?: string;
 }
 
+export type EventVisibility = "public" | "private";
+
 export interface CommunityEvent {
   id: string;
   slug: string;
@@ -27,6 +29,7 @@ export interface CommunityEvent {
   color: string;
   emoji: string;
   shareUrl: string;
+  visibility: EventVisibility;
   missions: CommunityMission[];
   isRegistered?: boolean;
   mutuals?: string[];
@@ -60,6 +63,7 @@ type CommunityEventRow = {
   emoji: string;
   missions: CommunityMission[];
   share_url: string | null;
+  visibility?: EventVisibility | null;
   created_at?: string;
 };
 
@@ -129,6 +133,7 @@ export async function createCommunityEvent(input: {
   category: string;
   maxAttendees?: number;
   missions?: CommunityMission[];
+  visibility?: EventVisibility;
 }) {
   const id = `evt_${stableSegment(`${input.title}:${input.location}:${Date.now()}`)}`;
   const slug = uniqueSlug(input.title, id);
@@ -149,6 +154,7 @@ export async function createCommunityEvent(input: {
     color: "var(--color-pastel-purple)",
     emoji: "BN",
     shareUrl,
+    visibility: input.visibility ?? "public",
     missions: input.missions?.length ? input.missions : defaultMissions(id),
   };
 
@@ -173,6 +179,11 @@ export async function createCommunityEvent(input: {
 
 export async function registerForEvent(eventId: string, userId: string) {
   const id = `reg_${stableSegment(`${eventId}:${userId}`)}`;
+  const event = (await listCommunityEvents()).find((item) => item.id === eventId);
+
+  if (event && event.organizerId === userId) {
+    throw new Error("Organizers can't register for their own event.");
+  }
 
   if (!hasSupabaseConfig()) {
     const eventRegistrations = memoryRegistrations.get(eventId) ?? new Set<string>();
@@ -485,6 +496,7 @@ function eventFromMock(event: Event): CommunityEvent {
     color: event.color,
     emoji: event.emoji,
     shareUrl: `/events/${slugify(event.title)}`,
+    visibility: "public",
     missions: MISSIONS.filter((mission) => mission.eventId === event.id).map((mission) => ({
       id: mission.id,
       title: mission.title,
@@ -515,6 +527,7 @@ function eventToRow(event: CommunityEvent) {
     emoji: event.emoji,
     missions: event.missions,
     share_url: event.shareUrl,
+    visibility: event.visibility,
   };
 }
 
@@ -535,6 +548,7 @@ function eventFromRow(row: CommunityEventRow): CommunityEvent {
     color: row.color,
     emoji: row.emoji,
     shareUrl: row.share_url ?? `/events/${row.slug}`,
+    visibility: row.visibility ?? "public",
     missions: row.missions ?? [],
     createdAt: row.created_at,
   };

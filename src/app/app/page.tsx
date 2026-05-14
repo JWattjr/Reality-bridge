@@ -1,41 +1,38 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  ArrowRight,
-  CalendarDays,
   CheckCircle,
   MapPin,
-  QrCode,
+  PlusCircle,
+  ScanLine,
   Search,
   Users,
-  Zap,
 } from "lucide-react";
-import {
-  CURRENT_USER,
-  EVENTS,
-  PROOF_TYPE_COPY,
-  getLevelForXp,
-  getProofRecordForMission,
-  shortHash,
-} from "@/lib/mock-data";
+import { EVENTS } from "@/lib/mock-data";
 import type { CommunityEvent } from "@/lib/community-store";
 import { useProofPlayAuth } from "@/components/ProofPlayAuthProvider";
-import { EventIconBadge, MissionIconBadge } from "@/components/ProofPlayIcons";
-import { useMissionVerification } from "@/hooks/useMissionVerification";
+import { EventIconBadge } from "@/components/ProofPlayIcons";
+import EnterEventDialog from "@/components/EnterEventDialog";
+
+type EventsTab = "my" | "created" | "discover";
+
+function isEventsTab(value: string | null): value is EventsTab {
+  return value === "my" || value === "created" || value === "discover";
+}
 
 export default function AppDashboard() {
   const auth = useProofPlayAuth();
-  const { proofRecords } = useMissionVerification();
+  const searchParams = useSearchParams();
+  const initialTab: EventsTab = isEventsTab(searchParams.get("tab")) ? (searchParams.get("tab") as EventsTab) : "my";
   const [events, setEvents] = useState<CommunityEvent[]>([]);
   const [query, setQuery] = useState("");
   const [registeringId, setRegisteringId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
-
-  const totalXp = proofRecords.reduce((sum, proof) => sum + proof.xpEarned, 0);
-  const levelInfo = getLevelForXp(totalXp);
+  const [enterOpen, setEnterOpen] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -48,9 +45,22 @@ export default function AppDashboard() {
       .catch(() => setEvents(fallbackEvents()));
   }, [auth.userId, query]);
 
-  const suggestedEvents = useMemo(() => events.slice(0, 4), [events]);
-  const activeEvent = events.find((event) => event.isRegistered) ?? events[0];
-  const activeMissions = activeEvent?.missions ?? [];
+  const suggestedEvents = useMemo(
+    () => events.filter((event) => event.visibility !== "private").slice(0, 4),
+    [events],
+  );
+  const myEvents = useMemo(() => events.filter((event) => event.isRegistered), [events]);
+  const createdEvents = useMemo(
+    () => (auth.userId ? events.filter((event) => event.organizerId === auth.userId) : []),
+    [auth.userId, events],
+  );
+  const [activeTab, setActiveTab] = useState<EventsTab>(initialTab);
+
+  useEffect(() => {
+    if (isEventsTab(searchParams.get("tab"))) {
+      setActiveTab(searchParams.get("tab") as EventsTab);
+    }
+  }, [searchParams]);
 
   async function register(eventId: string) {
     if (!auth.configured || !auth.authenticated || !auth.userId) {
@@ -90,25 +100,34 @@ export default function AppDashboard() {
       <motion.section
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.08 }}
+        className="grid grid-cols-2 gap-3"
       >
-        <div className="bubbly-card bg-white p-3 min-[380px]:p-4">
-          <div className="mb-2 flex flex-wrap items-center justify-between gap-1.5">
-            <span className="font-bold text-sm">Level {levelInfo.level} - {levelInfo.title}</span>
-            {levelInfo.nextLevel && (
-              <span className="text-xs font-bold opacity-60">
-                {totalXp} / {levelInfo.nextLevel.minXp} XP
-              </span>
-            )}
+        <Link
+          href="/app/create"
+          className="bubbly-card flex flex-col items-start gap-2 bg-[var(--color-pastel-purple)] p-4 transition-all active:translate-y-0.5 active:shadow-none"
+        >
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl border-2 border-[var(--color-primary-900)] bg-white shadow-[2px_2px_0px_0px_#312e81]">
+            <PlusCircle size={18} />
           </div>
-          <div className="w-full h-4 bg-gray-100 rounded-full border-2 border-[var(--color-primary-900)] overflow-hidden">
-            <motion.div
-              className="h-full bg-gradient-to-r from-[var(--color-pastel-purple)] to-[var(--color-pastel-pink)]"
-              initial={{ width: 0 }}
-              animate={{ width: `${levelInfo.progress}%` }}
-              transition={{ type: "spring", stiffness: 90, damping: 18, delay: 0.3 }}
-            />
+          <div>
+            <p className="font-display text-base font-bold leading-tight">Create an Event</p>
+            <p className="text-[10px] font-bold opacity-60">Host your own with missions and proofs</p>
           </div>
-        </div>
+        </Link>
+        <button
+          type="button"
+          onClick={() => setEnterOpen(true)}
+          className="bubbly-card flex flex-col items-start gap-2 bg-[var(--color-pastel-green)] p-4 text-left transition-all active:translate-y-0.5 active:shadow-none"
+        >
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl border-2 border-[var(--color-primary-900)] bg-white shadow-[2px_2px_0px_0px_#312e81]">
+            <ScanLine size={18} />
+          </div>
+          <div>
+            <p className="font-display text-base font-bold leading-tight">Enter an Event</p>
+            <p className="text-[10px] font-bold opacity-60">Scan a QR code or enter a code</p>
+          </div>
+        </button>
       </motion.section>
 
       <motion.section
@@ -116,178 +135,124 @@ export default function AppDashboard() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <div className="mb-2 flex items-end justify-between gap-3">
-          <h2 className="font-display text-lg font-bold">Current Events</h2>
-          <Link href="/organizer/create" className="text-[10px] font-bold opacity-60 hover:opacity-100">
-            Host one
-          </Link>
+        <div role="tablist" className="mb-3 flex gap-1 rounded-full border-2 border-[var(--color-primary-900)] bg-white p-1">
+          <TabButton active={activeTab === "my"} onClick={() => setActiveTab("my")}>
+            My Events {myEvents.length > 0 && <span className="opacity-60">({myEvents.length})</span>}
+          </TabButton>
+          <TabButton active={activeTab === "created"} onClick={() => setActiveTab("created")}>
+            Created {createdEvents.length > 0 && <span className="opacity-60">({createdEvents.length})</span>}
+          </TabButton>
+          <TabButton active={activeTab === "discover"} onClick={() => setActiveTab("discover")}>
+            Discover
+          </TabButton>
         </div>
 
-        <div className="mb-3 flex items-center gap-2 rounded-2xl border-2 border-[var(--color-primary-900)] bg-white px-3 py-2">
-          <Search size={16} className="opacity-50" />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search events, cities, categories"
-            className="min-w-0 flex-1 bg-transparent text-xs font-bold outline-none"
-          />
-        </div>
+        {activeTab === "my" && (
+          <div className="space-y-3">
+            {myEvents.map((event, index) => (
+              <EventDiscoveryCard
+                key={event.id}
+                event={event}
+                index={index}
+                registering={registeringId === event.id}
+                onRegister={() => register(event.id)}
+                isOwner={auth.userId === event.organizerId}
+              />
+            ))}
 
-        <div className="space-y-3">
-          {suggestedEvents.map((event, index) => (
-            <EventDiscoveryCard
-              key={event.id}
-              event={event}
-              index={index}
-              registering={registeringId === event.id}
-              onRegister={() => register(event.id)}
-            />
-          ))}
-
-          {statusMessage && (
-            <p className="rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] p-3 text-xs font-bold">
-              {statusMessage}
-            </p>
-          )}
-
-          {suggestedEvents.length === 0 && (
-            <div className="bubbly-card bg-white p-5 text-center">
-              <p className="font-bold">No events found yet.</p>
-              <p className="mt-1 text-xs font-bold opacity-60">
-                Hosts can publish events from the organizer dashboard.
-              </p>
-            </div>
-          )}
-        </div>
-      </motion.section>
-
-      {activeEvent && (
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-        >
-          <h2 className="font-display text-lg font-bold mb-2">Registered Event</h2>
-          <div className="bubbly-card relative overflow-hidden bg-[var(--color-pastel-purple)] p-3 min-[380px]:p-4">
-            <div className="absolute -right-6 -top-6 w-24 h-24 bg-white/20 rounded-full blur-2xl pointer-events-none" />
-
-            <div className="mb-3 flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h3 className="font-display font-bold text-xl leading-tight">{activeEvent.title}</h3>
-                <p className="font-bold text-xs flex items-center gap-1 mt-1 opacity-80">
-                  <MapPin size={12} className="shrink-0" /> <span className="truncate">{activeEvent.location}</span>
-                </p>
-                <p className="font-bold text-xs flex items-center gap-1 opacity-80">
-                  <CalendarDays size={12} className="shrink-0" /> <span className="truncate">{activeEvent.startDate} - {activeEvent.endDate}</span>
-                </p>
-              </div>
-              <EventIconBadge size="lg" />
-            </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border-2 border-[var(--color-primary-900)] bg-white/50 p-3 backdrop-blur-sm">
-              <span className="font-bold text-xs">
-                {activeEvent.isRegistered ? "Registered" : "Open"} - {activeMissions.length} missions
-              </span>
-              <div className="flex shrink-0 items-center gap-2">
-                {!activeEvent.isRegistered && (
-                  <button
-                    type="button"
-                    onClick={() => register(activeEvent.id)}
-                    disabled={registeringId === activeEvent.id}
-                    className="rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-pink)] px-3 py-1.5 text-xs font-bold transition-colors disabled:opacity-60"
-                  >
-                    {registeringId === activeEvent.id ? "Registering" : "Register"}
-                  </button>
-                )}
-                <Link href={`/app/event/${activeEvent.id}`} className="rounded-full bg-[var(--color-primary-900)] px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-[var(--color-primary-700)]">
-                  View
-                </Link>
-              </div>
-            </div>
-          </div>
-        </motion.section>
-      )}
-
-      <motion.section
-        className="grid grid-cols-2 gap-2 min-[380px]:gap-3"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
-        <Link href={activeEvent ? `/app/event/${activeEvent.id}` : "/app/missions"} className="bubbly-card flex h-20 flex-col items-center justify-center gap-2 bg-[var(--color-pastel-pink)] p-3 text-center transition-all active:translate-y-0.5 active:shadow-none min-[380px]:p-4">
-          <QrCode size={22} />
-          <span className="font-bold text-xs">Scan Proof</span>
-        </Link>
-        <Link href="/app/profile" className="bubbly-card flex h-20 flex-col items-center justify-center gap-2 bg-[var(--color-pastel-yellow)] p-3 text-center transition-all active:translate-y-0.5 active:shadow-none min-[380px]:p-4">
-          <Users size={22} />
-          <span className="font-bold text-xs">Profile Tag</span>
-        </Link>
-      </motion.section>
-
-      <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-      >
-        <div className="flex justify-between items-end mb-2">
-          <h2 className="font-display text-lg font-bold">Missions</h2>
-          <Link href="/app/missions" className="text-xs font-bold opacity-60 hover:opacity-100 flex items-center gap-1">
-            See all <ArrowRight size={12} />
-          </Link>
-        </div>
-
-        <div className="space-y-2">
-          {activeMissions.slice(0, 5).map((mission, index) => (
-            <motion.div
-              key={mission.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              whileHover={{ y: -3, scale: 1.01 }}
-              whileTap={{ scale: 0.985 }}
-              transition={{ delay: 0.4 + index * 0.05 }}
-              className="premium-glint flex items-center justify-between gap-3 rounded-2xl border-2 border-[var(--color-primary-900)] bg-white p-3 transition-all hover:-translate-y-0.5 hover:shadow-[2px_2px_0px_0px_#312e81]"
-            >
-              <div className="flex min-w-0 flex-1 items-center gap-3">
-                <MissionIconBadge title={mission.title} type={mission.type} proofType={mission.proofType} size="sm" />
-                <div className="min-w-0">
-                  <p className="font-bold text-sm truncate">{mission.title}</p>
-                  <div className="flex flex-wrap items-center gap-1.5 min-[380px]:gap-2">
-                    <motion.span
-                      className="text-xs font-bold text-[var(--color-primary-500)] flex items-center gap-0.5"
-                      animate={{ scale: [1, 1.08, 1] }}
-                      transition={{ duration: 1.8, repeat: Infinity, repeatDelay: 2.6, ease: "easeInOut" }}
-                    >
-                      <Zap size={10} /> +{mission.xpReward} XP
-                    </motion.span>
-                    <span className="text-[10px] font-bold bg-[var(--color-bg-base)] px-1.5 py-0.5 rounded-full border border-[var(--color-primary-900)]">
-                      {PROOF_TYPE_COPY[mission.proofType].label}
-                    </span>
-                    {getProofRecordForMission(mission.id) && (
-                      <span className="max-w-[8.5rem] truncate text-[10px] font-bold text-green-700">
-                        0G {shortHash(getProofRecordForMission(mission.id)!.storage.rootHash)}
-                      </span>
-                    )}
-                  </div>
+            {myEvents.length === 0 && (
+              <div className="bubbly-card flex min-h-72 flex-col items-center justify-center bg-white p-8 text-center">
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-blue)] shadow-[3px_3px_0px_0px_#312e81]">
+                  <ScanLine size={26} />
                 </div>
+                <p className="font-display text-xl font-bold">No events joined yet</p>
+                <p className="mt-2 max-w-xs text-xs font-bold opacity-60">
+                  Tap <span className="font-bold">Enter an Event</span> above to scan a QR or paste a code.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("discover")}
+                  className="mt-5 inline-flex rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-5 py-2 text-xs font-bold shadow-[3px_3px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
+                >
+                  Browse Discover
+                </button>
               </div>
-              <motion.div
-                whileHover={{ x: 2, scale: 1.04 }}
-                whileTap={{ scale: 0.96 }}
-                className="shrink-0 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-blue)] px-2 py-1 text-[10px] font-bold transition-colors hover:bg-[var(--color-primary-900)] hover:text-white min-[380px]:px-2.5"
-              >
-                <Link href={`/app/event/${activeEvent?.id ?? "evt_1"}`}>
-                  {PROOF_TYPE_COPY[mission.proofType].action}
-                </Link>
-              </motion.div>
-            </motion.div>
-          ))}
+            )}
+          </div>
+        )}
 
-          {activeMissions.length === 0 && (
-            <div className="bubbly-card p-4 bg-white text-center">
-              <p className="text-sm font-bold">Register for an event to begin venue missions.</p>
+        {activeTab === "created" && (
+          <div className="space-y-3">
+            {createdEvents.map((event, index) => (
+              <EventDiscoveryCard
+                key={event.id}
+                event={event}
+                index={index}
+                registering={registeringId === event.id}
+                onRegister={() => register(event.id)}
+                isOwner={auth.userId === event.organizerId}
+              />
+            ))}
+
+            {createdEvents.length === 0 && (
+              <div className="bubbly-card flex min-h-72 flex-col items-center justify-center bg-white p-8 text-center">
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-purple)] shadow-[3px_3px_0px_0px_#312e81]">
+                  <PlusCircle size={26} />
+                </div>
+                <p className="font-display text-xl font-bold">No events created yet</p>
+                <p className="mt-2 max-w-xs text-xs font-bold opacity-60">
+                  Events you host show up here so you can manage them anytime.
+                </p>
+                <Link
+                  href="/app/create"
+                  className="mt-5 inline-flex rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-purple)] px-5 py-2 text-xs font-bold shadow-[3px_3px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
+                >
+                  Create your first event
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "discover" && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 rounded-2xl border-2 border-[var(--color-primary-900)] bg-white px-3 py-2">
+              <Search size={16} className="opacity-50" />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search events, cities, categories"
+                className="min-w-0 flex-1 bg-transparent text-xs font-bold outline-none"
+              />
             </div>
-          )}
-        </div>
+
+            {suggestedEvents.map((event, index) => (
+              <EventDiscoveryCard
+                key={event.id}
+                event={event}
+                index={index}
+                registering={registeringId === event.id}
+                onRegister={() => register(event.id)}
+                isOwner={auth.userId === event.organizerId}
+              />
+            ))}
+
+            {suggestedEvents.length === 0 && (
+              <div className="bubbly-card bg-white p-5 text-center">
+                <p className="font-bold">No events found yet.</p>
+                <p className="mt-1 text-xs font-bold opacity-60">
+                  Hosts can publish events from the organizer dashboard.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {statusMessage && (
+          <p className="mt-3 rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] p-3 text-xs font-bold">
+            {statusMessage}
+          </p>
+        )}
       </motion.section>
 
       <motion.section
@@ -303,6 +268,8 @@ export default function AppDashboard() {
           </p>
         </div>
       </motion.section>
+
+      <EnterEventDialog open={enterOpen} onClose={() => setEnterOpen(false)} />
     </div>
   );
 }
@@ -312,11 +279,13 @@ function EventDiscoveryCard({
   index,
   registering,
   onRegister,
+  isOwner,
 }: {
   event: CommunityEvent;
   index: number;
   registering: boolean;
   onRegister: () => void;
+  isOwner: boolean;
 }) {
   return (
     <motion.div
@@ -333,11 +302,18 @@ function EventDiscoveryCard({
               <p className="font-bold text-sm truncate">{event.title}</p>
               <p className="text-[10px] font-bold opacity-60 truncate">{event.organizerName} - {event.category}</p>
             </div>
-            {event.isRegistered && (
-              <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-green-700 bg-green-100 px-2 py-0.5 text-[9px] font-bold text-green-700">
-                <CheckCircle size={10} /> Joined
-              </span>
-            )}
+            <div className="flex shrink-0 items-center gap-1">
+              {event.visibility === "private" && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-primary-900)] bg-[var(--color-pastel-yellow)] px-2 py-0.5 text-[9px] font-bold">
+                  Private
+                </span>
+              )}
+              {event.isRegistered && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-green-700 bg-green-100 px-2 py-0.5 text-[9px] font-bold text-green-700">
+                  <CheckCircle size={10} /> Joined
+                </span>
+              )}
+            </div>
           </div>
           <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-bold opacity-70">
             <span className="inline-flex min-w-0 items-center gap-1"><MapPin size={10} className="shrink-0" /> <span className="truncate">{event.location}</span></span>
@@ -350,14 +326,23 @@ function EventDiscoveryCard({
             </p>
           ) : null}
           <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={onRegister}
-              disabled={registering || event.isRegistered}
-              className="min-w-20 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-pink)] px-3 py-1.5 text-[10px] font-bold disabled:opacity-60"
-            >
-              {event.isRegistered ? "Registered" : registering ? "Registering" : "Register"}
-            </button>
+            {isOwner ? (
+              <Link
+                href={`/organizer/event/${event.id}`}
+                className="min-w-20 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-purple)] px-3 py-1.5 text-center text-[10px] font-bold"
+              >
+                Manage
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={onRegister}
+                disabled={registering || event.isRegistered}
+                className="min-w-20 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-pink)] px-3 py-1.5 text-[10px] font-bold disabled:opacity-60"
+              >
+                {event.isRegistered ? "Registered" : registering ? "Registering" : "Register"}
+              </button>
+            )}
             <Link
               href={`/app/event/${event.id}`}
               className="rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-blue)] px-3 py-1.5 text-[10px] font-bold"
@@ -368,6 +353,32 @@ function EventDiscoveryCard({
         </div>
       </div>
     </motion.div>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={`flex-1 rounded-full px-3 py-2 text-xs font-bold transition-colors ${
+        active
+          ? "bg-[var(--color-primary-900)] text-white"
+          : "bg-transparent text-[var(--color-primary-900)] hover:bg-[var(--color-bg-base)]"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -388,6 +399,7 @@ function fallbackEvents(): CommunityEvent[] {
     color: event.color,
     emoji: event.emoji,
     shareUrl: `/events/${event.id}`,
+    visibility: "public",
     missions: [],
     isRegistered: event.checkedIn,
   }));

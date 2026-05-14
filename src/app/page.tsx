@@ -4,24 +4,79 @@ import BlobBackground from "@/components/BlobBackground";
 import DottedGlobe from "@/components/DottedGlobe";
 import Navbar from "@/components/Navbar";
 import { motion } from "framer-motion";
-import { Zap, Trophy, QrCode, Users, ArrowRight, Star, Shield, Globe } from "lucide-react";
+import {
+  Zap,
+  Trophy,
+  QrCode,
+  Users,
+  ArrowRight,
+  Star,
+  Shield,
+  Globe,
+} from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
 const FEATURES = [
-  { icon: <QrCode size={28} />, title: "QR Check-In", description: "Instant event entry with a single scan", color: "var(--color-pastel-blue)" },
-  { icon: <Zap size={28} />, title: "XP & Missions", description: "Complete challenges to earn experience points", color: "var(--color-pastel-yellow)" },
-  { icon: <Trophy size={28} />, title: "Badges & Rank", description: "Collect achievements and climb the leaderboard", color: "var(--color-pastel-pink)" },
-  { icon: <Users size={28} />, title: "Team Play", description: "Join forces with others for bonus rewards", color: "var(--color-pastel-green)" },
-  { icon: <Shield size={28} />, title: "Verified Proof", description: "Tamper-proof record of what you actually did", color: "var(--color-pastel-purple)" },
-  { icon: <Globe size={28} />, title: "Portable Rep", description: "Carry your reputation across all events", color: "var(--color-pastel-blue)" },
+  {
+    icon: <QrCode size={28} />,
+    title: "QR Check-In",
+    description: "Instant event entry with a single scan",
+    color: "var(--color-pastel-blue)",
+  },
+  {
+    icon: <Zap size={28} />,
+    title: "XP & Missions",
+    description: "Complete challenges to earn experience points",
+    color: "var(--color-pastel-yellow)",
+  },
+  {
+    icon: <Trophy size={28} />,
+    title: "Badges & Rank",
+    description: "Collect achievements and climb the leaderboard",
+    color: "var(--color-pastel-pink)",
+  },
+  {
+    icon: <Users size={28} />,
+    title: "Team Play",
+    description: "Join forces with others for bonus rewards",
+    color: "var(--color-pastel-green)",
+  },
+  {
+    icon: <Shield size={28} />,
+    title: "Verified Proof",
+    description: "Tamper-proof record of what you actually did",
+    color: "var(--color-pastel-purple)",
+  },
+  {
+    icon: <Globe size={28} />,
+    title: "Portable Rep",
+    description: "Carry your reputation across all events",
+    color: "var(--color-pastel-blue)",
+  },
 ];
 
 const STEPS = [
-  { step: "1", title: "Scan In", description: "Arrive at the event and scan the QR code" },
-  { step: "2", title: "Complete Missions", description: "Visit booths, attend talks, answer quizzes" },
-  { step: "3", title: "Earn & Level Up", description: "Collect XP, unlock badges, climb the ranks" },
-  { step: "4", title: "Build Reputation", description: "Your participation history becomes portable" },
+  {
+    step: "1",
+    title: "Scan In",
+    description: "Arrive at the event and scan the QR code",
+  },
+  {
+    step: "2",
+    title: "Complete Missions",
+    description: "Visit booths, attend talks, answer quizzes",
+  },
+  {
+    step: "3",
+    title: "Earn & Level Up",
+    description: "Collect XP, unlock badges, climb the ranks",
+  },
+  {
+    step: "4",
+    title: "Build Reputation",
+    description: "Your participation history becomes portable",
+  },
 ];
 
 const HERO_WORDS = ["PARTICIPATION", "CONTRIBUTION", "REPUTATION"];
@@ -54,14 +109,21 @@ export default function Home() {
           className="relative z-10 w-full max-w-5xl"
         >
           <div className="inline-flex max-w-[92vw] items-center gap-2 bg-white/80 backdrop-blur-sm px-3 py-2 rounded-full border-2 border-[var(--color-primary-900)] shadow-[2px_2px_0px_0px_#312e81] mb-5 sm:px-4 sm:mb-6">
-            <Star size={14} fill="var(--color-primary-500)" className="text-[var(--color-primary-500)] shrink-0" />
-            <span className="text-[11px] font-bold leading-tight sm:text-xs">The Reputation Layer for Physical Communities</span>
+            <Star
+              size={14}
+              fill="var(--color-primary-500)"
+              className="text-[var(--color-primary-500)] shrink-0"
+            />
+            <span className="text-[11px] font-bold leading-tight sm:text-xs">
+              The Reputation Layer for Physical Communities
+            </span>
           </div>
 
           <h1
             className="font-display text-[clamp(2.35rem,12.2vw,8rem)] font-bold tracking-tight text-[var(--color-primary-900)] leading-[0.86] sm:text-[clamp(3rem,16vw,8rem)]"
             style={{
-              textShadow: "3px 3px 0px #fff, -1.5px -1.5px 0px #fff, 1.5px -1.5px 0px #fff, -1.5px 1.5px 0px #fff",
+              textShadow:
+                "3px 3px 0px #fff, -1.5px -1.5px 0px #fff, 1.5px -1.5px 0px #fff, -1.5px 1.5px 0px #fff",
               WebkitTextStroke: "1.5px var(--color-primary-900)",
             }}
           >
@@ -89,7 +151,7 @@ export default function Home() {
               Enter App
             </Link>
             <Link
-              href="/organizer"
+              href="/app?tab=created"
               className="bg-white/90 text-base sm:text-lg px-7 py-3.5 rounded-full border-3 border-[var(--color-primary-900)] font-bold shadow-[4px_4px_0px_0px_#312e81] hover:translate-y-0.5 hover:shadow-[2px_2px_0px_0px_#312e81] transition-all flex items-center justify-center gap-2"
             >
               Create Event
@@ -123,11 +185,16 @@ export default function Home() {
           viewport={{ once: true }}
           className="mx-auto max-w-3xl text-center"
         >
-          <p className="font-display text-3xl font-bold leading-tight sm:text-4xl md:text-5xl" style={{ textShadow: "3px 3px 0px #fff" }}>
-            Turn event activity into missions, XP, badges, and portable reputation.
+          <p
+            className="font-display text-3xl font-bold leading-tight sm:text-4xl md:text-5xl"
+            style={{ textShadow: "3px 3px 0px #fff" }}
+          >
+            Turn event activity into missions, XP, badges, and portable
+            reputation.
           </p>
           <p className="mx-auto mt-5 max-w-xl text-sm font-bold leading-relaxed opacity-70 sm:text-lg">
-            ProofPlay turns contribution into stored evidence with real-world missions and verifiable proof records on 0G Storage.
+            ProofPlay turns contribution into stored evidence with real-world
+            missions and verifiable proof records on 0G Storage.
           </p>
         </motion.div>
       </section>
@@ -158,7 +225,9 @@ export default function Home() {
                   {s.step}
                 </div>
                 <h3 className="font-display font-bold text-lg">{s.title}</h3>
-                <p className="text-xs font-bold opacity-60 mt-1">{s.description}</p>
+                <p className="text-xs font-bold opacity-60 mt-1">
+                  {s.description}
+                </p>
               </motion.div>
             ))}
           </div>
@@ -194,8 +263,12 @@ export default function Home() {
                 >
                   {feature.icon}
                 </div>
-                <h3 className="font-display font-bold text-lg">{feature.title}</h3>
-                <p className="text-xs font-bold opacity-60 mt-1">{feature.description}</p>
+                <h3 className="font-display font-bold text-lg">
+                  {feature.title}
+                </h3>
+                <p className="text-xs font-bold opacity-60 mt-1">
+                  {feature.description}
+                </p>
               </motion.div>
             ))}
           </div>
@@ -209,13 +282,23 @@ export default function Home() {
           viewport={{ once: true }}
           className="max-w-2xl mx-auto bubbly-card p-6 sm:p-10 bg-gradient-to-br from-[var(--color-pastel-purple)] to-[var(--color-pastel-pink)] text-center"
         >
-          <h2 className="font-display text-3xl md:text-4xl font-bold mb-3">Ready to prove it?</h2>
-          <p className="font-bold opacity-70 mb-6">Start turning real event contributions into portable reputation.</p>
+          <h2 className="font-display text-3xl md:text-4xl font-bold mb-3">
+            Ready to prove it?
+          </h2>
+          <p className="font-bold opacity-70 mb-6">
+            Start turning real event contributions into portable reputation.
+          </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/app" className="bg-white px-8 py-3 rounded-full border-3 border-[var(--color-primary-900)] font-bold shadow-[3px_3px_0px_0px_#312e81] hover:translate-y-0.5 hover:shadow-[1px_1px_0px_0px_#312e81] transition-all flex items-center justify-center gap-2">
+            <Link
+              href="/app?tab=discover"
+              className="bg-white px-8 py-3 rounded-full border-3 border-[var(--color-primary-900)] font-bold shadow-[3px_3px_0px_0px_#312e81] hover:translate-y-0.5 hover:shadow-[1px_1px_0px_0px_#312e81] transition-all flex items-center justify-center gap-2"
+            >
               Join as Attendee <ArrowRight size={16} />
             </Link>
-            <Link href="/organizer/create" className="bg-[var(--color-primary-900)] text-white px-8 py-3 rounded-full border-3 border-[var(--color-primary-900)] font-bold hover:bg-[var(--color-primary-700)] transition-all flex items-center justify-center gap-2">
+            <Link
+              href="/app?tab=created"
+              className="bg-[var(--color-primary-900)] text-white px-8 py-3 rounded-full border-3 border-[var(--color-primary-900)] font-bold hover:bg-[var(--color-primary-700)] transition-all flex items-center justify-center gap-2"
+            >
               Host an Event
             </Link>
           </div>
@@ -229,7 +312,9 @@ export default function Home() {
           </div>
           <span className="font-display font-bold text-lg">ProofPlay</span>
         </div>
-        <p className="text-xs font-bold opacity-40">© 2026 ProofPlay. Proof of Participation for everyone.</p>
+        <p className="text-xs font-bold opacity-40">
+          © 2026 ProofPlay. Proof of Participation for everyone.
+        </p>
       </footer>
     </main>
   );

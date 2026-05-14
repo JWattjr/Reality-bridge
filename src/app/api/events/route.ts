@@ -29,6 +29,7 @@ export async function POST(request: Request) {
     category: body.category,
     maxAttendees: Number(body.maxAttendees ?? 100),
     missions: Array.isArray(body.missions) ? body.missions.map(normalizeMission) : undefined,
+    visibility: body.visibility === "private" ? "private" : "public",
   });
 
   return Response.json({ status: "created", event }, { status: 201 });

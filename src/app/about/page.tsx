@@ -110,7 +110,7 @@ export default function AboutPage() {
                 <ArrowRight size={16} />
               </Link>
               <Link
-                href="/organizer/create"
+                href="/app/create"
                 className="inline-flex items-center justify-center gap-2 rounded-full border-3 border-[var(--color-primary-900)] bg-white px-6 py-3 text-sm font-bold shadow-[3px_3px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
               >
                 Create an event
