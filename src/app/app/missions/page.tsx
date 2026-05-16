@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 import { Zap, Filter, ShieldCheck } from "lucide-react";
-import { MISSIONS, PROOF_TYPE_COPY, shortHash } from "@/lib/mock-data";
+import { PROOF_TYPE_COPY, shortHash } from "@/lib/mock-data";
 import type { Mission, MissionStatus, MissionType, ProofRecord } from "@/lib/mock-data";
+import type { CommunityEvent } from "@/lib/community-store";
 import { MissionIconBadge } from "@/components/ProofPlayIcons";
 import { MissionVerifyAction } from "@/components/MissionVerifyAction";
 import { useMissionVerification } from "@/hooks/useMissionVerification";
@@ -25,6 +27,8 @@ const STATUS_FILTERS: { label: string; value: MissionStatus | "all" }[] = [
   { label: "Locked", value: "locked" },
 ];
 
+type MissionWithEvent = Mission & { eventTitle: string };
+
 export default function MissionsPage() {
   const {
     auth,
@@ -37,8 +41,46 @@ export default function MissionsPage() {
   const [typeFilter, setTypeFilter] = useState<MissionType | "all">("all");
   const [statusFilter, setStatusFilter] = useState<MissionStatus | "all">("all");
   const [expandedMission, setExpandedMission] = useState<string | null>(null);
+  const [events, setEvents] = useState<CommunityEvent[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
 
-  const missions = MISSIONS.map(withProofStatus);
+  useEffect(() => {
+    if (!auth.userId) {
+      setEvents([]);
+      setEventsLoading(false);
+      return;
+    }
+    const params = new URLSearchParams({ userId: auth.userId });
+    fetch(`/api/events?${params.toString()}`)
+      .then((response) => response.json())
+      .then((data: { events?: CommunityEvent[] }) => setEvents(data.events ?? []))
+      .catch(() => setEvents([]))
+      .finally(() => setEventsLoading(false));
+  }, [auth.userId]);
+
+  const missions = useMemo<MissionWithEvent[]>(() => {
+    return events
+      .filter((event) => event.isRegistered)
+      .flatMap((event) =>
+        event.missions.map((mission) => {
+          const base: Mission = {
+            id: mission.id,
+            eventId: event.id,
+            title: mission.title,
+            description: mission.description,
+            type: mission.type,
+            proofType: mission.proofType,
+            proofLocation: mission.proofLocation,
+            xpReward: mission.xpReward,
+            status: "available",
+            completionCount: 0,
+            maxCompletions: 1,
+          };
+          return { ...withProofStatus(base), eventTitle: event.title };
+        }),
+      );
+  }, [events, withProofStatus]);
+
   const filteredMissions = missions.filter((m) => {
     if (typeFilter !== "all" && m.type !== typeFilter) return false;
     if (statusFilter !== "all" && m.status !== statusFilter) return false;
@@ -49,7 +91,7 @@ export default function MissionsPage() {
   const earnedXp = missions.filter((m) => m.status === "completed").reduce((sum, m) => sum + m.xpReward, 0);
 
   return (
-    <div className="space-y-5">
+    <div className="mx-auto w-full max-w-6xl space-y-5">
       {/* Header Stats */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -73,7 +115,7 @@ export default function MissionsPage() {
         </div>
       </motion.div>
 
-      {proofsLoading && (
+      {proofsLoading && !eventsLoading && missions.length === 0 && (
         <p className="rounded-2xl border-2 border-[var(--color-primary-900)] bg-white p-3 text-xs font-bold opacity-70">
           Syncing your proof receipts from Supabase...
         </p>
@@ -122,9 +164,12 @@ export default function MissionsPage() {
       </motion.div>
 
       {/* Mission List */}
-      <div className="space-y-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {eventsLoading && missions.length === 0 ? (
+          <MissionCardSkeletons count={6} />
+        ) : null}
         <AnimatePresence mode="popLayout">
-          {filteredMissions.map((mission, i) => {
+          {!eventsLoading && filteredMissions.map((mission, i) => {
             const proofCopy = PROOF_TYPE_COPY[mission.proofType];
             const proof = getMissionProof(mission.id);
 
@@ -154,6 +199,7 @@ export default function MissionsPage() {
                     <p className={`font-bold text-sm truncate ${mission.status === "completed" ? "line-through" : ""}`}>
                       {mission.title}
                     </p>
+                    <p className="truncate text-[10px] font-bold opacity-50">{mission.eventTitle}</p>
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <motion.span
                         className="text-xs font-bold text-[var(--color-primary-500)] flex items-center gap-0.5"
@@ -264,13 +310,55 @@ export default function MissionsPage() {
           })}
         </AnimatePresence>
 
-        {filteredMissions.length === 0 && (
-          <div className="text-center py-12 opacity-50">
-            <p className="font-bold text-sm">No missions match your filters</p>
+        {filteredMissions.length === 0 && !eventsLoading && (
+          <div className="sm:col-span-2 lg:col-span-3">
+            <div className="bubbly-card flex min-h-72 flex-col items-center justify-center bg-white p-8 text-center">
+              <p className="font-display text-xl font-bold">
+                {missions.length === 0 ? "No missions yet" : "No missions match your filters"}
+              </p>
+              <p className="mt-2 max-w-sm text-xs font-bold opacity-60">
+                {missions.length === 0
+                  ? "Join an event from the Events tab — its missions show up here once you've registered."
+                  : "Try clearing a filter to see more missions."}
+              </p>
+              {missions.length === 0 && (
+                <Link
+                  href="/app?tab=discover"
+                  className="mt-5 inline-flex rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-5 py-2 text-xs font-bold shadow-[3px_3px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
+                >
+                  Browse events
+                </Link>
+              )}
+            </div>
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+function MissionCardSkeletons({ count }: { count: number }) {
+  return (
+    <>
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} aria-hidden className="bubbly-card animate-pulse bg-white p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="h-11 w-11 shrink-0 rounded-xl bg-gray-200" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="h-3 w-3/4 rounded bg-gray-200" />
+                <div className="h-2 w-1/2 rounded bg-gray-100" />
+                <div className="flex gap-1.5 pt-1">
+                  <div className="h-3 w-12 rounded-full bg-gray-100" />
+                  <div className="h-3 w-16 rounded-full bg-gray-100" />
+                </div>
+              </div>
+            </div>
+            <div className="h-7 w-16 shrink-0 rounded-full bg-gray-200" />
+          </div>
+        </div>
+      ))}
+    </>
   );
 }
 

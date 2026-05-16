@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { Plus, Trash2, ArrowLeft, Globe, Lock } from "lucide-react";
+import { Plus, Trash2, ArrowLeft, Globe, Lock, Pencil, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PROOF_TYPE_COPY, type ProofType } from "@/lib/mock-data";
@@ -70,6 +70,11 @@ export default function AppCreateEventPage() {
     xp: "75",
   });
   const [customError, setCustomError] = useState("");
+  const [editingMissionId, setEditingMissionId] = useState<number | null>(null);
+  const [editDraft, setEditDraft] = useState<{ title: string; description: string; proofType: ProofType; xp: string }>(
+    { title: "", description: "", proofType: "qr_scan", xp: "75" },
+  );
+  const [editError, setEditError] = useState("");
   const [createdEvent, setCreatedEvent] = useState<CommunityEvent | null>(null);
   const [submitStatus, setSubmitStatus] = useState("");
 
@@ -108,6 +113,56 @@ export default function AppCreateEventPage() {
 
   const removeMission = (id: number) => {
     setMissions(missions.filter((m) => m.id !== id));
+    if (editingMissionId === id) {
+      setEditingMissionId(null);
+      setEditError("");
+    }
+  };
+
+  const startEditMission = (mission: MissionDraft) => {
+    setEditingMissionId(mission.id);
+    setEditDraft({
+      title: mission.title,
+      description: mission.description,
+      proofType: mission.proofType,
+      xp: String(mission.xp),
+    });
+    setEditError("");
+  };
+
+  const cancelEditMission = () => {
+    setEditingMissionId(null);
+    setEditError("");
+  };
+
+  const saveEditMission = (id: number) => {
+    setEditError("");
+    const title = editDraft.title.trim();
+    if (!title) {
+      setEditError("Mission title is required.");
+      return;
+    }
+    const xpReward = Number(editDraft.xp);
+    if (!Number.isFinite(xpReward) || xpReward <= 0) {
+      setEditError("XP must be a positive number.");
+      return;
+    }
+
+    setMissions((current) =>
+      current.map((m) =>
+        m.id === id
+          ? {
+              ...m,
+              title,
+              description: editDraft.description.trim() || m.description,
+              type: typeForProof(editDraft.proofType),
+              proofType: editDraft.proofType,
+              xp: xpReward,
+            }
+          : m,
+      ),
+    );
+    setEditingMissionId(null);
   };
 
   const updateEventDetails = (key: keyof typeof eventDetails, value: string) => {
@@ -144,9 +199,12 @@ export default function AppCreateEventPage() {
           })),
         }),
       });
-      const data = await response.json();
+      const raw = await response.text();
+      const data = raw ? JSON.parse(raw) : {};
 
-      if (!response.ok) throw new Error(data.issues?.join(", ") ?? "Could not publish event");
+      if (!response.ok) {
+        throw new Error(data.issues?.join(", ") ?? `Event publish failed (${response.status})`);
+      }
 
       setCreatedEvent(data.event);
       setSubmitStatus("Event published. Opening your event dashboard...");
@@ -157,7 +215,7 @@ export default function AppCreateEventPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5 sm:space-y-6">
+    <div className="mx-auto max-w-2xl space-y-5 sm:space-y-6 lg:max-w-4xl">
       <Link href="/app?tab=created" className="inline-flex items-center gap-1 text-xs font-bold opacity-60 hover:opacity-100">
         <ArrowLeft size={14} /> Back to Events
       </Link>
@@ -327,11 +385,12 @@ export default function AppCreateEventPage() {
           animate={{ opacity: 1, x: 0 }}
           className="space-y-4"
         >
+          <div className="space-y-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-4 lg:space-y-0">
           <div className="bubbly-card p-5 bg-white">
             <h2 className="font-display text-xl font-bold mb-1">Add Missions</h2>
             <p className="text-xs font-bold opacity-60 mb-3">Pick from templates or create your own</p>
 
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
               {MISSION_TEMPLATES.map((template, i) => (
                 <button
                   key={i}
@@ -352,6 +411,7 @@ export default function AppCreateEventPage() {
             </div>
           </div>
 
+          <div className="space-y-4">
           <div className="bubbly-card p-5 bg-white space-y-3">
             <div>
               <h3 className="font-display text-lg font-bold">Create custom mission</h3>
@@ -428,25 +488,119 @@ export default function AppCreateEventPage() {
             <div className="bubbly-card p-5 bg-white">
               <h3 className="font-display text-lg font-bold mb-3">Your Missions ({missions.length})</h3>
               <div className="space-y-2">
-                {missions.map((mission) => (
-                  <div
-                    key={mission.id}
-                    className="rounded-xl border-2 border-[var(--color-primary-900)] p-3 bg-[var(--color-bg-base)] flex items-center justify-between"
-                  >
-                    <div>
-                      <p className="font-bold text-xs">{mission.title}</p>
-                      <span className="text-[10px] font-bold text-[var(--color-primary-500)]">
-                        +{mission.xp} XP - {PROOF_TYPE_COPY[mission.proofType].label}
-                      </span>
+                {missions.map((mission) => {
+                  const isEditing = editingMissionId === mission.id;
+                  return (
+                    <div
+                      key={mission.id}
+                      className="rounded-xl border-2 border-[var(--color-primary-900)] p-3 bg-[var(--color-bg-base)]"
+                    >
+                      {isEditing ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="font-bold text-xs">Edit mission</p>
+                            <button
+                              type="button"
+                              onClick={cancelEditMission}
+                              aria-label="Cancel"
+                              className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-[var(--color-primary-900)] bg-white"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                          <input
+                            type="text"
+                            value={editDraft.title}
+                            onChange={(e) => setEditDraft((d) => ({ ...d, title: e.target.value }))}
+                            placeholder="Mission title"
+                            className="w-full px-3 py-2 rounded-xl border-2 border-[var(--color-primary-900)] font-bold text-xs focus:outline-none focus:ring-2 focus:ring-[var(--color-pastel-purple)] bg-white"
+                          />
+                          <textarea
+                            rows={2}
+                            value={editDraft.description}
+                            onChange={(e) => setEditDraft((d) => ({ ...d, description: e.target.value }))}
+                            placeholder="Description"
+                            className="w-full px-3 py-2 rounded-xl border-2 border-[var(--color-primary-900)] font-bold text-xs focus:outline-none focus:ring-2 focus:ring-[var(--color-pastel-purple)] bg-white resize-none"
+                          />
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            <select
+                              value={editDraft.proofType}
+                              onChange={(e) => setEditDraft((d) => ({ ...d, proofType: e.target.value as ProofType }))}
+                              className="w-full px-3 py-2 rounded-xl border-2 border-[var(--color-primary-900)] font-bold text-xs focus:outline-none focus:ring-2 focus:ring-[var(--color-pastel-purple)] bg-white"
+                            >
+                              {PROOF_TYPE_OPTIONS.map((proof) => (
+                                <option key={proof} value={proof}>
+                                  {PROOF_TYPE_COPY[proof].label}
+                                </option>
+                              ))}
+                            </select>
+                            <input
+                              type="number"
+                              min={1}
+                              value={editDraft.xp}
+                              onChange={(e) => setEditDraft((d) => ({ ...d, xp: e.target.value }))}
+                              placeholder="XP reward"
+                              className="w-full px-3 py-2 rounded-xl border-2 border-[var(--color-primary-900)] font-bold text-xs focus:outline-none focus:ring-2 focus:ring-[var(--color-pastel-purple)] bg-white"
+                            />
+                          </div>
+                          {editError && (
+                            <p className="rounded-xl border-2 border-red-500 bg-red-50 px-3 py-2 text-[10px] font-bold text-red-700">
+                              {editError}
+                            </p>
+                          )}
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={cancelEditMission}
+                              className="flex-1 rounded-full border-2 border-[var(--color-primary-900)] bg-white py-1.5 text-[11px] font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => saveEditMission(mission.id)}
+                              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-primary-900)] py-1.5 text-[11px] font-bold text-white transition-colors hover:bg-[var(--color-primary-700)]"
+                            >
+                              Save
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-bold text-xs truncate">{mission.title}</p>
+                            <span className="text-[10px] font-bold text-[var(--color-primary-500)]">
+                              +{mission.xp} XP - {PROOF_TYPE_COPY[mission.proofType].label}
+                            </span>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => startEditMission(mission)}
+                              aria-label="Edit mission"
+                              className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[var(--color-primary-900)] bg-white shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
+                            >
+                              <Pencil size={12} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removeMission(mission.id)}
+                              aria-label="Remove mission"
+                              className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-red-600 bg-red-50 text-red-700 shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <button onClick={() => removeMission(mission.id)} className="opacity-40 hover:opacity-100 hover:text-red-500 transition-all">
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
+          </div>
+          </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
             <button

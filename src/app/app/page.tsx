@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   CheckCircle,
+  ChevronLeft,
+  ChevronRight,
   MapPin,
   PlusCircle,
   ScanLine,
@@ -26,13 +28,24 @@ function isEventsTab(value: string | null): value is EventsTab {
 
 export default function AppDashboard() {
   const auth = useProofPlayAuth();
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const initialTab: EventsTab = isEventsTab(searchParams.get("tab")) ? (searchParams.get("tab") as EventsTab) : "my";
+  const tabParam = searchParams.get("tab");
+  const activeTab: EventsTab = isEventsTab(tabParam) ? (tabParam as EventsTab) : "my";
+
+  const setActiveTab = (tab: EventsTab) => {
+    const next = new URLSearchParams(searchParams.toString());
+    next.set("tab", tab);
+    router.replace(`/app?${next.toString()}`, { scroll: false });
+  };
+
   const [events, setEvents] = useState<CommunityEvent[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [registeringId, setRegisteringId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
   const [enterOpen, setEnterOpen] = useState(false);
+  const [discoverPage, setDiscoverPage] = useState(1);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -42,25 +55,35 @@ export default function AppDashboard() {
     fetch(`/api/events?${params.toString()}`)
       .then((response) => response.json())
       .then((data: { events?: CommunityEvent[] }) => setEvents(data.events ?? []))
-      .catch(() => setEvents(fallbackEvents()));
+      .catch(() => setEvents(fallbackEvents()))
+      .finally(() => setEventsLoading(false));
   }, [auth.userId, query]);
 
-  const suggestedEvents = useMemo(
-    () => events.filter((event) => event.visibility !== "private").slice(0, 4),
+  const handleQueryChange = (value: string) => {
+    setQuery(value);
+    setDiscoverPage(1);
+  };
+
+  const DISCOVER_PAGE_SIZE = 9;
+  const publicEvents = useMemo(
+    () => events.filter((event) => event.visibility !== "private"),
     [events],
+  );
+  const discoverTotalPages = Math.max(1, Math.ceil(publicEvents.length / DISCOVER_PAGE_SIZE));
+  const discoverCurrentPage = Math.min(discoverPage, discoverTotalPages);
+  const discoverPageEvents = useMemo(
+    () =>
+      publicEvents.slice(
+        (discoverCurrentPage - 1) * DISCOVER_PAGE_SIZE,
+        discoverCurrentPage * DISCOVER_PAGE_SIZE,
+      ),
+    [publicEvents, discoverCurrentPage],
   );
   const myEvents = useMemo(() => events.filter((event) => event.isRegistered), [events]);
   const createdEvents = useMemo(
     () => (auth.userId ? events.filter((event) => event.organizerId === auth.userId) : []),
     [auth.userId, events],
   );
-  const [activeTab, setActiveTab] = useState<EventsTab>(initialTab);
-
-  useEffect(() => {
-    if (isEventsTab(searchParams.get("tab"))) {
-      setActiveTab(searchParams.get("tab") as EventsTab);
-    }
-  }, [searchParams]);
 
   async function register(eventId: string) {
     if (!auth.configured || !auth.authenticated || !auth.userId) {
@@ -101,7 +124,7 @@ export default function AppDashboard() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.08 }}
-        className="grid grid-cols-2 gap-3"
+        className="grid grid-cols-2 gap-3 lg:max-w-3xl"
       >
         <Link
           href="/app/create"
@@ -137,7 +160,7 @@ export default function AppDashboard() {
       >
         <div role="tablist" className="mb-3 flex gap-1 rounded-full border-2 border-[var(--color-primary-900)] bg-white p-1">
           <TabButton active={activeTab === "my"} onClick={() => setActiveTab("my")}>
-            My Events {myEvents.length > 0 && <span className="opacity-60">({myEvents.length})</span>}
+            Joined {myEvents.length > 0 && <span className="opacity-60">({myEvents.length})</span>}
           </TabButton>
           <TabButton active={activeTab === "created"} onClick={() => setActiveTab("created")}>
             Created {createdEvents.length > 0 && <span className="opacity-60">({createdEvents.length})</span>}
@@ -148,20 +171,11 @@ export default function AppDashboard() {
         </div>
 
         {activeTab === "my" && (
-          <div className="space-y-3">
-            {myEvents.map((event, index) => (
-              <EventDiscoveryCard
-                key={event.id}
-                event={event}
-                index={index}
-                registering={registeringId === event.id}
-                onRegister={() => register(event.id)}
-                isOwner={auth.userId === event.organizerId}
-              />
-            ))}
-
-            {myEvents.length === 0 && (
-              <div className="bubbly-card flex min-h-72 flex-col items-center justify-center bg-white p-8 text-center">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {eventsLoading ? (
+              <EventCardSkeletons count={3} />
+            ) : myEvents.length === 0 ? (
+              <div className="bubbly-card flex min-h-72 flex-col items-center justify-center bg-white p-8 text-center sm:col-span-2 lg:col-span-3">
                 <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-blue)] shadow-[3px_3px_0px_0px_#312e81]">
                   <ScanLine size={26} />
                 </div>
@@ -177,25 +191,27 @@ export default function AppDashboard() {
                   Browse Discover
                 </button>
               </div>
+            ) : (
+              myEvents.map((event, index) => (
+                <EventDiscoveryCard
+                  key={event.id}
+                  event={event}
+                  index={index}
+                  registering={registeringId === event.id}
+                  onRegister={() => register(event.id)}
+                  isOwner={auth.userId === event.organizerId}
+                />
+              ))
             )}
           </div>
         )}
 
         {activeTab === "created" && (
-          <div className="space-y-3">
-            {createdEvents.map((event, index) => (
-              <EventDiscoveryCard
-                key={event.id}
-                event={event}
-                index={index}
-                registering={registeringId === event.id}
-                onRegister={() => register(event.id)}
-                isOwner={auth.userId === event.organizerId}
-              />
-            ))}
-
-            {createdEvents.length === 0 && (
-              <div className="bubbly-card flex min-h-72 flex-col items-center justify-center bg-white p-8 text-center">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {eventsLoading ? (
+              <EventCardSkeletons count={3} />
+            ) : createdEvents.length === 0 ? (
+              <div className="bubbly-card flex min-h-72 flex-col items-center justify-center bg-white p-8 text-center sm:col-span-2 lg:col-span-3">
                 <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-purple)] shadow-[3px_3px_0px_0px_#312e81]">
                   <PlusCircle size={26} />
                 </div>
@@ -210,39 +226,78 @@ export default function AppDashboard() {
                   Create your first event
                 </Link>
               </div>
+            ) : (
+              createdEvents.map((event, index) => (
+                <EventDiscoveryCard
+                  key={event.id}
+                  event={event}
+                  index={index}
+                  registering={registeringId === event.id}
+                  onRegister={() => register(event.id)}
+                  isOwner={auth.userId === event.organizerId}
+                />
+              ))
             )}
           </div>
         )}
 
         {activeTab === "discover" && (
           <div className="space-y-3">
-            <div className="flex items-center gap-2 rounded-2xl border-2 border-[var(--color-primary-900)] bg-white px-3 py-2">
+            <div className="flex items-center gap-2 rounded-2xl border-2 border-[var(--color-primary-900)] bg-white px-3 py-2 lg:max-w-xl">
               <Search size={16} className="opacity-50" />
               <input
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => handleQueryChange(event.target.value)}
                 placeholder="Search events, cities, categories"
                 className="min-w-0 flex-1 bg-transparent text-xs font-bold outline-none"
               />
             </div>
 
-            {suggestedEvents.map((event, index) => (
-              <EventDiscoveryCard
-                key={event.id}
-                event={event}
-                index={index}
-                registering={registeringId === event.id}
-                onRegister={() => register(event.id)}
-                isOwner={auth.userId === event.organizerId}
-              />
-            ))}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {eventsLoading && events.length === 0 ? (
+                <EventCardSkeletons count={4} />
+              ) : publicEvents.length === 0 ? (
+                <div className="bubbly-card bg-white p-5 text-center sm:col-span-2 lg:col-span-3">
+                  <p className="font-bold">No events found yet.</p>
+                  <p className="mt-1 text-xs font-bold opacity-60">
+                    Hosts can publish events from the organizer dashboard.
+                  </p>
+                </div>
+              ) : (
+                discoverPageEvents.map((event, index) => (
+                  <EventDiscoveryCard
+                    key={event.id}
+                    event={event}
+                    index={index}
+                    registering={registeringId === event.id}
+                    onRegister={() => register(event.id)}
+                    isOwner={auth.userId === event.organizerId}
+                  />
+                ))
+              )}
+            </div>
 
-            {suggestedEvents.length === 0 && (
-              <div className="bubbly-card bg-white p-5 text-center">
-                <p className="font-bold">No events found yet.</p>
-                <p className="mt-1 text-xs font-bold opacity-60">
-                  Hosts can publish events from the organizer dashboard.
-                </p>
+            {publicEvents.length > 0 && discoverTotalPages > 1 && (
+              <div className="flex items-center justify-between gap-3 rounded-2xl border-2 border-[var(--color-primary-900)] bg-white px-3 py-2">
+                <button
+                  type="button"
+                  onClick={() => setDiscoverPage((p) => Math.max(1, p - 1))}
+                  disabled={discoverCurrentPage <= 1}
+                  className="inline-flex items-center gap-1 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-blue)] px-3 py-1.5 text-xs font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+                >
+                  <ChevronLeft size={14} /> Prev
+                </button>
+                <span className="text-xs font-bold opacity-70">
+                  Page {discoverCurrentPage} of {discoverTotalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setDiscoverPage((p) => Math.min(discoverTotalPages, p + 1))}
+                  disabled={discoverCurrentPage >= discoverTotalPages}
+                  className="inline-flex items-center gap-1 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-blue)] px-3 py-1.5 text-xs font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+                >
+                  Next <ChevronRight size={14} />
+                </button>
               </div>
             )}
           </div>
@@ -353,6 +408,37 @@ function EventDiscoveryCard({
         </div>
       </div>
     </motion.div>
+  );
+}
+
+function EventCardSkeletons({ count }: { count: number }) {
+  return (
+    <>
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          aria-hidden
+          className="bubbly-card animate-pulse bg-white p-3"
+        >
+          <div className="flex items-start gap-2 min-[380px]:gap-3">
+            <div className="h-11 w-11 shrink-0 rounded-xl bg-gray-200" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <div className="h-3 w-3/4 rounded bg-gray-200" />
+              <div className="h-2 w-1/2 rounded bg-gray-100" />
+              <div className="flex gap-2 pt-2">
+                <div className="h-2 w-16 rounded bg-gray-100" />
+                <div className="h-2 w-10 rounded bg-gray-100" />
+                <div className="h-2 w-12 rounded bg-gray-100" />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <div className="h-6 w-20 rounded-full bg-gray-200" />
+                <div className="h-6 w-14 rounded-full bg-gray-100" />
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </>
   );
 }
 

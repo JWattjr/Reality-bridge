@@ -17,6 +17,7 @@ export default function EventDetailPage() {
   const eventId = params.id as string;
   const mockEvent = EVENTS.find((e) => e.id === eventId);
   const [liveEvent, setLiveEvent] = useState<CommunityEvent | null>(null);
+  const [eventLoading, setEventLoading] = useState(!mockEvent);
   const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
   const [expandedQuizId, setExpandedQuizId] = useState<string | null>(null);
   const event = mockEvent ?? liveEvent;
@@ -34,12 +35,13 @@ export default function EventDetailPage() {
   useEffect(() => {
     if (mockEvent) return;
 
-    fetch("/api/events")
-      .then((response) => response.json())
-      .then((data: { events?: CommunityEvent[] }) => {
-        setLiveEvent(data.events?.find((item) => item.id === eventId) ?? null);
+    fetch(`/api/events/${encodeURIComponent(eventId)}`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { event?: CommunityEvent } | null) => {
+        setLiveEvent(data?.event ?? null);
       })
-      .catch(() => setLiveEvent(null));
+      .catch(() => setLiveEvent(null))
+      .finally(() => setEventLoading(false));
   }, [eventId, mockEvent]);
 
   useEffect(() => {
@@ -48,6 +50,14 @@ export default function EventDetailPage() {
       .then((data: { entries?: LeaderboardEntry[] }) => setLeaderboardEntries(data.entries ?? []))
       .catch(() => setLeaderboardEntries([]));
   }, [eventId]);
+
+  if (eventLoading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-[var(--color-primary-900)] border-t-[var(--color-pastel-blue)]" />
+      </div>
+    );
+  }
 
   if (!event) {
     return (
@@ -83,7 +93,7 @@ export default function EventDetailPage() {
   const earnedXp = eventMissions.filter((m) => m.status === "completed").reduce((sum, m) => sum + m.xpReward, 0);
 
   return (
-    <div className="space-y-5">
+    <div className="mx-auto w-full max-w-5xl space-y-5">
       {/* Back Button */}
       <Link href="/app" className="inline-flex items-center gap-1 text-xs font-bold opacity-60 hover:opacity-100">
         <ArrowLeft size={14} /> Back
@@ -147,6 +157,9 @@ export default function EventDetailPage() {
           Syncing your proof receipts from Supabase...
         </p>
       )}
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:items-start">
+        <div className="space-y-5 lg:col-span-2">
 
       {/* Stats Bar */}
       <motion.div
@@ -328,6 +341,10 @@ export default function EventDetailPage() {
         </div>
       </motion.section>
 
+        </div>
+
+        <aside className="space-y-5 lg:sticky lg:top-20">
+
       {/* Event Leaderboard Preview */}
       <motion.section
         initial={{ opacity: 0, y: 20 }}
@@ -358,6 +375,9 @@ export default function EventDetailPage() {
           )}
         </div>
       </motion.section>
+
+        </aside>
+      </div>
     </div>
   );
 }

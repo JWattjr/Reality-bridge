@@ -166,7 +166,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="mx-auto w-full max-w-5xl space-y-5">
       {/* Profile Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -440,7 +440,7 @@ export default function ProfilePage() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="grid grid-cols-3 gap-2"
+          className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6"
         >
           {sortedBadges.map((badge, i) => {
             const hasBadge = visibleProofRecords.some((proof) => proof.badgeId === badge.id);

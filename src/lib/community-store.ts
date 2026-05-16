@@ -177,6 +177,124 @@ export async function createCommunityEvent(input: {
   return eventFromRow(data);
 }
 
+export async function updateCommunityEvent(
+  eventId: string,
+  organizerId: string,
+  updates: Partial<{
+    title: string;
+    description: string;
+    location: string;
+    startDate: string;
+    endDate: string;
+    category: string;
+    maxAttendees: number;
+    visibility: EventVisibility;
+    missions: CommunityMission[];
+  }>,
+) {
+  const existing = (await listCommunityEvents()).find((item) => item.id === eventId);
+
+  if (!existing) {
+    throw new Error("Event not found");
+  }
+
+  if (existing.organizerId !== organizerId) {
+    throw new Error("Not authorized to edit this event");
+  }
+
+  const merged: CommunityEvent = {
+    ...existing,
+    title: updates.title ?? existing.title,
+    description: updates.description ?? existing.description,
+    location: updates.location ?? existing.location,
+    startDate: updates.startDate ?? existing.startDate,
+    endDate: updates.endDate ?? existing.endDate,
+    category: updates.category ?? existing.category,
+    maxAttendees: updates.maxAttendees ?? existing.maxAttendees,
+    visibility: updates.visibility ?? existing.visibility,
+    missions: updates.missions ?? existing.missions,
+  };
+
+  if (!hasSupabaseConfig()) {
+    const index = memoryEvents.findIndex((item) => item.id === eventId);
+    if (index >= 0) {
+      memoryEvents[index] = { ...merged, attendees: existing.attendees };
+    } else {
+      memoryEvents.unshift(merged);
+    }
+    return merged;
+  }
+
+  const supabase = createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("community_events")
+    .update(eventToRow(merged))
+    .eq("id", eventId)
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to update event: ${error.message}`);
+  }
+
+  return eventFromRow(data);
+}
+
+export async function deleteCommunityEvent(eventId: string, organizerId: string) {
+  const existing = (await listCommunityEvents()).find((item) => item.id === eventId);
+
+  if (!existing) {
+    throw new Error("Event not found");
+  }
+
+  if (existing.organizerId !== organizerId) {
+    throw new Error("Not authorized to delete this event");
+  }
+
+  if (!hasSupabaseConfig()) {
+    const index = memoryEvents.findIndex((item) => item.id === eventId);
+    if (index >= 0) memoryEvents.splice(index, 1);
+    memoryRegistrations.delete(eventId);
+    return { id: eventId, status: "deleted" as const };
+  }
+
+  const supabase = createSupabaseServerClient();
+
+  await supabase.from("event_registrations").delete().eq("event_id", eventId);
+
+  const { error } = await supabase.from("community_events").delete().eq("id", eventId);
+
+  if (error) {
+    throw new Error(`Failed to delete event: ${error.message}`);
+  }
+
+  return { id: eventId, status: "deleted" as const };
+}
+
+export function normalizeCommunityMission(
+  mission: Record<string, unknown>,
+  index: number,
+): CommunityMission {
+  return {
+    id: typeof mission.id === "string" ? mission.id : `mission_${index + 1}`,
+    title: typeof mission.title === "string" ? mission.title : `Mission ${index + 1}`,
+    description: typeof mission.description === "string" ? mission.description : "Complete this event task.",
+    type:
+      mission.type === "nfc" || mission.type === "text" || mission.type === "photo" || mission.type === "manual"
+        ? mission.type
+        : "qr",
+    proofType:
+      mission.proofType === "nfc_tap" ||
+      mission.proofType === "organizer_approval" ||
+      mission.proofType === "photo_upload" ||
+      mission.proofType === "quiz_code"
+        ? mission.proofType
+        : "qr_scan",
+    xpReward: Number(mission.xpReward ?? mission.xp ?? 50),
+    proofLocation: typeof mission.proofLocation === "string" ? mission.proofLocation : undefined,
+  };
+}
+
 export async function registerForEvent(eventId: string, userId: string) {
   const id = `reg_${stableSegment(`${eventId}:${userId}`)}`;
   const event = (await listCommunityEvents()).find((item) => item.id === eventId);

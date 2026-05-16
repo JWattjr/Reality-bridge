@@ -39,7 +39,7 @@ export default function Navbar() {
 
   // App Navigation
   return (
-    <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-white bubbly-border p-2 flex items-center gap-2 shadow-[var(--shadow-bubbly)]">
+    <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-white bubbly-border p-2 flex items-center gap-2 shadow-[var(--shadow-bubbly)] lg:hidden">
       <NavItem href="/app" icon={<Calendar size={24} />} label="Events" active={pathname === "/app"} />
       <NavItem href="/app/missions" icon={<QrCode size={24} />} label="Missions" active={pathname === "/app/missions"} />
       <NavItem href="/app/leaderboard" icon={<Trophy size={24} />} label="Rank" active={pathname === "/app/leaderboard"} />

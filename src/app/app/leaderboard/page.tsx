@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Trophy } from "lucide-react";
+import { ChevronLeft, ChevronRight, ShieldCheck, Trophy } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useProofPlayAuth } from "@/components/ProofPlayAuthProvider";
 import { getLevelForXp, type LeaderboardEntry } from "@/lib/mock-data";
@@ -14,10 +14,13 @@ const PODIUM_COLORS = [
 
 const PODIUM_LABELS = ["#1", "#2", "#3"];
 
+const PAGE_SIZE = 10;
+
 export default function LeaderboardPage() {
   const auth = useProofPlayAuth();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     fetch("/api/leaderboard?eventId=evt_1", { cache: "no-store" })
@@ -29,18 +32,30 @@ export default function LeaderboardPage() {
 
   const topThree = entries.slice(0, 3);
   const rest = entries.slice(3);
+  const totalPages = Math.max(1, Math.ceil(rest.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedRest = useMemo(
+    () => rest.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [rest, currentPage],
+  );
   const currentEntry = useMemo(() => {
     if (!auth.userId) return undefined;
     return entries.find((entry) => entry.userId.toLowerCase() === auth.userId?.toLowerCase());
   }, [auth.userId, entries]);
 
   return (
-    <div className="space-y-5">
+    <div className="mx-auto w-full max-w-4xl space-y-5">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="font-display text-xl font-bold flex items-center gap-2">
           <Trophy size={22} /> Leaderboard
         </h1>
         <p className="text-xs font-bold opacity-60 mt-0.5">BlockNova Event - Real proof rankings</p>
+        <p className="mt-2 inline-flex items-start gap-1.5 rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-blue)] px-3 py-2 text-[11px] font-bold">
+          <ShieldCheck size={12} className="mt-0.5 shrink-0" />
+          <span>
+            Complete missions to earn XP — more XP = higher rank, ties break by missions completed. Powered by validated proofs stored on 0G, so only verified submissions count.
+          </span>
+        </p>
       </motion.div>
 
       {isLoading && (
@@ -103,7 +118,7 @@ export default function LeaderboardPage() {
       )}
 
       <div className="space-y-1.5">
-        {rest.map((entry, index) => {
+        {pagedRest.map((entry, index) => {
           const isCurrentUser = entry.userId.toLowerCase() === auth.userId?.toLowerCase();
 
           return (
@@ -137,6 +152,30 @@ export default function LeaderboardPage() {
           );
         })}
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between gap-3 rounded-2xl border-2 border-[var(--color-primary-900)] bg-white px-3 py-2">
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage <= 1}
+            className="inline-flex items-center gap-1 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-blue)] px-3 py-1.5 text-xs font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+          >
+            <ChevronLeft size={14} /> Prev
+          </button>
+          <span className="text-xs font-bold opacity-70">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage >= totalPages}
+            className="inline-flex items-center gap-1 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-blue)] px-3 py-1.5 text-xs font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+          >
+            Next <ChevronRight size={14} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
