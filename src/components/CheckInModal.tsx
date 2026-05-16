@@ -65,7 +65,7 @@ export default function CheckInModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-end justify-center bg-[var(--color-primary-900)]/40 backdrop-blur-sm sm:items-center"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-primary-900)]/40 backdrop-blur-sm px-4 pb-24"
           onClick={onClose}
         >
           <motion.div
@@ -73,7 +73,7 @@ export default function CheckInModal({
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 40, opacity: 0 }}
             transition={{ type: "spring", stiffness: 320, damping: 28 }}
-            className="w-full max-w-sm bubbly-card bg-white p-5 sm:rounded-3xl"
+            className="w-full max-w-sm bubbly-card bg-white p-5 rounded-3xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3">
