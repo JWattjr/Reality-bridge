@@ -1,5 +1,8 @@
 import { EVENTS, MISSIONS, type Event, type Mission, type ProofType } from "@/lib/mock-data";
 import { createSupabaseServerClient, hasSupabaseConfig } from "@/lib/supabase-server";
+import { eventCheckInCode } from "@/lib/check-in";
+
+export { eventCheckInCode };
 
 export interface CommunityMission {
   id: string;
@@ -269,6 +272,99 @@ export async function deleteCommunityEvent(eventId: string, organizerId: string)
   }
 
   return { id: eventId, status: "deleted" as const };
+}
+
+export interface EventRegistrationEntry {
+  userId: string;
+  displayName: string;
+  handle?: string;
+  walletAddress?: string;
+  avatar?: string;
+  userTag?: string;
+  registeredAt?: string;
+  checkInCode: string;
+}
+
+export async function listEventRegistrations(
+  eventId: string,
+  organizerId: string,
+): Promise<EventRegistrationEntry[]> {
+  const existing = (await listCommunityEvents()).find((item) => item.id === eventId);
+
+  if (!existing) {
+    throw new Error("Event not found");
+  }
+
+  if (existing.organizerId !== organizerId) {
+    throw new Error("Not authorized to view this event's entries");
+  }
+
+  if (!hasSupabaseConfig()) {
+    const ids = [...(memoryRegistrations.get(eventId) ?? new Set<string>())];
+    return ids.map((userId) => ({
+      ...entryFromProfile(userId, memoryProfiles.get(userId)),
+      checkInCode: eventCheckInCode(eventId, userId),
+    }));
+  }
+
+  const supabase = createSupabaseServerClient();
+  const { data: regs, error: regError } = await supabase
+    .from("event_registrations")
+    .select("user_id, created_at")
+    .eq("event_id", eventId)
+    .order("created_at", { ascending: false });
+
+  if (regError) {
+    throw new Error(`Failed to read event registrations: ${regError.message}`);
+  }
+
+  const rows = regs ?? [];
+  if (rows.length === 0) return [];
+
+  const userIds = [...new Set(rows.map((row) => row.user_id as string))];
+  const { data: profiles, error: profileError } = await supabase
+    .from("user_profiles")
+    .select("*")
+    .in("id", userIds);
+
+  if (profileError && !isMissingSupabaseTableError(profileError)) {
+    throw new Error(`Failed to read user profiles: ${profileError.message}`);
+  }
+
+  const profileById = new Map((profiles ?? []).map((row) => [row.id as string, profileFromRow(row)]));
+
+  return rows.map((row) => ({
+    ...entryFromProfile(row.user_id as string, profileById.get(row.user_id as string)),
+    checkInCode: eventCheckInCode(eventId, row.user_id as string),
+    registeredAt: row.created_at as string | undefined,
+  }));
+}
+
+function entryFromProfile(userId: string, profile?: UserProfile): Omit<EventRegistrationEntry, "checkInCode"> {
+  if (profile) {
+    return {
+      userId,
+      displayName: profile.displayName,
+      handle: profile.handle,
+      walletAddress: profile.walletAddress,
+      avatar: profile.avatar,
+      userTag: profile.userTag,
+    };
+  }
+
+  return {
+    userId,
+    displayName: readableId(userId),
+    walletAddress: userId.startsWith("0x") ? userId : undefined,
+    avatar: initialsFor(readableId(userId)),
+  };
+}
+
+function readableId(userId: string) {
+  if (userId.startsWith("0x") && userId.length > 12) {
+    return `${userId.slice(0, 6)}...${userId.slice(-4)}`;
+  }
+  return userId.length > 18 ? `${userId.slice(0, 8)}...${userId.slice(-4)}` : userId;
 }
 
 export function normalizeCommunityMission(

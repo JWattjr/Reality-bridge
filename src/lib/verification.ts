@@ -2,11 +2,13 @@ import {
   EVENTS,
   MISSIONS,
   PROOF_TYPE_COPY,
+  type Event,
   type Mission,
   type ProofRecord,
   type ProofType,
 } from "@/lib/mock-data";
 import { uploadBytesToZeroG, uploadJsonToZeroG } from "@/lib/zero-g";
+import { listCommunityEvents } from "@/lib/community-store";
 
 export interface VerificationSubmission {
   eventId: string;
@@ -60,14 +62,38 @@ export class VerificationError extends Error {
   }
 }
 
-export function validateVerificationSubmission(
+export async function validateVerificationSubmission(
   submission: VerificationSubmission,
   options: { requireMediaPayload?: boolean } = {},
 ) {
   const requireMediaPayload = options.requireMediaPayload ?? true;
   const issues: string[] = [];
-  const event = EVENTS.find((item) => item.id === submission.eventId);
-  const mission = MISSIONS.find((item) => item.id === submission.missionId);
+  let event: Pick<Event, "id" | "location"> | undefined = EVENTS.find((item) => item.id === submission.eventId);
+  let mission: Mission | undefined = MISSIONS.find((item) => item.id === submission.missionId);
+
+  if (!event || !mission) {
+    const communityEvents = await listCommunityEvents();
+    const communityEvent = communityEvents.find((item) => item.id === submission.eventId);
+    if (communityEvent) {
+      event = { id: communityEvent.id, location: communityEvent.location };
+      const communityMission = communityEvent.missions.find((item) => item.id === submission.missionId);
+      if (communityMission) {
+        mission = {
+          id: communityMission.id,
+          eventId: communityEvent.id,
+          title: communityMission.title,
+          description: communityMission.description,
+          type: communityMission.type,
+          proofType: communityMission.proofType,
+          proofLocation: communityMission.proofLocation,
+          xpReward: communityMission.xpReward,
+          status: "available",
+          completionCount: 0,
+          maxCompletions: 1,
+        };
+      }
+    }
+  }
 
   if (!submission.userId) {
     issues.push("Privy sign-in is required before completing missions");
@@ -122,11 +148,11 @@ export function validateVerificationSubmission(
   };
 }
 
-export function prepareVerificationProof(
+export async function prepareVerificationProof(
   submission: VerificationSubmission,
   options: { requireMediaPayload?: boolean } = {},
-): PreparedVerificationProof {
-  const validation = validateVerificationSubmission(submission, options);
+): Promise<PreparedVerificationProof> {
+  const validation = await validateVerificationSubmission(submission, options);
 
   if (!validation.ok || !validation.mission || !validation.event) {
     throw new VerificationError(validation.issues);
@@ -177,7 +203,7 @@ export function prepareVerificationProof(
 }
 
 export async function createVerificationProof(submission: VerificationSubmission): Promise<VerificationResult> {
-  const prepared = prepareVerificationProof(submission, { requireMediaPayload: true });
+  const prepared = await prepareVerificationProof(submission, { requireMediaPayload: true });
   const storage = await uploadJsonToZeroG(prepared.proofPayload, prepared.uploadKeys.proof);
   const mediaStorage = submission.mediaFileName && submission.mediaBase64
     ? {

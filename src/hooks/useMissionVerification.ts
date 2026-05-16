@@ -148,7 +148,7 @@ export function useMissionVerification(eventId?: string) {
   );
 
   const verifyMission = useCallback(
-    async (mission: Mission, file?: File, codeWord?: string) => {
+    async (mission: Mission, file?: File, codeWord?: string, checkInCode?: string) => {
       if (!auth.authenticated || !auth.userId) {
         auth.login();
         return;
@@ -200,16 +200,19 @@ export function useMissionVerification(eventId?: string) {
           throw new Error("No Privy wallet is available for this account.");
         }
 
+        const baseCheckpoint =
+          mission.proofType === "qr_scan" || mission.proofType === "nfc_tap"
+            ? `${mission.eventId}:${mission.id}:${mission.proofLocation ?? mission.title}`
+            : undefined;
         const submission = {
           eventId: mission.eventId,
           missionId: mission.id,
           proofType: mission.proofType,
           userId: auth.userId,
           location: mission.proofLocation,
-          checkpointPayload:
-            mission.proofType === "qr_scan" || mission.proofType === "nfc_tap"
-              ? `${mission.eventId}:${mission.id}:${mission.proofLocation ?? mission.title}`
-              : undefined,
+          checkpointPayload: checkInCode && baseCheckpoint
+            ? `${baseCheckpoint}:checkin=${checkInCode}`
+            : baseCheckpoint,
           organizerId: mission.proofType === "organizer_approval" ? "proofplay-organizer-demo" : undefined,
           codeWord: mission.proofType === "quiz_code" ? (codeWord || "PROOFPLAY") : undefined,
           mediaFileName: file?.name,

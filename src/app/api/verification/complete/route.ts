@@ -45,7 +45,7 @@ export async function POST(request: Request) {
       },
     };
 
-    const prepared = prepareVerificationProof(body.submission, { requireMediaPayload: false });
+    const prepared = await prepareVerificationProof(body.submission, { requireMediaPayload: false });
 
     if (!isZeroGStorageReference(body.storage)) {
       return Response.json({ status: "rejected", issues: ["Missing valid 0G proof storage receipt"] }, { status: 422 });

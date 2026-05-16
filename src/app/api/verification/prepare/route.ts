@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     }
 
     submission = { ...submission, userId };
-    const prepared = prepareVerificationProof(submission, { requireMediaPayload: false });
+    const prepared = await prepareVerificationProof(submission, { requireMediaPayload: false });
 
     return Response.json({
       status: "prepared",

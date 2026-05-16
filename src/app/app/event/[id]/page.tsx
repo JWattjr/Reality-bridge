@@ -11,6 +11,7 @@ import type { CommunityEvent } from "@/lib/community-store";
 import { EventIconBadge, MissionIconBadge } from "@/components/ProofPlayIcons";
 import { MissionVerifyAction } from "@/components/MissionVerifyAction";
 import { useMissionVerification } from "@/hooks/useMissionVerification";
+import CheckInModal from "@/components/CheckInModal";
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -20,6 +21,7 @@ export default function EventDetailPage() {
   const [eventLoading, setEventLoading] = useState(!mockEvent);
   const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
   const [expandedQuizId, setExpandedQuizId] = useState<string | null>(null);
+  const [checkInOpen, setCheckInOpen] = useState(false);
   const event = mockEvent ?? liveEvent;
   const [checkedIn, setCheckedIn] = useState(mockEvent?.checkedIn ?? false);
   const {
@@ -132,7 +134,7 @@ export default function EventDetailPage() {
               disabled={checkInStatus?.state === "submitting"}
               onClick={() => {
                 if (checkInMission) {
-                  verifyMission(checkInMission);
+                  setCheckInOpen(true);
                 } else {
                   setCheckedIn(true);
                 }
@@ -264,7 +266,13 @@ export default function EventDetailPage() {
                   <MissionVerifyAction
                     mission={mission}
                     status={status}
-                    onVerify={verifyMission}
+                    onVerify={(m, file, codeWord) => {
+                      if (checkInMission && m.id === checkInMission.id) {
+                        setCheckInOpen(true);
+                      } else {
+                        verifyMission(m, file, codeWord);
+                      }
+                    }}
                     onQuizClick={() => {
                       setExpandedQuizId(expandedQuizId === mission.id ? null : mission.id);
                       setTimeout(() => document.getElementById(`event-quiz-input-${mission.id}`)?.focus(), 100);
@@ -378,6 +386,23 @@ export default function EventDetailPage() {
 
         </aside>
       </div>
+
+      {checkInMission && auth.userId && (
+        <CheckInModal
+          open={checkInOpen}
+          onClose={() => setCheckInOpen(false)}
+          eventId={eventId}
+          userId={auth.userId}
+          eventTitle={event.title}
+          submitting={submissionStatus[checkInMission.id]?.state === "submitting"}
+          status={submissionStatus[checkInMission.id]}
+          alreadyCheckedIn={isCheckedIn}
+          onConfirm={async (code) => {
+            await verifyMission(checkInMission, undefined, undefined, code);
+          }}
+        />
+      )}
     </div>
   );
 }
+

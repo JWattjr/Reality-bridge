@@ -10,6 +10,7 @@ import type { LeaderboardEntry, ProofType } from "@/lib/mock-data";
 import { PROOF_TYPE_COPY } from "@/lib/mock-data";
 import { useProofPlayAuth } from "@/components/ProofPlayAuthProvider";
 import MissionQRCodePanel from "@/components/MissionQRCodePanel";
+import EventEntriesDialog from "@/components/EventEntriesDialog";
 
 const CATEGORIES = ["Conference", "Hackathon", "Meetup", "Workshop", "Festival", "Community", "Brand Activation"];
 
@@ -79,6 +80,7 @@ export default function OrganizerEventDashboard() {
   const [missionEditDraft, setMissionEditDraft] = useState<MissionDraft>(emptyMissionDraft);
   const [missionEditError, setMissionEditError] = useState("");
   const [pendingMissionDeleteId, setPendingMissionDeleteId] = useState<string | null>(null);
+  const [entriesOpen, setEntriesOpen] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
@@ -612,6 +614,13 @@ export default function OrganizerEventDashboard() {
             <p className="text-[10px] font-bold opacity-70">Total entries</p>
             <p className="font-display text-3xl font-bold leading-none">{event.attendees}</p>
             <p className="mt-1 text-[10px] font-bold opacity-70">of {event.maxAttendees} max</p>
+            <button
+              type="button"
+              onClick={() => setEntriesOpen(true)}
+              className="mt-2 text-[10px] font-bold underline underline-offset-2 opacity-80 transition-opacity hover:opacity-100"
+            >
+              View entries
+            </button>
           </div>
         </div>
       </motion.section>
@@ -946,6 +955,13 @@ export default function OrganizerEventDashboard() {
           )}
         </div>
       </motion.section>
+
+      <EventEntriesDialog
+        open={entriesOpen}
+        onClose={() => setEntriesOpen(false)}
+        eventId={event.id}
+        eventTitle={event.title}
+      />
     </div>
   );
 }
