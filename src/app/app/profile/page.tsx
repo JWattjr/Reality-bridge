@@ -1,15 +1,11 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { CURRENT_USER, BADGES, MISSIONS, PROOF_TYPE_COPY, getLevelForXp, getRarityColor, shortHash } from "@/lib/mock-data";
-import { Calendar, Award, Check, Settings, Share2, ShieldCheck, Star, Target, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Check, ShieldCheck, Trophy } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useProofPlayAuth } from "@/components/ProofPlayAuthProvider";
+import { XLayerClaimPanel } from "@/components/XLayerClaimPanel";
 import type { UserProfile } from "@/lib/community-store";
-import ReputationAgentCard from "@/app/0g-proof/ReputationAgentCard";
-import { useMissionVerification } from "@/hooks/useMissionVerification";
-
-const RARITY_ORDER = ["legendary", "epic", "rare", "common"] as const;
+import { SAMPLE_PREDICTIONS, formatUSDT } from "@/lib/football-data";
 
 type ProfileForm = {
   displayName: string;
@@ -21,39 +17,16 @@ type ProfileForm = {
 
 export default function ProfilePage() {
   const auth = useProofPlayAuth();
-  const { proofRecords, proofsLoading, refreshProofs } = useMissionVerification();
-  const [activeTab, setActiveTab] = useState<"badges" | "activity" | "proofs">("badges");
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [profileStatus, setProfileStatus] = useState("");
-  const [profileForm, setProfileForm] = useState<ProfileForm>({
+  const [isEditing, setIsEditing] = useState(false);
+  const [status, setStatus] = useState("");
+  const [form, setForm] = useState<ProfileForm>({
     displayName: "",
     handle: "",
     userTag: "",
     bio: "",
     avatar: "",
   });
-  const [connectionCode, setConnectionCode] = useState("");
-  const [connectionStatus, setConnectionStatus] = useState("");
-
-  const sortedBadges = [...BADGES].sort((a, b) => {
-    return RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity);
-  });
-  const visibleProofRecords = auth.userId
-    ? proofRecords.filter((proof) => proof.userId.toLowerCase() === auth.userId?.toLowerCase())
-    : [];
-  const proofBackedBadges = sortedBadges.filter((badge) => visibleProofRecords.some((proof) => proof.badgeId === badge.id));
-  
-  const totalXp = visibleProofRecords.reduce((sum, proof) => sum + proof.xpEarned, 0);
-  const levelInfo = getLevelForXp(totalXp);
-
-  const dynamicStats = [
-    { label: "Events", value: new Set(visibleProofRecords.map((p) => p.eventId)).size, icon: <Calendar size={16} />, color: "var(--color-pastel-blue)" },
-    { label: "Missions", value: visibleProofRecords.length, icon: <Target size={16} />, color: "var(--color-pastel-green)" },
-    { label: "Badges", value: proofBackedBadges.length, icon: <Award size={16} />, color: "var(--color-pastel-pink)" },
-    { label: "Level", value: levelInfo.level, icon: <Star size={16} />, color: "var(--color-pastel-yellow)" },
-  ];
 
   useEffect(() => {
     if (!auth.authenticated || !auth.userId) return;
@@ -69,31 +42,28 @@ export default function ProfilePage() {
       }),
     })
       .then((response) => response.json())
-      .then((data: { profile?: UserProfile }) => {
-        setProfile(data.profile ?? null);
-        setIsLoading(false);
-      })
-      .catch(() => {
-        setProfile(null);
-        setIsLoading(false);
-    });
+      .then((data: { profile?: UserProfile }) => setProfile(data.profile ?? null))
+      .catch(() => setProfile(null));
   }, [auth.authenticated, auth.displayName, auth.userId, auth.walletAddress]);
 
-  useEffect(() => {
-    if (!auth.authenticated || !auth.userId) return;
-
-    refreshProofs().catch(() => {
-      /* profile proof sync is best-effort */
-    });
-  }, [auth.authenticated, auth.userId, refreshProofs]);
-
   const visibleProfile = {
-    displayName: profile?.displayName ?? CURRENT_USER.name,
-    avatar: profile?.avatar ?? CURRENT_USER.avatar,
-    bio: profile?.bio ?? CURRENT_USER.bio,
-    handle: profile?.handle,
-    userTag: profile?.userTag,
+    displayName: profile?.displayName ?? auth.displayName ?? "ProofPlayer",
+    avatar: profile?.avatar ?? initialsFor(auth.displayName ?? "ProofPlayer"),
+    handle: profile?.handle ?? "proofplayer",
+    userTag: profile?.userTag ?? "PP-SIGNIN",
+    bio: profile?.bio ?? "Football fan backing picks on ProofPlay.",
   };
+
+  const stats = useMemo(() => {
+    const userPicks = SAMPLE_PREDICTIONS.filter((pick) => pick.userId === "user-1");
+    return {
+      gamesPlayed: new Set(userPicks.map((pick) => pick.gameId)).size,
+      correct: userPicks.filter((pick) => pick.isCorrect).length,
+      staked: userPicks.reduce((sum, pick) => sum + pick.amountUSDT, 0),
+      won: userPicks.reduce((sum, pick) => sum + (pick.winningsUSDT ?? 0), 0),
+      nftsWon: 0,
+    };
+  }, []);
 
   async function saveProfile() {
     if (!auth.authenticated || !auth.userId) {
@@ -101,8 +71,7 @@ export default function ProfilePage() {
       return;
     }
 
-    setProfileStatus("Saving profile...");
-
+    setStatus("Saving profile...");
     try {
       const response = await fetch("/api/profiles", {
         method: "POST",
@@ -111,206 +80,73 @@ export default function ProfilePage() {
           userId: auth.userId,
           walletAddress: auth.walletAddress,
           mode: "update",
-          ...profileForm,
+          ...form,
         }),
       });
       const data = await response.json();
-
       if (!response.ok) throw new Error(data.issues?.join(", ") ?? "Profile save failed");
 
       setProfile(data.profile ?? null);
-      setIsEditingProfile(false);
-      setProfileStatus("Profile saved.");
+      setIsEditing(false);
+      setStatus("Profile saved.");
     } catch (error) {
-      setProfileStatus(error instanceof Error ? error.message : "Profile save failed");
+      setStatus(error instanceof Error ? error.message : "Profile save failed");
     }
-  }
-
-  async function connectWithFriend() {
-    if (!auth.authenticated || !auth.userId) {
-      auth.login();
-      return;
-    }
-
-    setConnectionStatus("Connecting...");
-
-    try {
-      const response = await fetch("/api/connections", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          requesterUserId: auth.userId,
-          targetUserTag: connectionCode,
-        }),
-      });
-      const data = await response.json();
-
-      if (!response.ok) throw new Error(data.issues?.join(", ") ?? "Connection failed");
-
-      setConnectionCode("");
-      setConnectionStatus(`Connected with ${data.connection.targetProfile.displayName}`);
-    } catch (error) {
-      setConnectionStatus(error instanceof Error ? error.message : "Connection failed");
-    }
-  }
-
-  if (isLoading && auth.authenticated) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-[var(--color-primary-900)] border-t-[var(--color-pastel-blue)]" />
-          <p className="text-sm font-bold opacity-60">Loading profile...</p>
-        </div>
-      </div>
-    );
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-5">
-      {/* Profile Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bubbly-card p-5 bg-gradient-to-br from-[var(--color-pastel-purple)] to-[var(--color-pastel-blue)] text-center relative overflow-hidden"
-      >
-        <div className="absolute -left-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative">
-          <div className="w-20 h-20 mx-auto rounded-full bg-white bubbly-border flex items-center justify-center text-4xl shadow-[3px_3px_0px_0px_#312e81]">
-            {visibleProfile.avatar}
+    <div className="mx-auto max-w-5xl space-y-5">
+      <section className="bubbly-card bg-white p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full border-3 border-[var(--color-primary-900)] bg-[var(--color-pastel-blue)] font-display text-3xl font-bold shadow-[3px_3px_0px_0px_#312e81]">
+              {visibleProfile.avatar}
+            </div>
+            <div>
+              <h1 className="font-display text-3xl font-bold">{visibleProfile.displayName}</h1>
+              <p className="text-xs font-bold opacity-60">@{visibleProfile.handle}</p>
+              <p className="mt-1 max-w-md text-sm font-bold opacity-70">{visibleProfile.bio}</p>
+            </div>
           </div>
-
-          <h1 className="font-display text-2xl font-bold mt-3">{visibleProfile.displayName}</h1>
-          <p className="text-xs font-bold opacity-70 mt-1">{visibleProfile.bio}</p>
-          {visibleProfile.handle && (
-            <p className="text-[10px] font-bold opacity-60 mt-1">@{visibleProfile.handle}</p>
-          )}
-          <p className="mt-2 text-[10px] font-bold opacity-70">
-            {auth.authenticated
-              ? `Privy identity: ${auth.displayName}`
-              : auth.configured
-                ? "Sign in with Privy to attach new proofs to your wallet."
-                : "Privy login is ready once NEXT_PUBLIC_PRIVY_APP_ID is set."}
-          </p>
-
-          <div className="mt-3 inline-flex items-center gap-1.5 bg-white/60 backdrop-blur-sm px-3 py-1 rounded-full border-2 border-[var(--color-primary-900)] text-xs font-bold">
-            <Star size={12} fill="currentColor" /> Level {levelInfo.level} - {levelInfo.title}
-          </div>
-          {proofsLoading && (
-            <p className="mt-2 text-[10px] font-bold opacity-60">Syncing latest XP...</p>
-          )}
-        </div>
-
-        {/* XP Bar */}
-        <div className="mt-4">
-          <div className="flex justify-between text-[10px] font-bold opacity-60 mb-1">
-            <span>{totalXp} XP</span>
-            {levelInfo.nextLevel && <span>{levelInfo.nextLevel.minXp} XP</span>}
-          </div>
-          <div className="w-full h-3 bg-white/40 rounded-full border-2 border-[var(--color-primary-900)] overflow-hidden">
-            <motion.div
-              className="h-full bg-white rounded-full"
-              initial={{ width: 0 }}
-              animate={{ width: `${levelInfo.progress}%` }}
-              transition={{ type: "spring", stiffness: 90, damping: 18, delay: 0.3 }}
-            />
-          </div>
-        </div>
-
-        {/* Action buttons */}
-        <div className="flex gap-2 justify-center mt-4">
-          <button
-            type="button"
-            onClick={() => visibleProfile.userTag && navigator.clipboard.writeText(`proofplay://connect/${visibleProfile.userTag}`)}
-            className="bg-white/60 backdrop-blur-sm px-3 py-1.5 rounded-full border-2 border-[var(--color-primary-900)] text-xs font-bold flex items-center gap-1 hover:bg-white transition-colors"
-          >
-            <Share2 size={12} /> Share
-          </button>
           <button
             type="button"
             onClick={() => {
-              if (!auth.authenticated) {
-                auth.login();
-                return;
-              }
-              setProfileForm({
+              setForm({
                 displayName: visibleProfile.displayName,
-                handle: visibleProfile.handle ?? "",
-                userTag: visibleProfile.userTag ?? "",
+                handle: visibleProfile.handle,
+                userTag: visibleProfile.userTag,
                 bio: visibleProfile.bio,
                 avatar: visibleProfile.avatar,
               });
-              setIsEditingProfile((current) => !current);
-              setProfileStatus("");
+              setIsEditing((current) => !current);
+              setStatus("");
             }}
-            className="bg-white/60 backdrop-blur-sm px-3 py-1.5 rounded-full border-2 border-[var(--color-primary-900)] text-xs font-bold flex items-center gap-1 hover:bg-white transition-colors"
+            className="rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-4 py-2 text-xs font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
           >
-            <Settings size={12} /> Edit
+            Edit Profile
           </button>
         </div>
-      </motion.div>
+      </section>
 
-      {isEditingProfile && (
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bubbly-card bg-white p-4"
-        >
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div>
-              <p className="font-display text-lg font-bold">Edit profile</p>
-              <p className="text-xs font-bold opacity-60">This is what other attendees see when they connect with you.</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsEditingProfile(false)}
-              className="rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)] p-2"
-            >
-              <X size={14} />
-            </button>
+      {isEditing && (
+        <section className="bubbly-card bg-white p-4">
+          <h2 className="font-display text-xl font-bold">Profile Basics</h2>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <ProfileField label="Username" value={form.displayName} onChange={(value) => setForm((current) => ({ ...current, displayName: value }))} />
+            <ProfileField label="Handle" value={form.handle} onChange={(value) => setForm((current) => ({ ...current, handle: value }))} />
+            <ProfileField label="Player tag" value={form.userTag} onChange={(value) => setForm((current) => ({ ...current, userTag: value }))} />
+            <ProfileField label="Avatar" value={form.avatar} maxLength={3} onChange={(value) => setForm((current) => ({ ...current, avatar: value.toUpperCase() }))} />
           </div>
-
-          <div className="grid gap-3">
-            <ProfileField
-              label="Display name"
-              value={profileForm.displayName}
-              maxLength={40}
-              onChange={(value) => setProfileForm((current) => ({ ...current, displayName: value }))}
+          <label className="mt-3 block">
+            <span className="text-[10px] font-bold uppercase opacity-50">Bio</span>
+            <textarea
+              value={form.bio}
+              onChange={(event) => setForm((current) => ({ ...current, bio: event.target.value }))}
+              className="mt-1 min-h-20 w-full rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)] px-3 py-2 text-xs font-bold outline-none"
             />
-            <div className="grid grid-cols-[1fr_84px] gap-2">
-              <ProfileField
-                label="Handle"
-                value={profileForm.handle}
-                maxLength={24}
-                onChange={(value) => setProfileForm((current) => ({ ...current, handle: value }))}
-              />
-              <ProfileField
-                label="Avatar"
-                value={profileForm.avatar}
-                maxLength={3}
-                onChange={(value) => setProfileForm((current) => ({ ...current, avatar: value.toUpperCase() }))}
-              />
-            </div>
-            <ProfileField
-              label="Public tag"
-              value={profileForm.userTag}
-              maxLength={18}
-              onChange={(value) => setProfileForm((current) => ({ ...current, userTag: value.toUpperCase() }))}
-            />
-            <label className="block">
-              <span className="text-[10px] font-bold uppercase opacity-50">Bio</span>
-              <textarea
-                value={profileForm.bio}
-                maxLength={140}
-                onChange={(event) => setProfileForm((current) => ({ ...current, bio: event.target.value }))}
-                className="mt-1 min-h-24 w-full rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)] px-3 py-2 text-xs font-bold outline-none"
-              />
-            </label>
-          </div>
-
+          </label>
           <div className="mt-3 flex items-center justify-between gap-3">
-            <p className="text-xs font-bold opacity-70">{profileStatus}</p>
+            <p className="text-xs font-bold opacity-70">{status}</p>
             <button
               type="button"
               onClick={saveProfile}
@@ -319,261 +155,53 @@ export default function ProfilePage() {
               <Check size={14} /> Save
             </button>
           </div>
-        </motion.div>
+        </section>
       )}
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-        className="bubbly-card bg-white p-4"
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[10px] font-bold uppercase opacity-50">Public connection tag</p>
-            <p className="font-display text-2xl font-bold">{profile?.userTag ?? "Sign in first"}</p>
-            <p className="mt-1 text-xs font-bold opacity-60">
-              Friends can scan or enter this tag as proof they connected with you on ground.
-            </p>
+      <section className="grid gap-3 sm:grid-cols-5">
+        <StatCard label="Games" value={stats.gamesPlayed.toString()} />
+        <StatCard label="Correct Picks" value={stats.correct.toString()} />
+        <StatCard label="USDT Staked" value={formatUSDT(stats.staked)} />
+        <StatCard label="USDT Won" value={formatUSDT(stats.won)} />
+        <StatCard label="NFTs Won" value={stats.nftsWon.toString()} />
+      </section>
+
+      <section>
+        <div className="bubbly-card bg-white p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <Trophy size={18} />
+            <h2 className="font-display text-xl font-bold">Recent Game Results</h2>
           </div>
-          <button
-            type="button"
-            onClick={() => profile?.userTag && navigator.clipboard.writeText(profile.userTag)}
-            className="rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-blue)] px-3 py-1.5 text-[10px] font-bold"
-          >
-            Copy
-          </button>
+          <div className="space-y-2">
+            {SAMPLE_PREDICTIONS.filter((pick) => pick.userId === "user-1").map((pick) => (
+              <div key={pick.id} className="flex items-center justify-between rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)] px-3 py-2 text-xs font-bold">
+                <span>{pick.optionLabel}</span>
+                <span>{pick.status === "ACTIVE" ? "Active" : `${pick.pointsEarned} point`}</span>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="mt-3 rounded-2xl border-2 border-dashed border-[var(--color-primary-900)] bg-[var(--color-bg-base)] p-3 text-center">
-          <p className="text-[10px] font-bold uppercase opacity-50">Profile QR payload</p>
-          <p className="mt-1 break-all text-xs font-bold">
-            proofplay://connect/{profile?.userTag ?? "SIGN-IN"}
+      </section>
+
+      <XLayerClaimPanel />
+
+      <section className="bubbly-card bg-white p-4">
+        <div className="flex items-start gap-2">
+          <ShieldCheck size={18} className="mt-0.5" />
+          <p className="text-xs font-bold opacity-70">
+            Profile is intentionally minimal: username, wallet, game totals, USDT totals, NFTs won, and recent match results. No XP, reputation score, feeds, comments, or attendance credentials.
           </p>
         </div>
-        <div className="mt-3 flex gap-2">
-          <input
-            value={connectionCode}
-            onChange={(event) => setConnectionCode(event.target.value.toUpperCase())}
-            placeholder="Enter friend's PP code"
-            className="min-w-0 flex-1 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)] px-3 py-2 text-xs font-bold outline-none"
-          />
-          <button
-            type="button"
-            onClick={connectWithFriend}
-            className="rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-3 py-2 text-xs font-bold"
-          >
-            Connect
-          </button>
-        </div>
-        {connectionStatus && (
-          <p className="mt-2 text-xs font-bold opacity-70">{connectionStatus}</p>
-        )}
-      </motion.div>
+      </section>
+    </div>
+  );
+}
 
-      {/* 0G Compute Agent Analysis */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.08 }}
-      >
-        <ReputationAgentCard />
-      </motion.div>
-
-      {/* Stats Grid */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="grid grid-cols-4 gap-2"
-      >
-        {dynamicStats.map((stat) => (
-          <div key={stat.label} className="bubbly-card p-2.5 text-center" style={{ backgroundColor: stat.color }}>
-            <div className="flex justify-center mb-1">{stat.icon}</div>
-            <p className="font-bold text-lg leading-none">{stat.value}</p>
-            <p className="text-[10px] font-bold opacity-70 mt-0.5">{stat.label}</p>
-          </div>
-        ))}
-      </motion.div>
-
-      {/* Tabs */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
-        <div className="flex gap-1 bg-gray-100 p-1 rounded-2xl border-2 border-[var(--color-primary-900)]">
-          <button
-            onClick={() => setActiveTab("badges")}
-            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeTab === "badges"
-                ? "bg-white shadow-sm border-2 border-[var(--color-primary-900)]"
-                : "opacity-60"
-            }`}
-          >
-            Badges ({BADGES.length})
-          </button>
-          <button
-            onClick={() => setActiveTab("proofs")}
-            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeTab === "proofs"
-                ? "bg-white shadow-sm border-2 border-[var(--color-primary-900)]"
-                : "opacity-60"
-            }`}
-          >
-            Proofs ({visibleProofRecords.length})
-          </button>
-          <button
-            onClick={() => setActiveTab("activity")}
-            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeTab === "activity"
-                ? "bg-white shadow-sm border-2 border-[var(--color-primary-900)]"
-                : "opacity-60"
-            }`}
-          >
-            Activity
-          </button>
-        </div>
-      </motion.div>
-
-      {/* Badge Grid */}
-      {activeTab === "badges" && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6"
-        >
-          {sortedBadges.map((badge, i) => {
-            const hasBadge = visibleProofRecords.some((proof) => proof.badgeId === badge.id);
-            
-            return (
-              <motion.div
-                key={badge.id}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                whileHover={hasBadge ? { y: -4, rotate: badge.rarity === "legendary" ? 1.4 : 0.8, scale: 1.04 } : undefined}
-                whileTap={hasBadge ? { scale: 0.96 } : undefined}
-                transition={{ delay: 0.2 + i * 0.05 }}
-                className={`bubbly-card p-3 text-center transition-all ${
-                  hasBadge 
-                    ? "premium-glint cursor-pointer active:translate-y-0.5 active:shadow-none" 
-                    : "opacity-50 grayscale"
-                }`}
-                style={{ backgroundColor: hasBadge ? getRarityColor(badge.rarity) : "var(--color-bg-base)" }}
-              >
-                <motion.div
-                  className="text-3xl mb-1"
-                  animate={hasBadge && badge.rarity === "legendary" ? { rotate: [-2, 2, -2] } : undefined}
-                  transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
-                >
-                  {badge.emoji}
-                </motion.div>
-                <p className="font-bold text-[10px] leading-tight">{badge.name}</p>
-                <p className="text-[8px] font-bold opacity-50 mt-0.5 uppercase">{badge.rarity}</p>
-                {hasBadge && (
-                  <p className="mt-1 inline-flex items-center gap-0.5 rounded-full border border-[var(--color-primary-900)] bg-white/70 px-1 py-0.5 text-[8px] font-bold">
-                    <ShieldCheck size={8} /> Proof
-                  </p>
-                )}
-              </motion.div>
-            );
-          })}
-        </motion.div>
-      )}
-
-      {/* Proof Ledger */}
-      {activeTab === "proofs" && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="space-y-2"
-        >
-          {proofBackedBadges.map((badge, i) => {
-            const proof = visibleProofRecords.find((item) => item.badgeId === badge.id);
-            const mission = proof ? MISSIONS.find((item) => item.id === proof.missionId) : undefined;
-
-            if (!proof) return null;
-
-            return (
-              <motion.div
-                key={badge.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                whileHover={{ x: 3, scale: 1.01 }}
-                transition={{ delay: 0.15 + i * 0.04 }}
-                className="rounded-2xl border-2 border-[var(--color-primary-900)] p-3 bg-white"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-bold text-xs truncate">{badge.name}</p>
-                    <p className="text-[10px] font-bold opacity-50 truncate">{mission?.title ?? proof.missionId}</p>
-                  </div>
-                  <span className="text-[10px] font-bold bg-[var(--color-pastel-green)] px-2 py-1 rounded-full border border-[var(--color-primary-900)] shrink-0">
-                    {PROOF_TYPE_COPY[proof.proofType].label}
-                  </span>
-                </div>
-                <div className="mt-2 rounded-xl bg-[var(--color-bg-base)] border-2 border-[var(--color-primary-900)] p-2 text-[10px] font-bold">
-                  <div className="flex justify-between gap-2">
-                    <span>Proof root</span>
-                    <span className="text-green-700">{shortHash(proof.storage.rootHash)}</span>
-                  </div>
-                  {proof.storage.explorerUrl && (
-                    <div className="flex justify-between gap-2 mt-1">
-                      <span>Explorer</span>
-                      <a href={proof.storage.explorerUrl} target="_blank" rel="noreferrer" className="text-[var(--color-primary-500)] underline">
-                        Open tx
-                      </a>
-                    </div>
-                  )}
-                  {proof.mediaStorage && auth.userId && (
-                    <div className="flex justify-between gap-2 mt-1">
-                      <span>Media</span>
-                      <a href={`/api/proofs/${proof.id}/media?${new URLSearchParams({ userId: auth.userId }).toString()}`} target="_blank" rel="noreferrer" className="text-[var(--color-primary-500)] underline">
-                        View upload
-                      </a>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            );
-          })}
-          {proofBackedBadges.length === 0 && (
-            <div className="rounded-2xl border-2 border-[var(--color-primary-900)] bg-white p-4 text-center">
-              <p className="text-sm font-bold">No proof records for this account yet.</p>
-              <p className="mt-1 text-xs font-bold opacity-60">Complete a mission to add user-specific proof receipts here.</p>
-            </div>
-          )}
-        </motion.div>
-      )}
-
-      {/* Activity Feed */}
-      {activeTab === "activity" && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="space-y-2"
-        >
-          {[
-            { action: "Registered", event: "BlockNova Event", time: "Today", emoji: "BN" },
-            { action: "Ready for check-in", event: "BlockNova Event", time: "At venue", emoji: "QR" },
-            { action: "Connection mission available", event: "BlockNova Event", time: "At venue", emoji: "3X" },
-          ].map((item, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 + i * 0.04 }}
-              className="rounded-2xl border-2 border-[var(--color-primary-900)] p-3 bg-white flex items-center gap-3"
-            >
-              <span className="text-lg">{item.emoji}</span>
-              <div className="min-w-0 flex-1">
-                <p className="font-bold text-xs">{item.action}</p>
-                <p className="text-[10px] font-bold opacity-50 truncate">{item.event}</p>
-              </div>
-              <span className="text-[10px] font-bold opacity-40 shrink-0">{item.time}</span>
-            </motion.div>
-          ))}
-        </motion.div>
-      )}
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bubbly-card bg-white p-3 text-center">
+      <p className="font-display text-xl font-bold">{value}</p>
+      <p className="text-[10px] font-bold uppercase opacity-50">{label}</p>
     </div>
   );
 }
@@ -581,12 +209,12 @@ export default function ProfilePage() {
 function ProfileField({
   label,
   value,
-  maxLength,
+  maxLength = 40,
   onChange,
 }: {
   label: string;
   value: string;
-  maxLength: number;
+  maxLength?: number;
   onChange: (value: string) => void;
 }) {
   return (
@@ -600,4 +228,9 @@ function ProfileField({
       />
     </label>
   );
+}
+
+function initialsFor(name: string) {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  return words.slice(0, 2).map((word) => word[0]?.toUpperCase()).join("") || "PP";
 }

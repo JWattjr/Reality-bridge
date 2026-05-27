@@ -16,8 +16,8 @@ const balsamiq = Balsamiq_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "ProofPlay | Proof of Participation",
-  description: "A gamified proof-of-participation platform for physical events.",
+  title: "ProofPlay X Cup | Football Predictions",
+  description: "A minimal USDT-backed football prediction game with match and PvP leaderboards.",
 };
 
 export default function RootLayout({

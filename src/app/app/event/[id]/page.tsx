@@ -1,408 +1,208 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import { motion } from "framer-motion";
-import { EVENTS, MISSIONS, PROOF_TYPE_COPY, shortHash } from "@/lib/mock-data";
-import type { LeaderboardEntry, Mission } from "@/lib/mock-data";
-import { MapPin, CalendarDays, Users, Zap, ArrowLeft, Share2, ShieldCheck } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import type { CommunityEvent } from "@/lib/community-store";
-import { EventIconBadge, MissionIconBadge } from "@/components/ProofPlayIcons";
-import { MissionVerifyAction } from "@/components/MissionVerifyAction";
-import { useMissionVerification } from "@/hooks/useMissionVerification";
-import CheckInModal from "@/components/CheckInModal";
+import { useParams } from "next/navigation";
+import { useMemo, useState } from "react";
+import { ArrowLeft, Clock, Gem, ShieldCheck, Trophy } from "lucide-react";
+import { PredictionModal } from "@/components/PredictionModal";
+import { PvPMatchCard } from "@/components/PvPMatchCard";
+import {
+  type FootballMarket,
+  formatMatchTime,
+  formatUSDT,
+  getGameById,
+  getMarketsForGame,
+  getPlayerLeaderboard,
+  getPredictionsForGame,
+  getRewardsForGame,
+  statusLabel,
+} from "@/lib/football-data";
 
-export default function EventDetailPage() {
+export default function GameEventPage() {
   const params = useParams();
-  const eventId = params.id as string;
-  const mockEvent = EVENTS.find((e) => e.id === eventId);
-  const [liveEvent, setLiveEvent] = useState<CommunityEvent | null>(null);
-  const [eventLoading, setEventLoading] = useState(!mockEvent);
-  const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
-  const [expandedQuizId, setExpandedQuizId] = useState<string | null>(null);
-  const [checkInOpen, setCheckInOpen] = useState(false);
-  const event = mockEvent ?? liveEvent;
-  const [checkedIn, setCheckedIn] = useState(mockEvent?.checkedIn ?? false);
-  const {
-    auth,
-    proofsLoading,
-    getMissionProof,
-    submissionStatus,
-    verifyMission,
-    retryAnchor,
-    withProofStatus,
-  } = useMissionVerification(eventId);
+  const gameId = String(params.id ?? "");
+  const game = getGameById(gameId);
+  const [activeMarket, setActiveMarket] = useState<FootballMarket | null>(null);
 
-  useEffect(() => {
-    if (mockEvent) return;
+  const markets = useMemo(() => getMarketsForGame(gameId), [gameId]);
+  const predictions = useMemo(() => getPredictionsForGame(gameId, "user-1"), [gameId]);
+  const playerBoard = useMemo(() => getPlayerLeaderboard(gameId), [gameId]);
+  const rewards = useMemo(() => getRewardsForGame(gameId), [gameId]);
 
-    fetch(`/api/events/${encodeURIComponent(eventId)}`)
-      .then((response) => (response.ok ? response.json() : null))
-      .then((data: { event?: CommunityEvent } | null) => {
-        setLiveEvent(data?.event ?? null);
-      })
-      .catch(() => setLiveEvent(null))
-      .finally(() => setEventLoading(false));
-  }, [eventId, mockEvent]);
-
-  useEffect(() => {
-    fetch(`/api/leaderboard?eventId=${encodeURIComponent(eventId)}`, { cache: "no-store" })
-      .then((response) => response.json())
-      .then((data: { entries?: LeaderboardEntry[] }) => setLeaderboardEntries(data.entries ?? []))
-      .catch(() => setLeaderboardEntries([]));
-  }, [eventId]);
-
-  if (eventLoading) {
+  if (!game) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-[var(--color-primary-900)] border-t-[var(--color-pastel-blue)]" />
-      </div>
-    );
-  }
-
-  if (!event) {
-    return (
-      <div className="text-center py-20">
-        <p className="font-bold">Event not found</p>
-        <Link href="/app" className="text-sm font-bold text-[var(--color-primary-500)] mt-2 inline-block">
-          Back to Dashboard
+      <div className="py-20 text-center">
+        <p className="font-display text-2xl font-bold">Game not found</p>
+        <Link href="/app" className="mt-3 inline-flex text-sm font-bold text-[var(--color-primary-500)]">
+          Back to games
         </Link>
       </div>
     );
   }
 
-  const baseEventMissions = mockEvent
-    ? MISSIONS.filter((m) => m.eventId === eventId)
-    : liveEvent?.missions.map((mission) => ({
-        ...mission,
-        eventId,
-        status: "available" as const,
-        sponsorTag: undefined,
-        completionCount: 0,
-        maxCompletions: 1,
-      })) ?? [];
-  const eventMissions = baseEventMissions.map((mission) => withProofStatus(mission as Mission));
-  const checkInMission = eventMissions.find((mission) => mission.id === "m1" || mission.title.toLowerCase().includes("check in"));
-  const checkInStatus = checkInMission ? submissionStatus[checkInMission.id] : undefined;
-  const isCheckedIn = checkedIn || Boolean(checkInMission && getMissionProof(checkInMission.id));
-  const checkInLabel = !auth.authenticated
-    ? "Sign in to check in"
-    : checkInStatus?.state === "submitting"
-      ? "Uploading check-in proof..."
-      : "Check In";
-  const completedMissions = eventMissions.filter((m) => m.status === "completed").length;
-  const earnedXp = eventMissions.filter((m) => m.status === "completed").reduce((sum, m) => sum + m.xpReward, 0);
-
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-5">
-      {/* Back Button */}
+    <div className="mx-auto max-w-6xl space-y-5">
       <Link href="/app" className="inline-flex items-center gap-1 text-xs font-bold opacity-60 hover:opacity-100">
-        <ArrowLeft size={14} /> Back
+        <ArrowLeft size={14} /> Back to games
       </Link>
 
-      {/* Event Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bubbly-card p-5 relative overflow-hidden"
-        style={{ backgroundColor: event.color }}
-      >
-        <div className="absolute -right-8 -top-8 w-32 h-32 bg-white/15 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <span className="text-xs font-bold bg-white/50 backdrop-blur-sm px-2 py-0.5 rounded-full border border-[var(--color-primary-900)]">
-              {event.category}
-            </span>
-            <h1 className="font-display text-2xl font-bold mt-2 leading-tight">{event.title}</h1>
-          </div>
-          <EventIconBadge size="lg" />
-        </div>
-
-        <div className="space-y-1 text-xs font-bold opacity-80">
-          <p className="flex items-center gap-1"><MapPin size={12} /> {event.location}</p>
-          <p className="flex items-center gap-1"><CalendarDays size={12} /> {event.startDate} - {event.endDate}</p>
-          <p className="flex items-center gap-1"><Users size={12} /> {event.attendees}/{event.maxAttendees} attending</p>
-        </div>
-
-        <p className="text-xs font-bold mt-3 opacity-70 leading-relaxed">{event.description}</p>
-
-        <div className="flex gap-2 mt-4">
-          {!isCheckedIn ? (
-            <button
-              disabled={checkInStatus?.state === "submitting"}
-              onClick={() => {
-                if (checkInMission) {
-                  setCheckInOpen(true);
-                } else {
-                  setCheckedIn(true);
-                }
-              }}
-              className="flex-1 bg-[var(--color-primary-900)] text-white font-bold text-sm py-2.5 rounded-full border-2 border-[var(--color-primary-900)] hover:bg-[var(--color-primary-700)] transition-colors"
-            >
-              {checkInLabel}
-            </button>
-          ) : (
-            <div className="flex-1 bg-white/60 backdrop-blur-sm font-bold text-sm py-2.5 rounded-full border-2 border-[var(--color-primary-900)] text-center">
-              Checked In
+      <section className="bubbly-card overflow-hidden bg-white">
+        <div
+          className="bg-cover bg-center p-5 text-white"
+          style={{ backgroundImage: `linear-gradient(95deg, rgba(0,0,0,.78), rgba(0,0,0,.18)), url(${game.image})` }}
+        >
+          <div className="grid gap-5 py-8 lg:grid-cols-[1fr_280px] lg:items-end">
+            <div>
+              <p className="inline-flex rounded-full border border-white/70 bg-white/15 px-3 py-1 text-xs font-bold backdrop-blur">
+                {game.competition}
+              </p>
+              <h1 className="mt-3 font-display text-5xl font-bold leading-none">{game.title}</h1>
+              <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold">
+                <span className="rounded-full border border-white/70 bg-white/15 px-3 py-1 backdrop-blur">{statusLabel(game.status)}</span>
+                <span className="rounded-full border border-white/70 bg-white/15 px-3 py-1 backdrop-blur">
+                  <Clock size={12} className="mr-1 inline" /> {formatMatchTime(game.matchStartTime)}
+                </span>
+                <span className="rounded-full border border-white/70 bg-white/15 px-3 py-1 backdrop-blur">{formatUSDT(game.totalPool)} pool</span>
+              </div>
             </div>
-          )}
-          <button className="w-10 h-10 rounded-full bg-white/60 backdrop-blur-sm border-2 border-[var(--color-primary-900)] flex items-center justify-center">
-            <Share2 size={16} />
-          </button>
+            <div className="rounded-2xl border border-white/60 bg-white/15 p-4 text-sm font-bold backdrop-blur">
+              <p className="text-xs uppercase opacity-70">Game rule</p>
+              <p className="mt-1">Correct Pick = 1 point. Wrong Pick = 0 points.</p>
+              <p className="mt-2 text-xs opacity-75">Stake size affects pool share only, never leaderboard points.</p>
+            </div>
+          </div>
         </div>
-      </motion.div>
+      </section>
 
-      {proofsLoading && (
-        <p className="rounded-2xl border-2 border-[var(--color-primary-900)] bg-white p-3 text-xs font-bold opacity-70">
-          Syncing your proof receipts from Supabase...
-        </p>
-      )}
+      <div className="grid gap-5 lg:grid-cols-[1fr_360px] lg:items-start">
+        <div className="space-y-5">
+          <section>
+            <div className="mb-3 flex items-end justify-between gap-3">
+              <div>
+                <h2 className="font-display text-2xl font-bold">Markets</h2>
+                <p className="text-xs font-bold opacity-60">Admin-created markets. USDT stake required for every pick.</p>
+              </div>
+            </div>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:items-start">
-        <div className="space-y-5 lg:col-span-2">
+            <div className="grid gap-3">
+              {markets.map((market) => (
+                <button
+                  type="button"
+                  key={market.id}
+                  onClick={() => setActiveMarket(market)}
+                  className="bubbly-card bg-white p-4 text-left transition-all hover:translate-y-0.5 hover:shadow-none"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase opacity-50">{market.category} - {market.type}</p>
+                      <h3 className="font-display text-xl font-bold">{market.title}</h3>
+                    </div>
+                    <span className="rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-blue)] px-2 py-1 text-[10px] font-bold">
+                      {statusLabel(market.status)}
+                    </span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {market.options.map((option) => (
+                      <span key={option.id} className="rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)] px-3 py-1 text-xs font-bold">
+                        {option.label}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-[10px] font-bold">
+                    <Info label="Min stake" value={formatUSDT(market.minStake)} />
+                    <Info label="Pool" value={formatUSDT(market.totalPool)} />
+                    <Info label="Closes" value={formatMatchTime(market.closeTime)} />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
 
-      {/* Stats Bar */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="grid grid-cols-3 gap-2"
-      >
-        <div className="bubbly-card p-2.5 text-center bg-[var(--color-pastel-blue)]">
-          <p className="font-bold text-lg">{eventMissions.length}</p>
-          <p className="text-[10px] font-bold opacity-70">Missions</p>
-        </div>
-        <div className="bubbly-card p-2.5 text-center bg-[var(--color-pastel-green)]">
-          <p className="font-bold text-lg">{completedMissions}/{eventMissions.length}</p>
-          <p className="text-[10px] font-bold opacity-70">Completed</p>
-        </div>
-        <div className="bubbly-card p-2.5 text-center bg-[var(--color-pastel-yellow)]">
-          <p className="font-bold text-lg">{earnedXp}</p>
-          <p className="text-[10px] font-bold opacity-70">XP Earned</p>
-        </div>
-      </motion.div>
-
-      {/* Progress Bar */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-      >
-        <div className="flex justify-between text-xs font-bold opacity-60 mb-1">
-          <span>Event Progress</span>
-          <span>{eventMissions.length ? Math.round((completedMissions / eventMissions.length) * 100) : 0}%</span>
-        </div>
-        <div className="w-full h-4 bg-gray-100 rounded-full border-2 border-[var(--color-primary-900)] overflow-hidden">
-          <motion.div
-            className="h-full bg-gradient-to-r from-[var(--color-pastel-green)] to-[var(--color-pastel-blue)]"
-            initial={{ width: 0 }}
-            animate={{ width: `${eventMissions.length ? (completedMissions / eventMissions.length) * 100 : 0}%` }}
-            transition={{ type: "spring", stiffness: 90, damping: 18, delay: 0.4 }}
-          />
-        </div>
-      </motion.div>
-
-      {/* Mission List */}
-      <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
-        <h2 className="font-display text-lg font-bold mb-2">Missions</h2>
-        <div className="space-y-2">
-          {eventMissions.map((mission, i) => {
-            const proof = getMissionProof(mission.id);
-            const status = submissionStatus[mission.id];
-
-            return (
-              <motion.div
-                key={mission.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                whileHover={mission.status === "available" ? { y: -3, scale: 1.01 } : undefined}
-                whileTap={{ scale: 0.985 }}
-                transition={{ delay: 0.3 + i * 0.04 }}
-                className={`bubbly-card premium-glint p-3 transition-all ${
-                  mission.status === "completed"
-                    ? "bg-green-50 opacity-80"
-                    : mission.status === "locked"
-                    ? "bg-gray-50 opacity-50"
-                    : "bg-white"
-                }`}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <MissionIconBadge title={mission.title} type={mission.type} proofType={mission.proofType} size="sm" />
-                    <div className="min-w-0">
-                      <p className={`font-bold text-xs truncate ${mission.status === "completed" ? "line-through" : ""}`}>
-                        {mission.title}
-                      </p>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <motion.span
-                          className="text-[10px] font-bold text-[var(--color-primary-500)] flex items-center gap-0.5"
-                          animate={mission.status === "available" ? { scale: [1, 1.08, 1] } : undefined}
-                          transition={{ duration: 1.8, repeat: Infinity, repeatDelay: 2.6, ease: "easeInOut" }}
-                        >
-                          <Zap size={8} /> +{mission.xpReward}
-                        </motion.span>
-                        <span className="text-[8px] font-bold bg-white px-1 py-0.5 rounded-full border border-[var(--color-primary-900)] flex items-center gap-0.5">
-                          <ShieldCheck size={8} /> {PROOF_TYPE_COPY[mission.proofType].label}
-                        </span>
-                        {mission.sponsorTag && (
-                          <span className="text-[8px] font-bold bg-[var(--color-pastel-yellow)] px-1 py-0.5 rounded-full border border-[var(--color-primary-900)]">
-                            {mission.sponsorTag}
-                          </span>
-                        )}
-                        {proof && (
-                          <span className="text-[8px] font-bold text-green-700 bg-green-100 px-1 py-0.5 rounded-full border border-green-700">
-                            0G {shortHash(proof.storage.rootHash)}
-                          </span>
-                        )}
+          <section className="bubbly-card bg-white p-4">
+            <h2 className="font-display text-2xl font-bold">My Active Predictions</h2>
+            <div className="mt-3 space-y-2">
+              {predictions.length ? (
+                predictions.map((pick) => (
+                  <div key={pick.id} className="rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)] p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-bold">{markets.find((market) => market.id === pick.marketId)?.title ?? pick.marketId}</p>
+                        <p className="text-[10px] font-bold opacity-60">Your Pick: {pick.optionLabel}</p>
                       </div>
+                      <span className="text-xs font-bold">{formatUSDT(pick.amountUSDT)}</span>
                     </div>
                   </div>
-                  <MissionVerifyAction
-                    mission={mission}
-                    status={status}
-                    onVerify={(m, file, codeWord) => {
-                      if (checkInMission && m.id === checkInMission.id) {
-                        setCheckInOpen(true);
-                      } else {
-                        verifyMission(m, file, codeWord);
-                      }
-                    }}
-                    onQuizClick={() => {
-                      setExpandedQuizId(expandedQuizId === mission.id ? null : mission.id);
-                      setTimeout(() => document.getElementById(`event-quiz-input-${mission.id}`)?.focus(), 100);
-                    }}
-                    compact
-                  />
-                </div>
-
-                {expandedQuizId === mission.id && (
-                  <div className="mt-3 mb-1 pt-3 border-t-2 border-dashed border-[var(--color-primary-900)]/20">
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        const input = document.getElementById(`event-quiz-input-${mission.id}`) as HTMLInputElement;
-                        if (input?.value) verifyMission(mission, undefined, input.value);
-                      }}
-                      className="flex gap-2"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <input
-                        id={`event-quiz-input-${mission.id}`}
-                        type="text"
-                        placeholder="Enter secret code..."
-                        autoComplete="off"
-                        className="flex-1 rounded-full border-2 border-[var(--color-primary-900)] bg-white px-3 py-1 text-[10px] font-bold shadow-inner focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
-                      />
-                      <button
-                        type="submit"
-                        disabled={status?.state === "submitting"}
-                        className="shrink-0 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-3 py-1 text-[10px] font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none disabled:opacity-70 disabled:cursor-wait"
-                      >
-                        Submit
-                      </button>
-                    </form>
-                  </div>
-                )}
-                {status?.message && (
-                  <p className={`mt-2 text-[10px] font-bold ${
-                    status.state === "error" ? "text-red-600"
-                    : status.state === "pending_anchor" ? "text-amber-700"
-                    : "text-green-700"
-                  }`}>
-                    {status.message}
-                  </p>
-                )}
-                {proof?.status === "pending_anchor" && !status?.message?.includes("Retrying") && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      retryAnchor(proof);
-                    }}
-                    className="mt-2 inline-flex items-center gap-1 rounded-full border-2 border-amber-600 bg-amber-100 px-3 py-1 text-[10px] font-bold text-amber-700 transition-all hover:translate-y-0.5"
-                  >
-                    ⟳ Retry anchor
-                  </button>
-                )}
-                {proof?.mediaStorage && auth.userId && (
-                  <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-bold text-green-700">
-                    <span>Media on 0G: {shortHash(proof.mediaStorage.rootHash)}</span>
-                    <a
-                      href={`/api/proofs/${proof.id}/media?${new URLSearchParams({ userId: auth.userId }).toString()}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rounded-full border border-green-700 bg-green-100 px-2 py-0.5"
-                    >
-                      View media
-                    </a>
-                  </div>
-                )}
-              </motion.div>
-            );
-          })}
-        </div>
-      </motion.section>
-
+                ))
+              ) : (
+                <p className="text-sm font-bold opacity-60">No picks backed in this game yet.</p>
+              )}
+            </div>
+          </section>
         </div>
 
         <aside className="space-y-5 lg:sticky lg:top-20">
+          <PvPMatchCard gameId={gameId} userId="user-1" />
 
-      {/* Event Leaderboard Preview */}
-      <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-      >
-        <div className="flex justify-between items-end mb-2">
-          <h2 className="font-display text-lg font-bold">Top Participants</h2>
-          <Link href="/app/leaderboard" className="text-xs font-bold opacity-60 hover:opacity-100">
-            Full board
-          </Link>
-        </div>
-        <div className="space-y-1.5">
-          {leaderboardEntries.slice(0, 5).map((entry) => (
-            <div key={entry.userId} className="rounded-2xl border-2 border-[var(--color-primary-900)] p-2.5 bg-white flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-xs w-5 text-center opacity-50">#{entry.rank}</span>
-                <span className="text-sm">{entry.avatar}</span>
-                <span className="font-bold text-xs">{entry.name}</span>
+          <section className="bubbly-card bg-white p-4">
+            <div className="mb-3 flex items-center gap-2">
+              <Trophy size={18} />
+              <h2 className="font-display text-xl font-bold">Match Leaderboard</h2>
+            </div>
+            <div className="space-y-2">
+              {playerBoard.map((entry) => (
+                <div key={entry.userId} className="rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)] p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold">#{entry.rank} {entry.player}</p>
+                      <p className="text-[10px] font-bold opacity-60">{entry.correctPicks}/{entry.totalPicks} correct picks</p>
+                    </div>
+                    <span className="font-display text-xl font-bold">{entry.points}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {rewards.length > 0 && (
+            <section className="bubbly-card bg-[var(--color-pastel-yellow)] p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <Gem size={18} />
+                <h2 className="font-display text-xl font-bold">NFT Reward</h2>
               </div>
-              <span className="font-bold text-xs opacity-70">{entry.xp} XP</span>
-            </div>
-          ))}
-          {leaderboardEntries.length === 0 && (
-            <div className="rounded-2xl border-2 border-[var(--color-primary-900)] p-3 bg-white text-center">
-              <p className="text-xs font-bold opacity-60">No proof-backed rankings yet.</p>
-            </div>
+              <div className="space-y-2">
+                {rewards.map((reward) => (
+                  <div key={reward.id} className="rounded-2xl border-2 border-[var(--color-primary-900)] bg-white/70 p-3">
+                    <p className="text-sm font-bold">{reward.name}</p>
+                    <p className="text-[10px] font-bold opacity-60">
+                      {reward.rewardType.toLowerCase()} ranks {reward.eligibleRankStart}-{reward.eligibleRankEnd} - {statusLabel(reward.status)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
           )}
-        </div>
-      </motion.section>
 
+          <section className="bubbly-card bg-white p-4">
+            <div className="flex items-start gap-2">
+              <ShieldCheck size={18} className="mt-0.5" />
+              <p className="text-xs font-bold opacity-70">
+                Payouts use a simple pari-mutuel pool: winners share the market pool proportionally after admin resolution.
+              </p>
+            </div>
+          </section>
         </aside>
       </div>
 
-      {checkInMission && auth.userId && (
-        <CheckInModal
-          open={checkInOpen}
-          onClose={() => setCheckInOpen(false)}
-          eventId={eventId}
-          userId={auth.userId}
-          eventTitle={event.title}
-          submitting={submissionStatus[checkInMission.id]?.state === "submitting"}
-          status={submissionStatus[checkInMission.id]}
-          alreadyCheckedIn={isCheckedIn}
-          onConfirm={async (code) => {
-            await verifyMission(checkInMission, undefined, undefined, code);
-          }}
-        />
-      )}
+      <PredictionModal market={activeMarket} open={Boolean(activeMarket)} onClose={() => setActiveMarket(null)} gameId={game.id} />
     </div>
   );
 }
 
+function Info({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)] p-2">
+      <p className="uppercase opacity-50">{label}</p>
+      <p className="truncate">{value}</p>
+    </div>
+  );
+}

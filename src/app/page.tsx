@@ -1,320 +1,171 @@
-"use client";
-
-import BlobBackground from "@/components/BlobBackground";
-import DottedGlobe from "@/components/DottedGlobe";
-import Navbar from "@/components/Navbar";
-import { motion } from "framer-motion";
-import {
-  Zap,
-  Trophy,
-  QrCode,
-  Users,
-  ArrowRight,
-  Star,
-  Shield,
-  Globe,
-} from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-
-const FEATURES = [
-  {
-    icon: <QrCode size={28} />,
-    title: "QR Check-In",
-    description: "Instant event entry with a single scan",
-    color: "var(--color-pastel-blue)",
-  },
-  {
-    icon: <Zap size={28} />,
-    title: "XP & Missions",
-    description: "Complete challenges to earn experience points",
-    color: "var(--color-pastel-yellow)",
-  },
-  {
-    icon: <Trophy size={28} />,
-    title: "Badges & Rank",
-    description: "Collect achievements and climb the leaderboard",
-    color: "var(--color-pastel-pink)",
-  },
-  {
-    icon: <Users size={28} />,
-    title: "Team Play",
-    description: "Join forces with others for bonus rewards",
-    color: "var(--color-pastel-green)",
-  },
-  {
-    icon: <Shield size={28} />,
-    title: "Verified Proof",
-    description: "Tamper-proof record of what you actually did",
-    color: "var(--color-pastel-purple)",
-  },
-  {
-    icon: <Globe size={28} />,
-    title: "Portable Rep",
-    description: "Carry your reputation across all events",
-    color: "var(--color-pastel-blue)",
-  },
-];
-
-const STEPS = [
-  {
-    step: "1",
-    title: "Scan In",
-    description: "Arrive at the event and scan the QR code",
-  },
-  {
-    step: "2",
-    title: "Complete Missions",
-    description: "Visit booths, attend talks, answer quizzes",
-  },
-  {
-    step: "3",
-    title: "Earn & Level Up",
-    description: "Collect XP, unlock badges, climb the ranks",
-  },
-  {
-    step: "4",
-    title: "Build Reputation",
-    description: "Your participation history becomes portable",
-  },
-];
-
-const HERO_WORDS = ["PARTICIPATION", "CONTRIBUTION", "REPUTATION"];
+import { ArrowRight, Gem, ShieldCheck, Trophy } from "lucide-react";
+import Navbar from "@/components/Navbar";
+import DottedGlobe from "@/components/DottedGlobe";
+import { FOOTBALL_GAMES, formatMatchTime, formatUSDT, getMarketsForGame, statusLabel } from "@/lib/football-data";
 
 export default function Home() {
-  const [heroWordIndex, setHeroWordIndex] = useState(0);
-  const heroWord = HERO_WORDS[heroWordIndex];
-
-  useEffect(() => {
-    const interval = window.setInterval(() => {
-      setHeroWordIndex((current) => (current + 1) % HERO_WORDS.length);
-    }, 5000);
-
-    return () => window.clearInterval(interval);
-  }, []);
-
   return (
-    <main className="min-h-screen relative overflow-hidden">
-      <BlobBackground />
+    <main className="min-h-screen bg-[var(--color-bg-base)]">
       <Navbar />
 
-      <section className="min-h-[100svh] flex flex-col items-center justify-center px-4 pt-24 pb-24 text-center relative z-10 overflow-hidden sm:px-6 md:pt-28">
+      <section className="relative isolate min-h-[92svh] overflow-hidden px-4 pb-16 pt-28 sm:px-6 lg:px-8">
         <DottedGlobe />
-        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[var(--color-bg-base)] to-transparent pointer-events-none" />
-
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="relative z-10 w-full max-w-5xl"
-        >
-          <div className="inline-flex max-w-[92vw] items-center gap-2 bg-white/80 backdrop-blur-sm px-3 py-2 rounded-full border-2 border-[var(--color-primary-900)] shadow-[2px_2px_0px_0px_#312e81] mb-5 sm:px-4 sm:mb-6">
-            <Star
-              size={14}
-              fill="var(--color-primary-500)"
-              className="text-[var(--color-primary-500)] shrink-0"
-            />
-            <span className="text-[11px] font-bold leading-tight sm:text-xs">
-              The Reputation Layer for Physical Communities
-            </span>
-          </div>
-
-          <h1
-            className="font-display text-[clamp(2.35rem,12.2vw,8rem)] font-bold tracking-tight text-[var(--color-primary-900)] leading-[0.86] sm:text-[clamp(3rem,16vw,8rem)]"
-            style={{
-              textShadow:
-                "3px 3px 0px #fff, -1.5px -1.5px 0px #fff, 1.5px -1.5px 0px #fff, -1.5px 1.5px 0px #fff",
-              WebkitTextStroke: "1.5px var(--color-primary-900)",
-            }}
-          >
-            <span className="block">PROOF IS</span>
-            <span className="block">FOR</span>
-            <br />
-            <motion.span
-              key={heroWord}
-              initial={{ opacity: 0, y: 16, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -16, scale: 0.98 }}
-              transition={{ duration: 0.45, ease: "easeOut" }}
-              className="block text-[clamp(2.35rem,12.2vw,8rem)] text-[var(--color-pastel-purple)] sm:text-[clamp(3rem,16vw,8rem)]"
-              style={{ WebkitTextStroke: "1.2px var(--color-primary-900)" }}
-            >
-              {heroWord}
-            </motion.span>
-          </h1>
-
-          <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center px-4 sm:mt-10 sm:px-0">
-            <Link
-              href="/app"
-              className="bg-[var(--color-pastel-pink)] text-base sm:text-lg px-7 py-3.5 rounded-full border-3 border-[var(--color-primary-900)] font-bold shadow-[4px_4px_0px_0px_#312e81] hover:translate-y-0.5 hover:shadow-[2px_2px_0px_0px_#312e81] transition-all flex items-center justify-center gap-2"
-            >
-              Enter App
-            </Link>
-            <Link
-              href="/app?tab=created"
-              className="bg-white/90 text-base sm:text-lg px-7 py-3.5 rounded-full border-3 border-[var(--color-primary-900)] font-bold shadow-[4px_4px_0px_0px_#312e81] hover:translate-y-0.5 hover:shadow-[2px_2px_0px_0px_#312e81] transition-all flex items-center justify-center gap-2"
-            >
-              Create Event
-            </Link>
-            <Link
-              href="/proofs"
-              className="bg-[var(--color-pastel-green)] text-base sm:text-lg px-7 py-3.5 rounded-full border-3 border-[var(--color-primary-900)] font-bold shadow-[4px_4px_0px_0px_#312e81] hover:translate-y-0.5 hover:shadow-[2px_2px_0px_0px_#312e81] transition-all flex items-center justify-center gap-2"
-            >
-              View Proofs
-            </Link>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          className="absolute bottom-6 left-4 right-4 flex flex-wrap justify-center gap-x-4 gap-y-1 font-bold text-[11px] sm:bottom-8 sm:gap-8 sm:text-sm"
-          style={{ textShadow: "1px 1px 0px #fff" }}
-        >
-          <span>Powered by 0G Storage</span>
-          <span>On-Chain Proof Anchoring</span>
-          <span className="hidden md:inline">0G Compute AI Agent</span>
-        </motion.div>
-      </section>
-
-      <section className="relative z-10 px-4 py-14 sm:px-6 sm:py-20">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mx-auto max-w-3xl text-center"
-        >
-          <p
-            className="font-display text-3xl font-bold leading-tight sm:text-4xl md:text-5xl"
-            style={{ textShadow: "3px 3px 0px #fff" }}
-          >
-            Turn event activity into missions, XP, badges, and portable
-            reputation.
-          </p>
-          <p className="mx-auto mt-5 max-w-xl text-sm font-bold leading-relaxed opacity-70 sm:text-lg">
-            ProofPlay turns contribution into stored evidence with real-world
-            missions and verifiable proof records on 0G Storage.
-          </p>
-        </motion.div>
-      </section>
-
-      <section className="relative z-10 py-16 px-4 sm:px-6 sm:py-24">
-        <div className="max-w-4xl mx-auto">
-          <motion.h2
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="font-display text-4xl md:text-5xl font-bold text-center mb-10 sm:mb-16"
-            style={{ textShadow: "3px 3px 0px #fff" }}
-          >
-            How It Works
-          </motion.h2>
-
-          <div className="grid grid-cols-1 min-[420px]:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-            {STEPS.map((s, i) => (
-              <motion.div
-                key={s.step}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="bubbly-card p-4 sm:p-5 bg-white text-center"
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-44 bg-gradient-to-t from-[var(--color-bg-base)] to-transparent" />
+        <div className="mx-auto grid min-h-[calc(92svh-7rem)] max-w-6xl gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+          <div className="space-y-5 text-center lg:text-left">
+            <p className="inline-flex rounded-full border-2 border-[var(--color-primary-900)] bg-white/85 px-3 py-1 text-xs font-bold shadow-[2px_2px_0px_0px_#312e81] backdrop-blur">
+              ProofPlay X Cup
+            </p>
+            <div>
+              <h1
+                className="font-display text-[clamp(3rem,13vw,7.6rem)] font-bold leading-[0.86] text-[var(--color-primary-900)]"
+                style={{
+                  textShadow:
+                    "3px 3px 0px #fff, -1.5px -1.5px 0px #fff, 1.5px -1.5px 0px #fff, -1.5px 1.5px 0px #fff",
+                  WebkitTextStroke: "1px var(--color-primary-900)",
+                }}
               >
-                <div className="w-8 h-8 mx-auto rounded-full bg-[var(--color-pastel-purple)] border-2 border-[var(--color-primary-900)] flex items-center justify-center font-bold text-sm mb-3">
-                  {s.step}
-                </div>
-                <h3 className="font-display font-bold text-lg">{s.title}</h3>
-                <p className="text-xs font-bold opacity-60 mt-1">
-                  {s.description}
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="relative z-10 py-16 px-4 sm:px-6 sm:py-24">
-        <div className="max-w-4xl mx-auto">
-          <motion.h2
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="font-display text-4xl md:text-5xl font-bold text-center mb-10 sm:mb-16"
-            style={{ textShadow: "3px 3px 0px #fff" }}
-          >
-            Features
-          </motion.h2>
-
-          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 sm:gap-4">
-            {FEATURES.map((feature, i) => (
-              <motion.div
-                key={feature.title}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.08 }}
-                className="bubbly-card p-4 sm:p-5 bg-white"
-                style={{ borderColor: "var(--color-primary-900)" }}
+                <span className="block">BACK YOUR</span>
+                <span className="block text-[var(--color-pastel-purple)]">PICKS</span>
+              </h1>
+              <p className="mx-auto mt-5 max-w-2xl text-base font-bold leading-relaxed opacity-75 sm:text-lg lg:mx-0">
+                Back official match picks in a minimal USDT-backed football prediction game. Every correct pick scores exactly 1 point.
+              </p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-3 lg:justify-start">
+              <Link
+                href="/app"
+                className="inline-flex items-center gap-2 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-5 py-3 text-sm font-bold shadow-[3px_3px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
               >
-                <div
-                  className="w-12 h-12 rounded-2xl border-2 border-[var(--color-primary-900)] flex items-center justify-center mb-3"
-                  style={{ backgroundColor: feature.color }}
-                >
-                  {feature.icon}
+                Back Picks <ArrowRight size={16} />
+              </Link>
+              <Link
+                href="/app/leaderboard"
+                className="inline-flex items-center gap-2 rounded-full border-2 border-[var(--color-primary-900)] bg-white/90 px-5 py-3 text-sm font-bold shadow-[3px_3px_0px_0px_#312e81] backdrop-blur transition-all hover:translate-y-0.5 hover:shadow-none"
+              >
+                View Leaderboards
+              </Link>
+            </div>
+            <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-[11px] font-bold opacity-70 lg:justify-start">
+              <span>USDT-backed</span>
+              <span>1 point per correct pick</span>
+              <span>Auto PvP battles</span>
+            </div>
+          </div>
+
+          <div className="bubbly-card overflow-hidden bg-white">
+            <div
+              className="min-h-72 bg-cover bg-center p-5 text-white"
+              style={{ backgroundImage: `linear-gradient(180deg, rgba(0,0,0,.28), rgba(0,0,0,.68)), url(${FOOTBALL_GAMES[0].image})` }}
+            >
+              <div className="flex h-full min-h-60 flex-col justify-between">
+                <div className="flex justify-between gap-3">
+                  <span className="rounded-full border border-white/70 bg-white/15 px-3 py-1 text-xs font-bold backdrop-blur">
+                    Featured Match
+                  </span>
+                  <span className="rounded-full border border-white/70 bg-white/15 px-3 py-1 text-xs font-bold backdrop-blur">
+                    {statusLabel(FOOTBALL_GAMES[0].status)}
+                  </span>
                 </div>
-                <h3 className="font-display font-bold text-lg">
-                  {feature.title}
-                </h3>
-                <p className="text-xs font-bold opacity-60 mt-1">
-                  {feature.description}
-                </p>
-              </motion.div>
-            ))}
+                <div>
+                  <p className="text-sm font-bold opacity-80">{FOOTBALL_GAMES[0].competition}</p>
+                  <h2 className="font-display text-4xl font-bold">{FOOTBALL_GAMES[0].title}</h2>
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs font-bold">
+                    <div className="rounded-2xl border border-white/60 bg-white/15 p-2 backdrop-blur">
+                      {getMarketsForGame(FOOTBALL_GAMES[0].id).length} markets
+                    </div>
+                    <div className="rounded-2xl border border-white/60 bg-white/15 p-2 backdrop-blur">
+                      {formatUSDT(FOOTBALL_GAMES[0].totalPool)}
+                    </div>
+                    <div className="rounded-2xl border border-white/60 bg-white/15 p-2 backdrop-blur">
+                      NFT rewards
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="relative z-10 py-16 px-4 sm:px-6 sm:py-24">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          className="max-w-2xl mx-auto bubbly-card p-6 sm:p-10 bg-gradient-to-br from-[var(--color-pastel-purple)] to-[var(--color-pastel-pink)] text-center"
-        >
-          <h2 className="font-display text-3xl md:text-4xl font-bold mb-3">
-            Ready to prove it?
-          </h2>
-          <p className="font-bold opacity-70 mb-6">
-            Start turning real event contributions into portable reputation.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link
-              href="/app?tab=discover"
-              className="bg-white px-8 py-3 rounded-full border-3 border-[var(--color-primary-900)] font-bold shadow-[3px_3px_0px_0px_#312e81] hover:translate-y-0.5 hover:shadow-[1px_1px_0px_0px_#312e81] transition-all flex items-center justify-center gap-2"
-            >
-              Join as Attendee <ArrowRight size={16} />
-            </Link>
-            <Link
-              href="/app?tab=created"
-              className="bg-[var(--color-primary-900)] text-white px-8 py-3 rounded-full border-3 border-[var(--color-primary-900)] font-bold hover:bg-[var(--color-primary-700)] transition-all flex items-center justify-center gap-2"
-            >
-              Host an Event
-            </Link>
+      <section className="px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-4 flex items-end justify-between gap-3">
+            <div>
+              <h2 className="font-display text-3xl font-bold">Football Game Events</h2>
+              <p className="text-sm font-bold opacity-60">One match. Official markets. One player board. Auto PvP.</p>
+            </div>
           </div>
-        </motion.div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            {FOOTBALL_GAMES.map((game) => {
+              const markets = getMarketsForGame(game.id);
+
+              return (
+                <article key={game.id} className="bubbly-card overflow-hidden bg-white">
+                  <div className="h-32 bg-cover bg-center" style={{ backgroundImage: `url(${game.image})` }} />
+                  <div className="p-4">
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase opacity-50">{game.competition}</p>
+                        <h3 className="font-display text-2xl font-bold">{game.title}</h3>
+                      </div>
+                      <span className="rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-blue)] px-2 py-1 text-[10px] font-bold">
+                        {statusLabel(game.status)}
+                      </span>
+                    </div>
+                    <div className="space-y-1 text-xs font-bold opacity-70">
+                      <p>{formatMatchTime(game.matchStartTime)}</p>
+                      <p>{markets.length} markets</p>
+                      <p>{formatUSDT(game.totalPool)} pool</p>
+                    </div>
+                    <div className="mt-3 flex items-center gap-2 text-[10px] font-bold">
+                      <ShieldCheck size={13} />
+                      <span>USDT required</span>
+                      {game.rewardMode !== "NONE" && (
+                        <>
+                          <Gem size={13} />
+                          <span>NFT reward</span>
+                        </>
+                      )}
+                    </div>
+                    <Link
+                      href={`/app/event/${game.id}`}
+                      className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-4 py-2.5 text-sm font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
+                    >
+                      {game.status === "OPEN" ? "Back Picks" : "Enter Game"} <ArrowRight size={15} />
+                    </Link>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </div>
       </section>
 
-      <footer className="relative z-10 py-8 px-6 text-center border-t-3 border-[var(--color-primary-900)]">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <div className="w-6 h-6 rounded-full bg-[var(--color-pastel-purple)] border-2 border-[var(--color-primary-900)] flex items-center justify-center">
-            🏆
-          </div>
-          <span className="font-display font-bold text-lg">ProofPlay</span>
+      <section className="px-4 py-10 sm:px-6 lg:px-8">
+        <div className="mx-auto grid max-w-6xl gap-3 sm:grid-cols-3">
+          {[
+            ["Back picks", "Choose an official admin-created market and stake USDT."],
+            ["Score points", "Every correct prediction gives exactly 1 point."],
+            ["Win rewards", "Winners share pools and selected matches include NFT rewards."],
+          ].map(([title, copy], index) => (
+            <div key={title} className="bubbly-card bg-white p-4">
+              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-yellow)] font-bold">
+                {index + 1}
+              </div>
+              <p className="font-display text-xl font-bold">{title}</p>
+              <p className="mt-1 text-xs font-bold opacity-60">{copy}</p>
+            </div>
+          ))}
         </div>
-        <p className="text-xs font-bold opacity-40">
-          © 2026 ProofPlay. Proof of Participation for everyone.
-        </p>
+      </section>
+
+      <footer className="border-t-4 border-[var(--color-primary-900)] bg-white px-6 py-6 text-center text-xs font-bold opacity-70">
+        <span className="inline-flex items-center gap-2">
+          <Trophy size={15} /> ProofPlay X Cup - Predict football. Score points. Win rewards.
+        </span>
       </footer>
     </main>
   );

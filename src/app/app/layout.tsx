@@ -2,15 +2,14 @@
 
 import Navbar from "@/components/Navbar";
 import WalletLoginButton from "@/components/WalletLoginButton";
-import { Calendar, LockKeyhole, QrCode, Trophy, User } from "lucide-react";
+import { Calendar, LockKeyhole, Trophy, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useProofPlayAuth } from "@/components/ProofPlayAuthProvider";
 
 const DESKTOP_NAV = [
-  { href: "/app", label: "Events", icon: Calendar, match: (p: string) => p === "/app" },
-  { href: "/app/missions", label: "Missions", icon: QrCode, match: (p: string) => p.startsWith("/app/missions") },
-  { href: "/app/leaderboard", label: "Rank", icon: Trophy, match: (p: string) => p.startsWith("/app/leaderboard") },
+  { href: "/app", label: "Games", icon: Calendar, match: (p: string) => p === "/app" || p.startsWith("/app/event") },
+  { href: "/app/leaderboard", label: "Leaderboards", icon: Trophy, match: (p: string) => p.startsWith("/app/leaderboard") },
   { href: "/app/profile", label: "Profile", icon: User, match: (p: string) => p.startsWith("/app/profile") },
 ];
 
@@ -78,7 +77,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <LockKeyhole className="mx-auto text-[var(--color-primary-900)]" size={32} />
                 <p className="mt-4 font-display text-2xl font-bold">Sign in to access events</p>
                 <p className="mt-2 text-sm font-bold opacity-60">
-                  Sign in with your email, Google, or Twitter account to access the platform.
+                  Sign in with your wallet or account to back picks with USDT and track your match points.
                 </p>
                 <button
                   type="button"

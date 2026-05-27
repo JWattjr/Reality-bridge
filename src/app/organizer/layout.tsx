@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Trophy } from "lucide-react";
+import { ShieldCheck, Trophy } from "lucide-react";
 
 export default function OrganizerLayout({
   children,
@@ -18,20 +18,20 @@ export default function OrganizerLayout({
               ProofPlay
             </span>
             <span className="hidden rounded-full border border-[var(--color-primary-900)] bg-[var(--color-pastel-yellow)] px-2 py-0.5 text-xs font-bold sm:inline">
-              Organizer
+              Admin
             </span>
           </Link>
           <nav className="flex shrink-0 items-center gap-2 sm:gap-4">
-            <Link href="/app?tab=created" className="hidden whitespace-nowrap text-xs font-bold transition-colors hover:text-[var(--color-primary-500)] sm:inline sm:text-sm">
-              My Events
+            <Link href="/app" className="hidden whitespace-nowrap text-xs font-bold transition-colors hover:text-[var(--color-primary-500)] sm:inline sm:text-sm">
+              Games
             </Link>
             <Link
-              href="/app/create"
-              aria-label="New Event"
+              href="/organizer"
+              aria-label="Admin Dashboard"
               className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-pink)] p-2 text-xs font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none sm:px-4 sm:py-1.5 sm:text-sm"
             >
-              <Plus size={14} />
-              <span className="hidden sm:inline">New Event</span>
+              <ShieldCheck size={14} />
+              <span className="hidden sm:inline">Admin</span>
             </Link>
           </nav>
         </div>

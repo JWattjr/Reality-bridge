@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Info, QrCode, User, Trophy, Calendar } from "lucide-react";
+import { Info, User, Trophy, Calendar } from "lucide-react";
 import { usePathname } from "next/navigation";
 import WalletLoginButton from "@/components/WalletLoginButton";
 import { motion } from "framer-motion";
@@ -21,13 +21,14 @@ export default function Navbar() {
           </span>
         </div>
         <div className="hidden md:flex items-center gap-8 font-bold font-sans">
-          <Link href="/about" className="hover:text-[var(--color-primary-500)] transition-colors">About</Link>
+          <Link href="/app" className="hover:text-[var(--color-primary-500)] transition-colors">Games</Link>
+          <Link href="/app/leaderboard" className="hover:text-[var(--color-primary-500)] transition-colors">Leaderboards</Link>
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
           <WalletLoginButton compact />
           <Link
-            href="/about"
-            aria-label="About ProofPlay"
+            href="/app"
+            aria-label="Open ProofPlay games"
             className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[var(--color-primary-900)] bg-white text-[var(--color-primary-900)] shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none md:hidden"
           >
             <Info size={18} strokeWidth={2.8} />
@@ -40,9 +41,8 @@ export default function Navbar() {
   // App Navigation
   return (
     <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-white bubbly-border p-2 flex items-center gap-2 shadow-[var(--shadow-bubbly)] lg:hidden">
-      <NavItem href="/app" icon={<Calendar size={24} />} label="Events" active={pathname === "/app"} />
-      <NavItem href="/app/missions" icon={<QrCode size={24} />} label="Missions" active={pathname === "/app/missions"} />
-      <NavItem href="/app/leaderboard" icon={<Trophy size={24} />} label="Rank" active={pathname === "/app/leaderboard"} />
+      <NavItem href="/app" icon={<Calendar size={24} />} label="Games" active={pathname === "/app" || pathname.startsWith("/app/event")} />
+      <NavItem href="/app/leaderboard" icon={<Trophy size={24} />} label="Boards" active={pathname === "/app/leaderboard"} />
       <NavItem href="/app/profile" icon={<User size={24} />} label="Profile" active={pathname === "/app/profile"} />
     </nav>
   );

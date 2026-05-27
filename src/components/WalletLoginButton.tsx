@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Check, Copy, ExternalLink, LogIn, LogOut, Wallet } from "lucide-react";
 import { useProofPlayAuth } from "@/components/ProofPlayAuthProvider";
+import { xLayerExplorerAddress } from "@/lib/xlayer";
 
 type WalletLoginButtonProps = {
   compact?: boolean;
@@ -39,10 +40,10 @@ export default function WalletLoginButton({ compact = false, className = "" }: W
 
   if (auth.authenticated) {
     const walletAddress = auth.walletAddress ?? auth.userId ?? "";
-    const explorerUrl = walletAddress ? `https://chainscan.0g.ai/address/${walletAddress}` : "";
+    const explorerUrl = walletAddress ? xLayerExplorerAddress(walletAddress) : "";
     const formattedBalance = balance ? `${Number(balance).toLocaleString(undefined, {
       maximumFractionDigits: 5,
-    })} 0G` : null;
+    })} OKB` : null;
 
     async function refreshBalance() {
       if (!walletAddress) return;
@@ -84,7 +85,7 @@ export default function WalletLoginButton({ compact = false, className = "" }: W
             <div className="mt-3 rounded-2xl border-2 border-[var(--color-primary-900)] bg-white p-3">
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <p className="text-[10px] font-bold uppercase opacity-60">0G balance</p>
+                  <p className="text-[10px] font-bold uppercase opacity-60">X Layer OKB</p>
                   <p className="mt-1 text-sm font-bold">
                     {balanceStatus === "loading"
                       ? "Checking..."
@@ -132,7 +133,7 @@ export default function WalletLoginButton({ compact = false, className = "" }: W
             </div>
 
             <p className="mt-3 rounded-2xl bg-[var(--color-bg-base)] p-3 text-[10px] font-bold leading-relaxed opacity-70">
-              Send $0G to this address for gas. Mission proofs are uploaded to 0G Storage from this Privy wallet.
+              Use X Layer testnet OKB for gas. Test USDT backs picks after the demo faucet is configured.
             </p>
 
             <button

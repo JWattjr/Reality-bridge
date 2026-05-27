@@ -13,6 +13,7 @@ import {
   useContext,
   type ReactNode,
 } from "react";
+import { XLAYER_TESTNET } from "@/lib/xlayer";
 
 type ProofPlayAuth = {
   ready: boolean;
@@ -49,39 +50,36 @@ const ProofPlayAuthContext = createContext<ProofPlayAuth>(fallbackAuth);
 const privyAppId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
 const privyClientId = process.env.NEXT_PUBLIC_PRIVY_CLIENT_ID;
 
-const zeroGMainnetChain = {
-  id: 16661,
-  name: "0G Mainnet",
+const xLayerTestnetChain = {
+  id: XLAYER_TESTNET.chainId,
+  name: XLAYER_TESTNET.name,
   nativeCurrency: {
-    decimals: 18,
-    name: "0G",
-    symbol: "0G",
+    decimals: XLAYER_TESTNET.nativeCurrency.decimals,
+    name: XLAYER_TESTNET.nativeCurrency.name,
+    symbol: XLAYER_TESTNET.nativeCurrency.symbol,
   },
   rpcUrls: {
     default: {
-      http: ["https://evmrpc.0g.ai"],
+      http: [...XLAYER_TESTNET.rpcUrls],
     },
   },
   blockExplorers: {
     default: {
-      name: "0G Explorer",
-      url: "https://chainscan.0g.ai",
+      name: "OKX X Layer Explorer",
+      url: XLAYER_TESTNET.explorerUrl,
     },
   },
 };
 
 const privyConfig: PrivyProviderProps["config"] = {
   loginMethods: ["email", "google", "twitter"],
-  supportedChains: [zeroGMainnetChain],
-  defaultChain: zeroGMainnetChain,
+  supportedChains: [xLayerTestnetChain],
+  defaultChain: xLayerTestnetChain,
   embeddedWallets: {
     ethereum: {
       createOnLogin: "users-without-wallets",
     },
-    // Skip transaction confirmation popups for embedded wallets.
-    // ProofPlay transactions are low-value proof anchors, so auto-signing
-    // makes the experience seamless instead of prompting 3+ times per mission.
-    showWalletUIs: false,
+    showWalletUIs: true,
   },
 };
 

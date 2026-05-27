@@ -1,277 +1,315 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
-import { EVENTS, ANALYTICS, MISSIONS, PROOF_TYPE_COPY, shortHash } from "@/lib/mock-data";
-import type { ProofRecord } from "@/lib/mock-data";
-import { Users, Target, TrendingUp, BarChart3, ArrowRight, ShieldCheck, ExternalLink } from "lucide-react";
-import Link from "next/link";
+import { useState } from "react";
+import { CheckCircle2, ExternalLink, Gem, Plus, ShieldCheck, Trophy } from "lucide-react";
+import { FOOTBALL_GAMES, FOOTBALL_MARKETS, formatMatchTime, formatUSDT, statusLabel } from "@/lib/football-data";
 import { useProofPlayAuth } from "@/components/ProofPlayAuthProvider";
+import {
+  closeMarketOnXLayer,
+  getFootballPredictionAddress,
+  getTestUSDTAddress,
+  isXLayerContractsConfigured,
+  refundMarketOnXLayer,
+  resolveMarketOnXLayer,
+  xLayerExplorerAddress,
+  type XLayerWallet,
+} from "@/lib/xlayer";
+
+const MARKET_TYPES = ["YES_NO", "MULTI_CHOICE"] as const;
+const STATUSES = ["OPEN", "CLOSED", "LIVE", "RESOLVED", "CANCELLED"] as const;
 
 export default function OrganizerDashboard() {
   const auth = useProofPlayAuth();
-  const [proofRecords, setProofRecords] = useState<ProofRecord[]>([]);
-  const [zeroGContract, setZeroGContract] = useState("0x62D4144dB0F0a6fBBaeb6296c785C71B3D57C526");
+  const [gameDraft, setGameDraft] = useState({
+    teamA: "",
+    teamB: "",
+    competition: "ProofPlay X Cup",
+    matchStartTime: "",
+    marketCloseTime: "",
+    status: "OPEN",
+    rewardMode: "NONE",
+  });
+  const [marketDraft, setMarketDraft] = useState({
+    gameId: FOOTBALL_GAMES[0]?.id ?? "",
+    title: "",
+    category: "Match Result",
+    type: "YES_NO",
+    options: "Yes, No",
+    minStake: "5",
+    closeTime: "",
+  });
+  const [message, setMessage] = useState("");
+  const [marketControl, setMarketControl] = useState({ marketId: "1", winningOption: "0" });
+  const [controlStatus, setControlStatus] = useState("");
+  const [controlTxUrl, setControlTxUrl] = useState("");
+  const [busyAction, setBusyAction] = useState<"close" | "resolve" | "refund" | null>(null);
+  const activeWallet = auth.wallets[0] as XLayerWallet | undefined;
+  const configured = isXLayerContractsConfigured();
 
-  useEffect(() => {
-    if (!auth.ready || !auth.authenticated || !auth.userId) {
-      setProofRecords([]);
+  async function runMarketAction(action: "close" | "resolve" | "refund") {
+    if (!activeWallet) {
+      setControlStatus("Connect the owner wallet used to deploy the prediction contract.");
       return;
     }
 
-    const userId = auth.userId;
+    setBusyAction(action);
+    setControlTxUrl("");
+    setControlStatus(`${action === "resolve" ? "Resolving" : action === "close" ? "Closing" : "Refunding"} market on X Layer...`);
 
-    (async () => {
-      try {
-        const headers = await auth.authHeaders();
-        const params = new URLSearchParams({ userId });
-        const response = await fetch(`/api/proofs?${params.toString()}`, { headers });
-        const data: { proofs?: ProofRecord[]; zeroG?: { contractAddress?: string } } = await response.json();
-        setProofRecords(data.proofs ?? []);
-        if (data.zeroG?.contractAddress) setZeroGContract(data.zeroG.contractAddress);
-      } catch {
-        setProofRecords([]);
-      }
-    })();
-  }, [auth]);
-
-  const statCards = [
-    { label: "Check-ins", value: ANALYTICS.totalCheckIns.toLocaleString(), icon: <Users size={18} />, color: "var(--color-pastel-blue)" },
-    { label: "Attendees", value: ANALYTICS.activeAttendees.toLocaleString(), icon: <TrendingUp size={18} />, color: "var(--color-pastel-green)" },
-    { label: "Missions", value: ANALYTICS.totalMissionsCompleted.toLocaleString(), icon: <Target size={18} />, color: "var(--color-pastel-pink)" },
-    { label: "Avg/User", value: ANALYTICS.avgMissionsPerAttendee.toString(), icon: <BarChart3 size={18} />, color: "var(--color-pastel-yellow)" },
-    { label: "0G Proofs", value: proofRecords.length.toString(), icon: <ShieldCheck size={18} />, color: "var(--color-pastel-purple)" },
-  ];
+    try {
+      const result =
+        action === "resolve"
+          ? await resolveMarketOnXLayer(activeWallet, marketControl.marketId, marketControl.winningOption)
+          : action === "close"
+            ? await closeMarketOnXLayer(activeWallet, marketControl.marketId)
+            : await refundMarketOnXLayer(activeWallet, marketControl.marketId);
+      setControlStatus("X Layer admin transaction confirmed.");
+      setControlTxUrl(result.explorerUrl);
+    } catch (error) {
+      setControlStatus(error instanceof Error ? error.message : "X Layer admin transaction failed.");
+    } finally {
+      setBusyAction(null);
+    }
+  }
 
   return (
-    <div className="space-y-5 sm:space-y-8">
-      {/* Welcome */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <h1 className="font-display text-xl font-bold sm:text-3xl">Organizer Dashboard</h1>
-        <p className="text-xs font-bold opacity-60 mt-1 sm:text-sm">Here&apos;s your event overview</p>
-      </motion.div>
+    <div className="space-y-6">
+      <section>
+        <h1 className="font-display text-3xl font-bold">Admin Dashboard</h1>
+        <p className="mt-1 text-sm font-bold opacity-60">
+          Admin-created football game events and markets only. Users cannot create public markets.
+        </p>
+      </section>
 
-      {/* Stats — 3 col grid on mobile, 5 col on desktop */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-      >
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 sm:gap-3">
-          {statCards.map((stat, i) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              whileHover={{ y: -4, scale: 1.03 }}
-              whileTap={{ scale: 0.98 }}
-              transition={{ delay: 0.1 + i * 0.05 }}
-              className="bubbly-card premium-glint p-3 sm:p-4"
-              style={{ backgroundColor: stat.color }}
-            >
-              <div className="mb-1.5 sm:mb-2">{stat.icon}</div>
-              <p className="font-display text-lg font-bold sm:text-2xl">{stat.value}</p>
-              <p className="text-[10px] font-bold leading-tight opacity-70 sm:text-xs">{stat.label}</p>
-            </motion.div>
-          ))}
-        </div>
-      </motion.div>
+      <section className="grid gap-3 sm:grid-cols-4">
+        <Stat icon={<Trophy size={18} />} label="Games" value={FOOTBALL_GAMES.length.toString()} />
+        <Stat icon={<ShieldCheck size={18} />} label="Markets" value={FOOTBALL_MARKETS.length.toString()} />
+        <Stat icon={<Gem size={18} />} label="Reward games" value={FOOTBALL_GAMES.filter((game) => game.rewardMode !== "NONE").length.toString()} />
+        <Stat icon={<CheckCircle2 size={18} />} label="Total pool" value={formatUSDT(FOOTBALL_GAMES.reduce((sum, game) => sum + game.totalPool, 0))} />
+      </section>
 
-      {/* Your Events — full width on mobile */}
-      <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
-        <div className="flex justify-between items-end mb-3">
-          <h2 className="font-display text-lg font-bold sm:text-xl">Your Events</h2>
-          <Link href="/organizer/create" className="text-[10px] font-bold opacity-60 hover:opacity-100 flex items-center gap-1 sm:text-xs">
-            Create <ArrowRight size={12} />
-          </Link>
+      <section className="grid gap-5 lg:grid-cols-2">
+        <div className="bubbly-card bg-white p-4">
+          <h2 className="font-display text-2xl font-bold">Create Football Game Event</h2>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <Field label="Team A" value={gameDraft.teamA} onChange={(value) => setGameDraft((draft) => ({ ...draft, teamA: value }))} />
+            <Field label="Team B" value={gameDraft.teamB} onChange={(value) => setGameDraft((draft) => ({ ...draft, teamB: value }))} />
+            <Field label="Competition" value={gameDraft.competition} onChange={(value) => setGameDraft((draft) => ({ ...draft, competition: value }))} />
+            <label className="block">
+              <span className="text-[10px] font-bold uppercase opacity-50">Status</span>
+              <select
+                value={gameDraft.status}
+                onChange={(event) => setGameDraft((draft) => ({ ...draft, status: event.target.value }))}
+                className="mt-1 w-full rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)] px-3 py-2 text-xs font-bold outline-none"
+              >
+                {STATUSES.map((status) => <option key={status}>{status}</option>)}
+              </select>
+            </label>
+            <Field type="datetime-local" label="Match start" value={gameDraft.matchStartTime} onChange={(value) => setGameDraft((draft) => ({ ...draft, matchStartTime: value }))} />
+            <Field type="datetime-local" label="Market close" value={gameDraft.marketCloseTime} onChange={(value) => setGameDraft((draft) => ({ ...draft, marketCloseTime: value }))} />
+          </div>
+          <div className="mt-3">
+            <span className="text-[10px] font-bold uppercase opacity-50">NFT rewards</span>
+            <div className="mt-1 grid grid-cols-4 gap-2">
+              {["NONE", "PLAYER"].map((mode) => (
+                <button
+                  type="button"
+                  key={mode}
+                  onClick={() => setGameDraft((draft) => ({ ...draft, rewardMode: mode }))}
+                  className={`rounded-2xl border-2 border-[var(--color-primary-900)] px-2 py-2 text-[10px] font-bold ${
+                    gameDraft.rewardMode === mode ? "bg-[var(--color-pastel-green)]" : "bg-[var(--color-bg-base)]"
+                  }`}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMessage("Preview only: next step will persist createGameEvent to Supabase or contract admin action.")}
+            className="mt-4 inline-flex items-center gap-2 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-4 py-2 text-xs font-bold shadow-[2px_2px_0px_0px_#312e81]"
+          >
+            <Plus size={14} /> Create Game
+          </button>
         </div>
-        <div className="space-y-2 sm:space-y-3">
-          {EVENTS.map((event) => (
-            <div key={event.id} className="bubbly-card flex items-center gap-2.5 bg-white p-2.5 transition-all hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_#312e81] sm:gap-4 sm:p-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl border-2 border-[var(--color-primary-900)] shrink-0 sm:w-12 sm:h-12 sm:rounded-2xl sm:text-2xl" style={{ backgroundColor: event.color }}>
-                {event.emoji}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-bold text-xs truncate sm:text-sm">{event.title}</p>
-                <p className="truncate text-[10px] font-bold opacity-50 sm:text-xs">{event.startDate} · {event.location}</p>
-                <div className="mt-1 flex items-center gap-1.5">
-                  <span className="text-[9px] font-bold bg-[var(--color-pastel-blue)] px-1.5 py-0.5 rounded-full border border-[var(--color-primary-900)] sm:text-[10px]">
-                    {event.attendees} attendees
-                  </span>
-                  <span className="text-[9px] font-bold bg-[var(--color-pastel-green)] px-1.5 py-0.5 rounded-full border border-[var(--color-primary-900)] sm:text-[10px]">
-                    {event.missions} missions
-                  </span>
+
+        <div className="bubbly-card bg-white p-4">
+          <h2 className="font-display text-2xl font-bold">Create Market</h2>
+          <div className="mt-4 grid gap-3">
+            <label className="block">
+              <span className="text-[10px] font-bold uppercase opacity-50">Game</span>
+              <select
+                value={marketDraft.gameId}
+                onChange={(event) => setMarketDraft((draft) => ({ ...draft, gameId: event.target.value }))}
+                className="mt-1 w-full rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)] px-3 py-2 text-xs font-bold outline-none"
+              >
+                {FOOTBALL_GAMES.map((game) => <option key={game.id} value={game.id}>{game.title}</option>)}
+              </select>
+            </label>
+            <Field label="Market title" value={marketDraft.title} onChange={(value) => setMarketDraft((draft) => ({ ...draft, title: value }))} />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Category" value={marketDraft.category} onChange={(value) => setMarketDraft((draft) => ({ ...draft, category: value }))} />
+              <label className="block">
+                <span className="text-[10px] font-bold uppercase opacity-50">Type</span>
+                <select
+                  value={marketDraft.type}
+                  onChange={(event) => setMarketDraft((draft) => ({ ...draft, type: event.target.value }))}
+                  className="mt-1 w-full rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)] px-3 py-2 text-xs font-bold outline-none"
+                >
+                  {MARKET_TYPES.map((type) => <option key={type}>{type}</option>)}
+                </select>
+              </label>
+            </div>
+            <Field label="Options" value={marketDraft.options} onChange={(value) => setMarketDraft((draft) => ({ ...draft, options: value }))} />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Minimum USDT stake" value={marketDraft.minStake} onChange={(value) => setMarketDraft((draft) => ({ ...draft, minStake: value }))} />
+              <Field type="datetime-local" label="Close time" value={marketDraft.closeTime} onChange={(value) => setMarketDraft((draft) => ({ ...draft, closeTime: value }))} />
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMessage("Preview only: next step will persist createMarket and enforce admin-only access.")}
+            className="mt-4 inline-flex items-center gap-2 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-blue)] px-4 py-2 text-xs font-bold shadow-[2px_2px_0px_0px_#312e81]"
+          >
+            <Plus size={14} /> Add Market
+          </button>
+        </div>
+      </section>
+
+      {message && (
+        <p className="rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-yellow)] p-3 text-xs font-bold">
+          {message}
+        </p>
+      )}
+
+      <section className="bubbly-card bg-white p-4">
+        <h2 className="font-display text-2xl font-bold">X Layer Testnet Controls</h2>
+        <p className="mt-1 text-xs font-bold opacity-60">
+          Use the deployer/owner wallet. Close markets, resolve winners, or refund a market for the demo loop.
+        </p>
+
+        {configured ? (
+          <div className="mt-3 space-y-1 rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)] p-3 text-[10px] font-bold">
+            <p>
+              Prediction contract:{" "}
+              <a href={xLayerExplorerAddress(getFootballPredictionAddress() ?? "")} target="_blank" rel="noreferrer" className="underline">
+                {getFootballPredictionAddress()}
+              </a>
+            </p>
+            <p>
+              Test USDT:{" "}
+              <a href={xLayerExplorerAddress(getTestUSDTAddress() ?? "")} target="_blank" rel="noreferrer" className="underline">
+                {getTestUSDTAddress()}
+              </a>
+            </p>
+          </div>
+        ) : (
+          <p className="mt-3 rounded-2xl border-2 border-amber-700 bg-amber-50 p-3 text-xs font-bold text-amber-800">
+            Deploy contracts with npm run deploy:xlayer, then set NEXT_PUBLIC_FOOTBALL_PREDICTION_ADDRESS and NEXT_PUBLIC_TEST_USDT_ADDRESS.
+          </p>
+        )}
+
+        <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_1fr_auto_auto_auto]">
+          <Field label="Market ID" value={marketControl.marketId} onChange={(value) => setMarketControl((current) => ({ ...current, marketId: value.replace(/[^0-9]/g, "") }))} />
+          <Field label="Winning option" value={marketControl.winningOption} onChange={(value) => setMarketControl((current) => ({ ...current, winningOption: value.replace(/[^0-9]/g, "") }))} />
+          <button
+            type="button"
+            disabled={!configured || busyAction !== null}
+            onClick={() => runMarketAction("close")}
+            className="self-end rounded-full border-2 border-[var(--color-primary-900)] bg-white px-4 py-2 text-xs font-bold disabled:opacity-50"
+          >
+            {busyAction === "close" ? "Closing..." : "Close"}
+          </button>
+          <button
+            type="button"
+            disabled={!configured || busyAction !== null}
+            onClick={() => runMarketAction("resolve")}
+            className="self-end rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-4 py-2 text-xs font-bold disabled:opacity-50"
+          >
+            {busyAction === "resolve" ? "Resolving..." : "Resolve"}
+          </button>
+          <button
+            type="button"
+            disabled={!configured || busyAction !== null}
+            onClick={() => runMarketAction("refund")}
+            className="self-end rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-yellow)] px-4 py-2 text-xs font-bold disabled:opacity-50"
+          >
+            {busyAction === "refund" ? "Refunding..." : "Refund"}
+          </button>
+        </div>
+        {controlStatus && (
+          <p className="mt-3 rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-blue)] p-3 text-xs font-bold">
+            {controlStatus}
+            {controlTxUrl && (
+              <a href={controlTxUrl} target="_blank" rel="noreferrer" className="ml-2 inline-flex items-center gap-1 underline">
+                View tx <ExternalLink size={11} />
+              </a>
+            )}
+          </p>
+        )}
+      </section>
+
+      <section className="bubbly-card bg-white p-4">
+        <h2 className="font-display text-2xl font-bold">Game Control</h2>
+        <div className="mt-3 space-y-2">
+          {FOOTBALL_GAMES.map((game) => (
+            <div key={game.id} className="rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)] p-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-bold">{game.title}</p>
+                  <p className="text-[10px] font-bold opacity-60">
+                    {formatMatchTime(game.matchStartTime)} - {statusLabel(game.status)} - {formatUSDT(game.totalPool)} pool
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {["Edit", "Close", "Resolve", "Refund"].map((action) => (
+                    <button key={action} className="rounded-full border-2 border-[var(--color-primary-900)] bg-white px-3 py-1.5 text-[10px] font-bold">
+                      {action}
+                    </button>
+                  ))}
                 </div>
               </div>
-              <ArrowRight size={14} className="opacity-40 shrink-0 sm:size-4" />
             </div>
           ))}
         </div>
-      </motion.section>
-
-      {/* 0G Integration Proof */}
-      <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.25 }}
-      >
-        <h2 className="font-display text-lg font-bold mb-3 sm:text-xl">0G Integration Proof</h2>
-        <div className="bubbly-card p-3 bg-white space-y-2.5 sm:p-4 sm:space-y-3">
-          <div className="rounded-xl bg-[var(--color-pastel-purple)] border-2 border-[var(--color-primary-900)] p-2.5 sm:p-3">
-            <p className="text-[9px] font-bold opacity-60 sm:text-[10px]">0G mainnet Flow contract</p>
-            <p className="break-all text-[10px] font-bold leading-relaxed sm:text-xs">{zeroGContract}</p>
-          </div>
-          {proofRecords.length === 0 && (
-            <p className="text-[10px] font-bold opacity-50 sm:text-xs">
-              Real 0G upload receipts will appear here after attendees complete user-paid mission uploads.
-            </p>
-          )}
-          {proofRecords.map((proof) => {
-            const mission = MISSIONS.find((item) => item.id === proof.missionId);
-
-            return (
-              <motion.div
-                key={proof.id}
-                initial={{ opacity: 0, y: 12, rotate: -0.6 }}
-                animate={{ opacity: 1, y: 0, rotate: 0 }}
-                whileHover={{ y: -3, scale: 1.01 }}
-                transition={{ type: "spring", stiffness: 280, damping: 22 }}
-                className="premium-glint rounded-xl bg-[var(--color-bg-base)] border-2 border-[var(--color-primary-900)] p-2.5 sm:p-3"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="font-bold text-[11px] truncate sm:text-xs">{mission?.title ?? proof.missionId}</p>
-                    <p className="truncate text-[9px] font-bold opacity-50 sm:text-[10px]">
-                      {PROOF_TYPE_COPY[proof.proofType].label} · {proof.location}
-                    </p>
-                  </div>
-                  <motion.span
-                    initial={{ scale: 1.35, rotate: -8 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 18 }}
-                    className="font-bold text-[9px] text-green-700 shrink-0 rounded-full border border-green-700 bg-green-100 px-1.5 py-0.5 sm:text-[10px] sm:px-2 sm:py-1"
-                  >
-                    {proof.xpEarned} XP
-                  </motion.span>
-                </div>
-                <div className="mt-1.5 flex items-center gap-2 text-[9px] font-bold sm:mt-2 sm:text-[10px]">
-                  <span className="opacity-50 truncate min-w-0">{proof.storage.storageRef}</span>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {proof.storage.explorerUrl ? (
-                      <a href={proof.storage.explorerUrl} target="_blank" rel="noreferrer" className="text-[var(--color-primary-500)] underline inline-flex items-center gap-0.5">
-                        Explorer <ExternalLink size={8} />
-                      </a>
-                    ) : (
-                      <span className="proof-shimmer">{shortHash(proof.storage.rootHash)}</span>
-                    )}
-                    {proof.chainAnchor?.explorerUrl && (
-                      <a href={proof.chainAnchor.explorerUrl} target="_blank" rel="noreferrer" className="text-[var(--color-primary-500)] underline inline-flex items-center gap-0.5">
-                        Registry <ExternalLink size={8} />
-                      </a>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
-      </motion.section>
-
-      {/* Analytics grid — stacks on mobile, side-by-side on desktop */}
-      <div className="grid gap-5 sm:grid-cols-2 sm:gap-6">
-        {/* Top Missions */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <h2 className="font-display text-lg font-bold mb-3 sm:text-xl">Top Missions</h2>
-          <div className="bubbly-card p-3 bg-white space-y-2.5 sm:p-4 sm:space-y-3">
-            {ANALYTICS.topMissions.map((mission, i) => (
-              <motion.div key={i} className="flex items-center gap-2.5 rounded-xl p-1 sm:gap-3" whileHover={{ x: 3 }}>
-                <span className="font-bold text-xs w-4 text-center opacity-50 sm:w-5 sm:text-sm">{i + 1}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-[11px] truncate sm:text-xs">{mission.name}</p>
-                  <div className="w-full h-1.5 bg-gray-100 rounded-full mt-1 overflow-hidden sm:h-2">
-                    <motion.div
-                      className="h-full rounded-full"
-                      style={{
-                        backgroundColor: i === 0 ? "var(--color-pastel-purple)" : i === 1 ? "var(--color-pastel-pink)" : "var(--color-pastel-blue)",
-                      }}
-                      initial={{ width: 0 }}
-                      animate={{ width: `${ANALYTICS.topMissions[0].completions ? (mission.completions / ANALYTICS.topMissions[0].completions) * 100 : 0}%` }}
-                      whileHover={{ filter: "brightness(1.08)" }}
-                      transition={{ type: "spring", stiffness: 85, damping: 18, delay: 0.4 + i * 0.1 }}
-                    />
-                  </div>
-                </div>
-                <motion.span className="font-bold text-[10px] opacity-60 shrink-0 sm:text-xs" whileHover={{ scale: 1.15 }}>
-                  {mission.completions}
-                </motion.span>
-              </motion.div>
-            ))}
-          </div>
-        </motion.section>
-
-        {/* Sponsor Visits */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-        >
-          <h2 className="font-display text-lg font-bold mb-3 sm:text-xl">Sponsor Booth Visits</h2>
-          <div className="bubbly-card p-3 bg-white space-y-2 sm:p-4 sm:space-y-3">
-            {ANALYTICS.sponsorVisits.map((sponsor, i) => (
-              <motion.div key={i} className="flex items-center justify-between gap-2 rounded-xl p-1" whileHover={{ x: 3, backgroundColor: "rgba(255,255,255,0.55)" }}>
-                <div className="flex min-w-0 items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-[var(--color-pastel-yellow)] border-2 border-[var(--color-primary-900)] flex items-center justify-center text-[10px] font-bold sm:w-8 sm:h-8 sm:text-xs">
-                    {sponsor.sponsor[0]}
-                  </div>
-                  <span className="truncate text-xs font-bold sm:text-sm">{sponsor.sponsor}</span>
-                </div>
-                <motion.span className="shrink-0 text-[10px] font-bold sm:text-sm" whileHover={{ scale: 1.08 }}>{sponsor.visits}</motion.span>
-              </motion.div>
-            ))}
-          </div>
-        </motion.section>
-      </div>
-
-      {/* Hourly Activity — full width */}
-      <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-      >
-        <h2 className="font-display text-lg font-bold mb-3 sm:text-xl">Today&apos;s Activity</h2>
-        <div className="bubbly-card p-3 bg-white sm:p-4">
-          <div className="flex h-24 items-end gap-[3px] sm:h-28 sm:gap-1">
-            {ANALYTICS.hourlyActivity.map((hour, i) => {
-              const maxMissions = Math.max(...ANALYTICS.hourlyActivity.map((h) => h.missions));
-              const height = maxMissions ? (hour.missions / maxMissions) * 100 : 0;
-              return (
-                <div key={i} className="flex-1 flex flex-col items-center gap-0.5 sm:gap-1">
-                  <motion.div
-                    className="w-full rounded-t-md border border-[var(--color-primary-900)] bg-[var(--color-pastel-purple)] sm:rounded-t-lg sm:border-2"
-                    initial={{ height: 0 }}
-                    animate={{ height: `${height}%` }}
-                    whileHover={{ scaleY: 1.04, filter: "brightness(1.08)" }}
-                    title={`${hour.hour}: ${hour.missions} missions`}
-                    transition={{ type: "spring", stiffness: 95, damping: 17, delay: 0.5 + i * 0.05 }}
-                  />
-                  <span className="text-[6px] font-bold opacity-40 sm:text-[8px]">{hour.hour}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </motion.section>
+      </section>
     </div>
+  );
+}
+
+function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="bubbly-card bg-white p-4">
+      <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-purple)]">
+        {icon}
+      </div>
+      <p className="font-display text-xl font-bold">{value}</p>
+      <p className="text-[10px] font-bold uppercase opacity-50">{label}</p>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  value,
+  type = "text",
+  onChange,
+}: {
+  label: string;
+  value: string;
+  type?: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="text-[10px] font-bold uppercase opacity-50">{label}</span>
+      <input
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-1 w-full rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)] px-3 py-2 text-xs font-bold outline-none"
+      />
+    </label>
   );
 }

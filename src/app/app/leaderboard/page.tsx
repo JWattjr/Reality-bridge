@@ -1,219 +1,99 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, ShieldCheck, Trophy } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { useProofPlayAuth } from "@/components/ProofPlayAuthProvider";
-import { getLevelForXp, type LeaderboardEntry } from "@/lib/mock-data";
-
-const PODIUM_COLORS = [
-  "var(--color-pastel-yellow)",
-  "var(--color-pastel-blue)",
-  "var(--color-pastel-pink)",
-];
-
-const PODIUM_LABELS = ["#1", "#2", "#3"];
-
-const PAGE_SIZE = 10;
+import Link from "next/link";
+import { Swords, Trophy } from "lucide-react";
+import {
+  FOOTBALL_GAMES,
+  formatMatchTime,
+  getPlayerLeaderboard,
+  getPvPLeaderboard,
+} from "@/lib/football-data";
 
 export default function LeaderboardPage() {
-  const auth = useProofPlayAuth();
-  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [page, setPage] = useState(1);
-
-  useEffect(() => {
-    fetch("/api/leaderboard?eventId=evt_1", { cache: "no-store" })
-      .then((response) => response.json())
-      .then((data: { entries?: LeaderboardEntry[] }) => setEntries(data.entries ?? []))
-      .catch(() => setEntries([]))
-      .finally(() => setIsLoading(false));
-  }, []);
-
-  const topThree = entries.slice(0, 3);
-  const rest = entries.slice(3);
-  const totalPages = Math.max(1, Math.ceil(rest.length / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
-  const pagedRest = useMemo(
-    () => rest.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
-    [rest, currentPage],
-  );
-  const currentEntry = useMemo(() => {
-    if (!auth.userId) return undefined;
-    return entries.find((entry) => entry.userId.toLowerCase() === auth.userId?.toLowerCase());
-  }, [auth.userId, entries]);
+  const pvpLeaders = getPvPLeaderboard();
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-5">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="font-display text-xl font-bold flex items-center gap-2">
-          <Trophy size={22} /> Leaderboard
-        </h1>
-        <p className="text-xs font-bold opacity-60 mt-0.5">BlockNova Event - Real proof rankings</p>
-        <p className="mt-2 inline-flex items-start gap-1.5 rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-blue)] px-3 py-2 text-[11px] font-bold">
-          <ShieldCheck size={12} className="mt-0.5 shrink-0" />
-          <span>
-            Complete missions to earn XP — more XP = higher rank, ties break by missions completed. Powered by validated proofs stored on 0G, so only verified submissions count.
-          </span>
-        </p>
-      </motion.div>
+    <div className="mx-auto max-w-6xl space-y-5">
+      <div>
+        <h1 className="font-display text-3xl font-bold">Leaderboards</h1>
+        <p className="text-sm font-bold opacity-60">World Cup PvP points stack across matches. Each game also has a match leaderboard.</p>
+      </div>
 
-      {isLoading && (
-        <p className="rounded-2xl border-2 border-[var(--color-primary-900)] bg-white p-3 text-xs font-bold opacity-70">
-          Loading proof-backed rankings...
-        </p>
-      )}
-
-      {!isLoading && entries.length === 0 && (
-        <div className="bubbly-card bg-white p-5 text-center">
-          <p className="font-display text-lg font-bold">No completed missions yet</p>
-          <p className="mt-1 text-xs font-bold opacity-60">
-            The leaderboard fills from real 0G proof records after signed-in users complete missions.
-          </p>
+      <section className="bubbly-card bg-[var(--color-pastel-green)] p-4">
+        <div className="mb-3 flex items-center gap-2">
+          <Swords size={18} />
+          <h2 className="font-display text-2xl font-bold">World Cup PvP Leaderboard</h2>
         </div>
-      )}
-
-      {topThree.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="flex items-end justify-center gap-3 pt-4"
-        >
-          {topThree[1] && <PodiumCard entry={topThree[1]} rank={2} height="h-28" delay={0.3} />}
-          {topThree[0] && <PodiumCard entry={topThree[0]} rank={1} height="h-36" delay={0.2} />}
-          {topThree[2] && <PodiumCard entry={topThree[2]} rank={3} height="h-24" delay={0.4} />}
-        </motion.div>
-      )}
-
-      {auth.authenticated && currentEntry && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.5 }}
-          className="bubbly-card p-3 bg-[var(--color-pastel-purple)] flex items-center justify-between"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-white bubbly-border flex items-center justify-center text-lg">
-              {currentEntry.avatar}
-            </div>
-            <div>
-              <p className="font-bold text-sm">You - {currentEntry.name}</p>
-              <p className="text-xs font-bold opacity-70">
-                Level {currentEntry.level} - {getLevelForXp(currentEntry.xp).title}
-              </p>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="font-display font-bold text-lg">#{currentEntry.rank}</p>
-            <p className="text-xs font-bold opacity-70">{currentEntry.xp.toLocaleString()} XP</p>
-          </div>
-        </motion.div>
-      )}
-
-      {auth.authenticated && !currentEntry && !isLoading && entries.length > 0 && (
-        <p className="rounded-2xl border-2 border-[var(--color-primary-900)] bg-white p-3 text-xs font-bold opacity-70">
-          Complete a mission to enter the live ranking.
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-left text-xs font-bold">
+            <thead className="opacity-55">
+              <tr>
+                <th className="py-2 pr-3">Rank</th>
+                <th className="py-2 pr-3">Player</th>
+                <th className="py-2 pr-3">PvP points</th>
+                <th className="py-2 pr-3">Tier</th>
+                <th className="py-2 pr-3">Wins / Draws / Losses</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pvpLeaders.map((entry) => (
+                <tr key={entry.userId} className="border-t-2 border-[var(--color-primary-900)]/15">
+                  <td className="py-3 pr-3">#{entry.rank}</td>
+                  <td className="py-3 pr-3">{entry.player}</td>
+                  <td className="py-3 pr-3">{entry.totalPvPPoints.toLocaleString()}</td>
+                  <td className="py-3 pr-3">{entry.rankTitle}</td>
+                  <td className="py-3 pr-3">{entry.wins} / {entry.draws} / {entry.losses}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-3 text-[10px] font-bold opacity-65">
+          Automatic PvP only: back at least 1 USDT pick, get paired at match start, compare correct-pick hits after resolution.
         </p>
-      )}
+      </section>
 
-      <div className="space-y-1.5">
-        {pagedRest.map((entry, index) => {
-          const isCurrentUser = entry.userId.toLowerCase() === auth.userId?.toLowerCase();
+      <div className="grid gap-5 lg:grid-cols-3">
+        {FOOTBALL_GAMES.map((game) => {
+          const players = getPlayerLeaderboard(game.id);
 
           return (
-            <motion.div
-              key={entry.userId}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.5 + index * 0.04 }}
-              className={`rounded-2xl border-2 border-[var(--color-primary-900)] p-3 flex items-center justify-between transition-all ${
-                isCurrentUser ? "bg-[var(--color-pastel-purple)]/30 border-[var(--color-primary-500)]" : "bg-white"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <span className="font-display font-bold text-sm w-6 text-center opacity-60">
-                  {entry.rank}
-                </span>
-                <div className="w-8 h-8 rounded-full bg-gray-100 border-2 border-[var(--color-primary-900)] flex items-center justify-center text-sm">
-                  {entry.avatar}
-                </div>
-                <div>
-                  <p className={`font-bold text-sm ${isCurrentUser ? "text-[var(--color-primary-700)]" : ""}`}>
-                    {entry.name} {isCurrentUser && "(You)"}
-                  </p>
-                  <p className="text-[10px] font-bold opacity-50">
-                    Lv.{entry.level} - {entry.missionsCompleted} missions
-                  </p>
-                </div>
+            <article key={game.id} className="bubbly-card bg-white p-4">
+              <div className="mb-4">
+                <p className="text-[10px] font-bold uppercase opacity-50">{formatMatchTime(game.matchStartTime)}</p>
+                <h2 className="font-display text-2xl font-bold">{game.title}</h2>
               </div>
-              <span className="font-bold text-sm">{entry.xp.toLocaleString()} XP</span>
-            </motion.div>
+
+              <section>
+                <div className="mb-2 flex items-center gap-2">
+                  <Trophy size={16} />
+                  <h3 className="font-bold">Match Leaderboard</h3>
+                </div>
+                <div className="space-y-2">
+                  {players.slice(0, 5).map((entry) => (
+                    <div key={entry.userId} className="flex items-center justify-between rounded-2xl border-2 border-[var(--color-primary-900)] bg-[var(--color-bg-base)] px-3 py-2 text-xs font-bold">
+                      <span className="truncate">#{entry.rank} {entry.player}</span>
+                      <span>{entry.points} pts</span>
+                    </div>
+                  ))}
+                  {players.length === 0 && <p className="text-xs font-bold opacity-60">No resolved picks yet.</p>}
+                </div>
+              </section>
+
+              <Link
+                href={`/app/event/${game.id}`}
+                className="mt-4 inline-flex w-full justify-center rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-green)] px-4 py-2 text-xs font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
+              >
+                Open Game
+              </Link>
+            </article>
           );
         })}
       </div>
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between gap-3 rounded-2xl border-2 border-[var(--color-primary-900)] bg-white px-3 py-2">
-          <button
-            type="button"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={currentPage <= 1}
-            className="inline-flex items-center gap-1 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-blue)] px-3 py-1.5 text-xs font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
-          >
-            <ChevronLeft size={14} /> Prev
-          </button>
-          <span className="text-xs font-bold opacity-70">
-            Page {currentPage} of {totalPages}
-          </span>
-          <button
-            type="button"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={currentPage >= totalPages}
-            className="inline-flex items-center gap-1 rounded-full border-2 border-[var(--color-primary-900)] bg-[var(--color-pastel-blue)] px-3 py-1.5 text-xs font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
-          >
-            Next <ChevronRight size={14} />
-          </button>
-        </div>
-      )}
+      <div className="bubbly-card bg-white p-4 text-xs font-bold opacity-75">
+        Ranking rule: players sort by points descending. Ties sort by total winnings, then earliest final prediction.
+      </div>
     </div>
-  );
-}
-
-function PodiumCard({
-  entry,
-  rank,
-  height,
-  delay,
-}: {
-  entry: LeaderboardEntry;
-  rank: number;
-  height: string;
-  delay: number;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 40 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, type: "spring", bounce: 0.4 }}
-      className="flex flex-col items-center w-24"
-    >
-      <div className="relative mb-2">
-        <div className="w-14 h-14 rounded-full border-3 border-[var(--color-primary-900)] flex items-center justify-center text-2xl bg-white shadow-[2px_2px_0px_0px_#312e81]">
-          {entry.avatar}
-        </div>
-        <span className="absolute -bottom-1 -right-1 rounded-full border-2 border-[var(--color-primary-900)] bg-white px-1 text-[10px] font-bold">
-          {PODIUM_LABELS[rank - 1]}
-        </span>
-      </div>
-      <p className="font-bold text-xs text-center truncate w-full">{entry.name.split(" ")[0]}</p>
-      <p className="text-[10px] font-bold opacity-60">{entry.xp.toLocaleString()} XP</p>
-      <div
-        className={`w-full ${height} mt-2 rounded-t-2xl border-2 border-[var(--color-primary-900)] flex items-center justify-center`}
-        style={{ backgroundColor: PODIUM_COLORS[rank - 1] }}
-      >
-        <span className="font-display font-bold text-2xl">#{rank}</span>
-      </div>
-    </motion.div>
   );
 }

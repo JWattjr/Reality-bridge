@@ -12,6 +12,16 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Deprecated proof-of-participation surfaces kept temporarily for migration safety.
+    "src/app/proofs/**",
+    "src/app/0g-proof/**",
+    "src/components/AuthenticatedImage.tsx",
+    "src/components/CheckInModal.tsx",
+    "src/components/EnterEventDialog.tsx",
+    "src/components/EventEntriesDialog.tsx",
+    "src/components/MissionQRCodePanel.tsx",
+    "src/components/MissionVerifyAction.tsx",
+    "src/hooks/useMissionVerification.ts",
   ]),
 ]);
 
