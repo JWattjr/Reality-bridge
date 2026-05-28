@@ -11,6 +11,7 @@ import { ProfilesModule } from "./profiles/profiles.module";
 import { WalletModule } from "./wallet/wallet.module";
 import { LeaderboardModule } from "./leaderboard/leaderboard.module";
 import { XCupModule } from "./xcup/xcup.module";
+import { AdminModule } from "./admin/admin.module";
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { XCupModule } from "./xcup/xcup.module";
     WalletModule,
     LeaderboardModule,
     XCupModule,
+    AdminModule,
     // Enforce 100 requests per minute by default
     ThrottlerModule.forRoot([
       {

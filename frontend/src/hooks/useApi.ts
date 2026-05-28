@@ -238,3 +238,78 @@ export function useGameNFTRewards(gameId: string) {
   });
 }
 
+export function useAdminLogin() {
+  return useMutation({
+    mutationFn: async ({ authHeader }: { authHeader: string }) => {
+      const { data } = await api.post("/api/admin/login", {}, {
+        headers: { Authorization: authHeader },
+      });
+      return data;
+    },
+  });
+}
+
+export function useAdminResolveMarket() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      authHeader,
+      marketId,
+      winningOptionIndex,
+    }: {
+      authHeader: string;
+      marketId: string;
+      winningOptionIndex: number;
+    }) => {
+      const { data } = await api.post(
+        "/api/admin/resolve-market",
+        { marketId, winningOptionIndex },
+        { headers: { Authorization: authHeader } }
+      );
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["games"] });
+      queryClient.invalidateQueries({ queryKey: ["gameDetails"] });
+      queryClient.invalidateQueries({ queryKey: ["gameMarkets"] });
+      queryClient.invalidateQueries({ queryKey: ["predictions"] });
+    },
+  });
+}
+
+export function useAdminPairPvP() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ authHeader, gameId }: { authHeader: string; gameId: string }) => {
+      const { data } = await api.post(
+        "/api/admin/pair-pvp",
+        { gameId },
+        { headers: { Authorization: authHeader } }
+      );
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["gamePvPMatches", variables.gameId] });
+    },
+  });
+}
+
+export function useAdminResolvePvP() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ authHeader, gameId }: { authHeader: string; gameId: string }) => {
+      const { data } = await api.post(
+        "/api/admin/resolve-pvp",
+        { gameId },
+        { headers: { Authorization: authHeader } }
+      );
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["gamePvPMatches", variables.gameId] });
+      queryClient.invalidateQueries({ queryKey: ["pvpLeaderboard"] });
+    },
+  });
+}
+
+
