@@ -57,6 +57,8 @@ export class XCupService {
       .collection(MONGO_COLLECTIONS.predictions)
       .updateOne({ id: prediction.id }, { $set: prediction }, { upsert: true });
 
+    await this.refreshPvPPairing(prediction.gameId);
+
     return { status: 'indexed', prediction };
   }
 
@@ -156,26 +158,7 @@ export class XCupService {
   }
 
   async pairPvP(gameEventId: string): Promise<any> {
-    const existing = await this.db
-      .collection(MONGO_COLLECTIONS.pvpMatches)
-      .countDocuments({ gameEventId });
-
-    if (existing > 0) {
-      return { paired: false, existingMatches: existing };
-    }
-
-    const predictions = await this.db
-      .collection<Prediction>(MONGO_COLLECTIONS.predictions)
-      .find({ gameId: gameEventId })
-      .toArray();
-    const matches = pairEligibleUsersForPvP(gameEventId, predictions);
-
-    if (matches.length > 0) {
-      await this.db
-        .collection<PvPMatch>(MONGO_COLLECTIONS.pvpMatches)
-        .insertMany(matches);
-    }
-
+    const matches = await this.refreshPvPPairing(gameEventId);
     return { paired: true, matchesCreated: matches.length, matches };
   }
 
@@ -257,6 +240,31 @@ export class XCupService {
       .collection(MONGO_COLLECTIONS.nftRewards)
       .find({ gameId })
       .toArray();
+  }
+
+  private async refreshPvPPairing(gameEventId: string): Promise<PvPMatch[]> {
+    const pvpCollection = this.db.collection<PvPMatch>(MONGO_COLLECTIONS.pvpMatches);
+    const resolvedCount = await pvpCollection.countDocuments({
+      gameEventId,
+      status: 'RESOLVED',
+    });
+
+    if (resolvedCount > 0) {
+      return pvpCollection.find({ gameEventId }).toArray();
+    }
+
+    const predictions = await this.db
+      .collection<Prediction>(MONGO_COLLECTIONS.predictions)
+      .find({ gameId: gameEventId })
+      .toArray();
+    const matches = pairEligibleUsersForPvP(gameEventId, predictions);
+
+    await pvpCollection.deleteMany({ gameEventId, status: { $ne: 'RESOLVED' } });
+    if (matches.length > 0) {
+      await pvpCollection.insertMany(matches);
+    }
+
+    return matches;
   }
 
   private countHits(predictions: Prediction[], userId: string) {

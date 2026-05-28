@@ -30,6 +30,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       queryClient.invalidateQueries({ queryKey: ["games"] });
       queryClient.invalidateQueries({ queryKey: ["gameDetails"] });
       queryClient.invalidateQueries({ queryKey: ["gameMarkets"] });
+      queryClient.invalidateQueries({ queryKey: ["gamePvPMatches"] });
+      queryClient.invalidateQueries({ queryKey: ["pvpLeaderboard"] });
     });
 
     socketInstance.on("profileUpdated", (profile) => {

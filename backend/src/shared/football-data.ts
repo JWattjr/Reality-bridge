@@ -91,6 +91,8 @@ export interface PvPMatch {
   gameEventId: string;
   playerAId: string;
   playerBId?: string;
+  playerAEntryNumber?: number;
+  playerBEntryNumber?: number;
   playerAHits: number;
   playerBHits: number;
   playerAPickCount: number;
@@ -255,42 +257,12 @@ function pvpResultLabel(match: PvPMatch, userId: string) {
 }
 
 export function pairEligibleUsersForPvP(gameId: string, predictions: Prediction[] = []): PvPMatch[] {
-  const usersByMarkets = new Map<string, Set<string>>();
-
-  for (const pick of predictions.filter((predictionItem) => predictionItem.gameId === gameId)) {
-    const markets = usersByMarkets.get(pick.userId) ?? new Set<string>();
-    markets.add(pick.marketId);
-    usersByMarkets.set(pick.userId, markets);
-  }
-
-  const usersByPicks = [...usersByMarkets.entries()].map(
-    ([userId, marketIds]) => [userId, marketIds.size] as [string, number],
-  );
-
-  const buckets = [
-    usersByPicks.filter(([, picks]) => picks >= 1 && picks <= 2),
-    usersByPicks.filter(([, picks]) => picks >= 3 && picks <= 4),
-    usersByPicks.filter(([, picks]) => picks >= 5 && picks <= 6),
-  ].map((bucket) => bucket.sort(([userA], [userB]) => userA.localeCompare(userB)));
-
+  const users = getPvPEntrantsByFirstBid(gameId, predictions);
   const matches: PvPMatch[] = [];
-  const leftovers: Array<[string, number]> = [];
 
-  for (const bucket of buckets) {
-    for (let index = 0; index < bucket.length; index += 2) {
-      const playerA = bucket[index];
-      const playerB = bucket[index + 1];
-      if (!playerB) {
-        leftovers.push(playerA);
-        continue;
-      }
-      matches.push(createPvPPair(gameId, matches.length + 1, playerA, playerB));
-    }
-  }
-
-  for (let index = 0; index < leftovers.length; index += 2) {
-    const playerA = leftovers[index];
-    const playerB = leftovers[index + 1];
+  for (let index = 0; index < users.length; index += 2) {
+    const playerA = users[index];
+    const playerB = users[index + 1];
     matches.push(
       playerB
         ? createPvPPair(gameId, matches.length + 1, playerA, playerB)
@@ -301,17 +273,60 @@ export function pairEligibleUsersForPvP(gameId: string, predictions: Prediction[
   return matches;
 }
 
+function getPvPEntrantsByFirstBid(gameId: string, predictions: Prediction[]) {
+  const entrants = new Map<string, {
+    userId: string;
+    entryNumber: number;
+    pickCount: number;
+    firstBidAt: string;
+    markets: Set<string>;
+  }>();
+
+  const sortedPredictions = predictions
+    .filter((pick) => pick.gameId === gameId)
+    .sort((a, b) => {
+      const timeDelta = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      if (timeDelta !== 0) return timeDelta;
+      return a.id.localeCompare(b.id);
+    });
+
+  for (const pick of sortedPredictions) {
+    const existing = entrants.get(pick.userId);
+    if (existing) {
+      existing.markets.add(pick.marketId);
+      existing.pickCount = existing.markets.size;
+      continue;
+    }
+
+    entrants.set(pick.userId, {
+      userId: pick.userId,
+      entryNumber: entrants.size + 1,
+      pickCount: 1,
+      firstBidAt: pick.createdAt,
+      markets: new Set([pick.marketId]),
+    });
+  }
+
+  return [...entrants.values()].map((entrant) => [
+    entrant.userId,
+    entrant.pickCount,
+    entrant.entryNumber,
+  ] as [string, number, number]);
+}
+
 function createPvPPair(
   gameId: string,
   index: number,
-  playerA: [string, number],
-  playerB: [string, number],
+  playerA: [string, number, number],
+  playerB: [string, number, number],
 ): PvPMatch {
   return {
     id: `pvp-${gameId}-${index}`,
     gameEventId: gameId,
     playerAId: playerA[0],
     playerBId: playerB[0],
+    playerAEntryNumber: playerA[2],
+    playerBEntryNumber: playerB[2],
     playerAHits: 0,
     playerBHits: 0,
     playerAPickCount: playerA[1],
@@ -323,18 +338,19 @@ function createPvPPair(
   };
 }
 
-function createPvPBye(gameId: string, index: number, playerA: [string, number]): PvPMatch {
+function createPvPBye(gameId: string, index: number, playerA: [string, number, number]): PvPMatch {
   return {
     id: `pvp-${gameId}-${index}`,
     gameEventId: gameId,
     playerAId: playerA[0],
+    playerAEntryNumber: playerA[2],
     playerAHits: 0,
     playerBHits: 0,
     playerAPickCount: playerA[1],
     playerBPickCount: 0,
     playerAPoints: 0,
     playerBPoints: 0,
-    status: "PAIRED",
+    status: "PENDING",
     createdAt: new Date().toISOString(),
   };
 }

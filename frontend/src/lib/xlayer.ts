@@ -1,4 +1,4 @@
-import { BrowserProvider, Contract, Interface, JsonRpcProvider, formatEther, formatUnits, isAddress, parseUnits } from "ethers";
+import { BrowserProvider, Contract, Interface, JsonRpcProvider, ZeroAddress, formatEther, formatUnits, isAddress, parseUnits } from "ethers";
 
 export const XLAYER_TESTNET = {
   chainId: 1952,
@@ -81,6 +81,32 @@ export const FOOTBALL_PREDICTION_ABI = [
       { name: "totalPool", type: "uint256" },
       { name: "winningPool", type: "uint256" },
     ],
+  },
+  {
+    type: "function",
+    name: "predictions",
+    stateMutability: "view",
+    inputs: [{ name: "", type: "uint256" }],
+    outputs: [
+      { name: "id", type: "uint256" },
+      { name: "user", type: "address" },
+      { name: "gameId", type: "uint256" },
+      { name: "marketId", type: "uint256" },
+      { name: "selectedOption", type: "uint256" },
+      { name: "amountUSDT", type: "uint256" },
+      { name: "timestamp", type: "uint256" },
+      { name: "claimed", type: "bool" },
+      { name: "resolved", type: "bool" },
+      { name: "isCorrect", type: "bool" },
+      { name: "pointsEarned", type: "uint8" },
+    ],
+  },
+  {
+    type: "function",
+    name: "marketOptionCount",
+    stateMutability: "view",
+    inputs: [{ name: "marketId", type: "uint256" }],
+    outputs: [{ name: "", type: "uint256" }],
   },
   {
     type: "event",
@@ -239,19 +265,35 @@ export async function approveAndPlacePrediction(input: {
   const signer = await getBrowserXLayerSigner(input.wallet);
   const userAddress = await signer.getAddress();
   const amount = usdtAmount(input.stake);
-  const usdt = new Contract(usdtAddress, TEST_USDT_ABI, signer);
-  const game = new Contract(predictionAddress, FOOTBALL_PREDICTION_ABI, signer);
+  
+  const readProvider = getXLayerReadProvider();
+  const usdtWrite = new Contract(usdtAddress, TEST_USDT_ABI, signer);
+  const gameRead = new Contract(predictionAddress, FOOTBALL_PREDICTION_ABI, readProvider);
+  const gameWrite = new Contract(predictionAddress, FOOTBALL_PREDICTION_ABI, signer);
 
-  const currentAllowance = (await usdt.allowance(userAddress, predictionAddress)) as bigint;
+  await assertContractCode(readProvider, usdtAddress, "Test USDT");
+  await assertContractCode(readProvider, predictionAddress, "Prediction");
+
+  const marketIssue = await getPlacePredictionIssue(gameRead, input.marketId, input.optionIndex, amount);
+  if (marketIssue) {
+    throw new Error(marketIssue);
+  }
+
+  const currentAllowance = await readErc20Allowance(readProvider, usdtAddress, userAddress, predictionAddress);
   let approvalHash: string | undefined;
 
   if (currentAllowance < amount) {
-    const approval = await usdt.approve(predictionAddress, amount);
+    let approval;
+    try {
+      approval = await usdtWrite.approve(predictionAddress, amount);
+    } catch (error) {
+      throw new Error(readTokenActionError(error, "approve"));
+    }
     approvalHash = approval.hash;
     await approval.wait();
   }
 
-  const tx = await game.placePrediction(input.marketId, input.optionIndex, amount);
+  const tx = await gameWrite.placePrediction(input.marketId, input.optionIndex, amount);
   const receipt = await tx.wait();
   const predictionId = readPredictionId(receipt?.logs ?? []);
 
@@ -314,14 +356,30 @@ async function predictionAction(wallet: XLayerWallet, action: "claimWinnings" | 
   if (!predictionAddress) throw new Error("Prediction contract is not configured yet.");
 
   const signer = await getBrowserXLayerSigner(wallet);
-  const game = new Contract(predictionAddress, FOOTBALL_PREDICTION_ABI, signer);
-  const tx = await game[action](BigInt(predictionId));
-  const receipt = await tx.wait();
+  const userAddress = await signer.getAddress();
+  
+  // Use read provider for preflight checks
+  const readProvider = getXLayerReadProvider();
+  const gameRead = new Contract(predictionAddress, FOOTBALL_PREDICTION_ABI, readProvider);
+  const onChainPredictionId = BigInt(predictionId);
+  const preflightIssue = await getPredictionActionIssue(gameRead, action, onChainPredictionId, userAddress);
 
-  return {
-    txHash: receipt?.hash ?? tx.hash,
-    explorerUrl: xLayerExplorerTx(receipt?.hash ?? tx.hash),
-  };
+  if (preflightIssue) {
+    throw new Error(preflightIssue);
+  }
+
+  const gameWrite = new Contract(predictionAddress, FOOTBALL_PREDICTION_ABI, signer);
+  try {
+    const tx = await gameWrite[action](onChainPredictionId);
+    const receipt = await tx.wait();
+
+    return {
+      txHash: receipt?.hash ?? tx.hash,
+      explorerUrl: xLayerExplorerTx(receipt?.hash ?? tx.hash),
+    };
+  } catch (error) {
+    throw new Error(readPredictionActionError(error, action));
+  }
 }
 
 async function marketAction(wallet: XLayerWallet, action: "closeMarket" | "refundMarket", marketId: string | number) {
@@ -361,4 +419,179 @@ function readPredictionId(logs: Array<{ topics?: readonly string[]; data?: strin
 
 function validAddress(value?: string) {
   return value && isAddress(value) ? value : null;
+}
+
+function getXLayerReadProvider() {
+  return new JsonRpcProvider(getXLayerRpcUrl(), XLAYER_TESTNET.chainId);
+}
+
+async function assertContractCode(provider: JsonRpcProvider, address: string, label: string) {
+  const code = await provider.getCode(address);
+  if (!code || code === "0x") {
+    throw new Error(`${label} contract was not found at ${address} on X Layer testnet. Check the deployed contract address in env.`);
+  }
+}
+
+async function readErc20Allowance(provider: JsonRpcProvider, tokenAddress: string, owner: string, spender: string) {
+  const tokenInterface = new Interface(TEST_USDT_ABI);
+  const data = tokenInterface.encodeFunctionData("allowance", [owner, spender]);
+
+  try {
+    const result = await provider.call({ to: tokenAddress, data });
+    const [allowance] = tokenInterface.decodeFunctionResult("allowance", result);
+    return allowance as bigint;
+  } catch (error) {
+    throw new Error(readTokenActionError(error, "allowance"));
+  }
+}
+
+async function getPlacePredictionIssue(game: Contract, marketId: number, optionIndex: number, amount: bigint) {
+  try {
+    const market = await game.markets(marketId);
+    const onChainMarketId = BigInt(market.id);
+
+    if (onChainMarketId <= BigInt(0)) {
+      return `Market #${marketId} was not found on-chain. Refresh the match page so it loads the latest synced market ids.`;
+    }
+
+    const status = Number(market.status);
+    if (status !== 0) {
+      return `Market #${marketId} is not open on-chain. Refresh the match page and choose an open market.`;
+    }
+
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    if (BigInt(nowSeconds) >= BigInt(market.closeTime)) {
+      return `Market #${marketId} is already closed on-chain.`;
+    }
+
+    const optionCount = Number(await game.marketOptionCount(marketId));
+    if (optionIndex < 0 || optionIndex >= optionCount) {
+      return `That outcome is not available on-chain for market #${marketId}. Refresh the match page and pick again.`;
+    }
+
+    const minStake = BigInt(market.minStake);
+    if (amount < minStake) {
+      return `This market requires at least ${formatUnits(minStake, 6)} Test USDT on-chain. Refresh the match page if that does not match the displayed minimum.`;
+    }
+
+    return "";
+  } catch (error) {
+    return readPredictionPlacementError(error);
+  }
+}
+
+async function getPredictionActionIssue(
+  game: Contract,
+  action: "claimWinnings" | "claimRefund",
+  predictionId: bigint,
+  userAddress: string,
+) {
+  try {
+    const prediction = await game.predictions(predictionId);
+    const owner = String(prediction.user ?? ZeroAddress);
+    const ownerLower = owner.toLowerCase();
+
+    if (ownerLower === ZeroAddress.toLowerCase()) {
+      return `Prediction #${predictionId.toString()} was not found on this X Layer contract. This usually means the app indexed a bet from another deployment.`;
+    }
+
+    if (ownerLower !== userAddress.toLowerCase()) {
+      return `This bet belongs to ${shortAddress(owner)}, but your Privy wallet is ${shortAddress(userAddress)}. Claim with the wallet that placed the bet.`;
+    }
+
+    if (prediction.claimed) {
+      return "This bet has already been claimed.";
+    }
+
+    const market = await game.markets(prediction.marketId);
+    const marketStatus = Number(market.status);
+
+    if (action === "claimRefund") {
+      if (marketStatus !== 4) {
+        return "This market is not refundable on-chain yet.";
+      }
+      return "";
+    }
+
+    if (!prediction.resolved || marketStatus !== 2) {
+      return "This market is not resolved on-chain yet. Resolve it from the admin dashboard using the same X Layer contract, then claim.";
+    }
+
+    if (!prediction.isCorrect) {
+      return "This pick did not win, so there are no winnings to claim.";
+    }
+
+    if (BigInt(market.winningPool) <= BigInt(0)) {
+      return "This market has no winning pool on-chain.";
+    }
+
+    return "";
+  } catch (error) {
+    return readPredictionActionError(error, action);
+  }
+}
+
+function readPredictionActionError(error: unknown, action: "claimWinnings" | "claimRefund") {
+  const fallback = action === "claimWinnings" ? "Could not claim winnings on X Layer." : "Could not claim refund on X Layer.";
+  const anyError = error as {
+    reason?: string;
+    shortMessage?: string;
+    message?: string;
+    info?: { error?: { message?: string } };
+  };
+  const raw = anyError.reason ?? anyError.shortMessage ?? anyError.info?.error?.message ?? anyError.message ?? "";
+
+  if (raw.includes("Not your pick")) return "This bet was placed by another wallet. Switch to the wallet that placed it.";
+  if (raw.includes("No winnings")) return "This pick is not claimable yet or it did not win.";
+  if (raw.includes("Claimed") || raw.includes("Already claimed")) return "This bet has already been claimed.";
+  if (raw.includes("Market unresolved")) return "This market is not resolved on-chain yet.";
+  if (raw.includes("No winning pool")) return "This market has no winning pool on-chain.";
+  if (raw.includes("Not refunded")) return "This market is not refundable on-chain yet.";
+  if (raw.includes("USDT payout failed")) return "The payout transfer failed. The contract may not have enough Test USDT for this payout.";
+  if (raw.includes("missing revert data") || raw.includes("CALL_EXCEPTION")) return fallback;
+
+  return raw || fallback;
+}
+
+function readTokenActionError(error: unknown, action: "allowance" | "approve") {
+  const fallback =
+    action === "allowance"
+      ? "Could not read Test USDT allowance on X Layer. Refresh the app and confirm the Test USDT address matches the deployed X Layer token."
+      : "Could not approve Test USDT. Confirm your Privy wallet is on X Layer testnet and try again.";
+  const anyError = error as {
+    reason?: string;
+    shortMessage?: string;
+    message?: string;
+    info?: { error?: { message?: string } };
+  };
+  const raw = anyError.reason ?? anyError.shortMessage ?? anyError.info?.error?.message ?? anyError.message ?? "";
+
+  if (raw.includes("missing revert data") || raw.includes("CALL_EXCEPTION")) return fallback;
+  if (raw.includes("network") || raw.includes("detect network")) return "X Layer RPC is not responding. Try again in a moment.";
+
+  return raw || fallback;
+}
+
+function readPredictionPlacementError(error: unknown) {
+  const anyError = error as {
+    reason?: string;
+    shortMessage?: string;
+    message?: string;
+    info?: { error?: { message?: string } };
+  };
+  const raw = anyError.reason ?? anyError.shortMessage ?? anyError.info?.error?.message ?? anyError.message ?? "";
+
+  if (raw.includes("Market not found")) return "This market was not found on-chain. Refresh the match page so it loads the latest synced market ids.";
+  if (raw.includes("Market not open")) return "This market is not open on-chain.";
+  if (raw.includes("Market closed")) return "This market is already closed on-chain.";
+  if (raw.includes("Bad option")) return "That outcome is not available on-chain for this market.";
+  if (raw.includes("Stake too low")) return "Your stake is below the on-chain minimum for this market. Refresh the match page and try again.";
+  if (raw.includes("USDT transfer failed")) return "The Test USDT transfer failed. Check your balance and allowance, then try again.";
+  if (raw.includes("missing revert data") || raw.includes("CALL_EXCEPTION")) return "Could not verify this market on X Layer. Refresh the match page and try again.";
+
+  return raw || "Could not verify this market on X Layer. Refresh the match page and try again.";
+}
+
+function shortAddress(address: string) {
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }

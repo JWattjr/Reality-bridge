@@ -91,6 +91,8 @@ export interface PvPMatch {
   gameEventId: string;
   playerAId: string;
   playerBId?: string;
+  playerAEntryNumber?: number;
+  playerBEntryNumber?: number;
   playerAHits: number;
   playerBHits: number;
   playerAPickCount: number;
@@ -122,6 +124,7 @@ export interface PvPCardState {
   message: string;
   match?: PvPMatch;
   opponent?: string;
+  entryNumber?: number;
   userHits: number;
   opponentHits: number;
   resultLabel: string;
@@ -173,6 +176,7 @@ export function getPvPCardState(
   const match = getPvPMatchForUser(gameId, userId, customMatches);
   const isPlayerA = match?.playerAId === userId;
   const opponentId = isPlayerA ? match?.playerBId : match?.playerAId;
+  const entryNumber = match ? (isPlayerA ? match.playerAEntryNumber : match.playerBEntryNumber) : undefined;
   const userHits = match ? (isPlayerA ? match.playerAHits : match.playerBHits) : getUserHits(gameId, userId, customPredictions);
   const opponentHits = match ? (isPlayerA ? match.playerBHits : match.playerAHits) : 0;
   const pointsEarned = match ? (isPlayerA ? match.playerAPoints : match.playerBPoints) : 0;
@@ -183,6 +187,7 @@ export function getPvPCardState(
       pickCount,
       totalMarkets,
       message: "Back at least 1 pick with USDT to enter automatic PvP.",
+      entryNumber,
       userHits,
       opponentHits,
       resultLabel: "Not entered",
@@ -195,7 +200,8 @@ export function getPvPCardState(
       eligible: true,
       pickCount,
       totalMarkets,
-      message: "Eligible. Pairing starts automatically when the match starts.",
+      message: "Eligible. Waiting for the next even-numbered player in this match pool.",
+      entryNumber,
       userHits,
       opponentHits,
       resultLabel: "Waiting for pairing",
@@ -209,9 +215,12 @@ export function getPvPCardState(
     totalMarkets,
     message: match.status === "RESOLVED"
       ? "PvP battle resolved. USDT payouts stay separate."
-      : "More picks = more chances to score hits.",
+      : match.playerBId
+        ? "Paired automatically by entry order. More picks = more chances to score hits."
+        : "Pending until the next even-numbered player enters this match pool.",
     match,
     opponent: opponentId ? getPlayerName(opponentId) : undefined,
+    entryNumber,
     userHits,
     opponentHits,
     resultLabel: pvpResultLabel(match, userId),
@@ -246,7 +255,7 @@ export function statusLabel(status: GameStatus | MarketStatus | NFTReward["statu
 
 function pvpResultLabel(match: PvPMatch, userId: string) {
   if (match.status === "PENDING") return "Pairing pending";
-  if (match.status !== "RESOLVED") return match.playerBId ? "Paired" : "Bye queued";
+  if (match.status !== "RESOLVED") return match.playerBId ? "Paired" : "Waiting";
   if (match.result === "DRAW") return "Draw";
   if (match.result === "BYE") return "Bye";
   if (match.result === "PLAYER_A_WIN") return match.playerAId === userId ? "Win" : "Loss";

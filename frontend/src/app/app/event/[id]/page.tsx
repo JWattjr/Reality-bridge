@@ -34,6 +34,16 @@ export default function GameEventPage() {
     return userDbPredictions.filter((pick: any) => pick.gameId === gameId);
   }, [userDbPredictions, gameId, auth.authenticated, auth.userId]);
   const pvpUserId = predictions[0]?.userId ?? auth.userId ?? "";
+  const currentUserKeys = useMemo(() => {
+    const keys = [
+      auth.userId,
+      auth.walletAddress,
+      ...(auth.wallets ?? []).map((wallet: any) => wallet.address),
+      ...predictions.flatMap((pick: any) => [pick.userId, pick.walletAddress]),
+    ];
+
+    return new Set(keys.filter(Boolean).map((key) => String(key).toLowerCase()));
+  }, [auth.userId, auth.walletAddress, auth.wallets, predictions]);
 
   const { data: playerBoard = [] } = useMatchLeaderboard(gameId);
   const { data: rewards = [] } = useGameNFTRewards(gameId);
@@ -173,17 +183,35 @@ export default function GameEventPage() {
               <h2 className="font-display text-xl font-bold">Match Leaderboard</h2>
             </div>
             <div className="space-y-2">
-              {playerBoard.map((entry) => (
-                <div key={entry.userId} className="rounded-2xl border-2 border-primary-900 bg-bg-base p-3">
+              {playerBoard.map((entry) => {
+                const isCurrentUser = currentUserKeys.has(String(entry.userId).toLowerCase());
+
+                return (
+                <div
+                  key={entry.userId}
+                  className={`rounded-2xl border-2 p-3 transition-colors ${
+                    isCurrentUser
+                      ? "border-primary-900 bg-pastel-green shadow-[3px_3px_0px_0px_#312e81]"
+                      : "border-primary-900 bg-bg-base"
+                  }`}
+                >
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-bold">#{entry.rank} {entry.player}</p>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <p className="truncate text-sm font-bold">#{entry.rank} {entry.player}</p>
+                        {isCurrentUser && (
+                          <span className="shrink-0 rounded-full border-2 border-primary-900 bg-white px-2 py-0.5 text-[9px] font-bold uppercase">
+                            You
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[10px] font-bold opacity-60">{entry.correctPicks}/{entry.totalPicks} correct picks</p>
                     </div>
                     <span className="font-display text-xl font-bold">{entry.points}</span>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </section>
 

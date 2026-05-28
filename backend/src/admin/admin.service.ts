@@ -119,7 +119,12 @@ export class AdminService {
 
     // 4. Trigger PvP Battles pairing & resolution for the associated game event
     const gameEventId = market.gameId;
-    await this.pairAndResolvePvP(gameEventId);
+    const allGameMarkets = await this.db.collection(MONGO_COLLECTIONS.markets).find({ gameId: gameEventId }).toArray();
+    const allMarketsResolved = allGameMarkets.every((m: any) => m.status === "RESOLVED" || m.status === "CANCELLED" || m.status === "REFUNDED");
+    
+    if (allMarketsResolved) {
+      await this.pairAndResolvePvP(gameEventId);
+    }
 
     // 5. Emit live WebSocket update to invalidate frontend queries
     this.eventsGateway.sendPredictionUpdated({
@@ -138,15 +143,17 @@ export class AdminService {
   }
 
   async pairPvP(gameEventId: string) {
-    const existingPvPCount = await this.db.collection(MONGO_COLLECTIONS.pvpMatches).countDocuments({ gameEventId });
-    if (existingPvPCount > 0) {
-      return { success: false, message: "PvP pairing already exists for this game." };
+    const pvpCollection = this.db.collection<PvPMatch>(MONGO_COLLECTIONS.pvpMatches);
+    const resolvedPvPCount = await pvpCollection.countDocuments({ gameEventId, status: "RESOLVED" });
+    if (resolvedPvPCount > 0) {
+      return { success: false, message: "PvP is already resolved for this game." };
     }
 
     const allGamePredictions = await this.db.collection<Prediction>(MONGO_COLLECTIONS.predictions).find({ gameId: gameEventId }).toArray();
     const matches = pairEligibleUsersForPvP(gameEventId, allGamePredictions);
+    await pvpCollection.deleteMany({ gameEventId, status: { $ne: "RESOLVED" } });
     if (matches.length > 0) {
-      await this.db.collection(MONGO_COLLECTIONS.pvpMatches).insertMany(matches);
+      await pvpCollection.insertMany(matches);
     }
 
     this.eventsGateway.sendPredictionUpdated({ gameId: gameEventId, action: "pair-pvp" });
@@ -258,11 +265,12 @@ export class AdminService {
 
   private async pairAndResolvePvP(gameEventId: string) {
     try {
-      // 1. Run Pairing if not done
-      const existingPvPCount = await this.db.collection(MONGO_COLLECTIONS.pvpMatches).countDocuments({ gameEventId });
-      if (existingPvPCount === 0) {
+      // 1. Refresh pairing before resolution so demo entry order is authoritative.
+      const resolvedPvPCount = await this.db.collection(MONGO_COLLECTIONS.pvpMatches).countDocuments({ gameEventId, status: "RESOLVED" });
+      if (resolvedPvPCount === 0) {
         const allGamePredictions = await this.db.collection<Prediction>(MONGO_COLLECTIONS.predictions).find({ gameId: gameEventId }).toArray();
         const matches = pairEligibleUsersForPvP(gameEventId, allGamePredictions);
+        await this.db.collection(MONGO_COLLECTIONS.pvpMatches).deleteMany({ gameEventId, status: { $ne: "RESOLVED" } });
         if (matches.length > 0) {
           await this.db.collection(MONGO_COLLECTIONS.pvpMatches).insertMany(matches);
         }
