@@ -45,7 +45,7 @@ export default function Home() {
                 href="/app"
                 className="inline-flex items-center gap-2 rounded-full border-2 border-primary-900 bg-pastel-green px-5 py-3 text-sm font-bold shadow-[3px_3px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
               >
-                Back Picks <ArrowRight size={16} />
+                Place Bets <ArrowRight size={16} />
               </Link>
               <Link
                 href="/app/leaderboard"
@@ -144,7 +144,7 @@ export default function Home() {
                     href={`/app/event/${game.id}`}
                     className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-primary-900 bg-pastel-green px-4 py-2.5 text-sm font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
                   >
-                    {game.status === "OPEN" ? "Back Picks" : "Enter Game"} <ArrowRight size={15} />
+                    {game.status === "OPEN" ? "Place Bet" : "Enter Game"} <ArrowRight size={15} />
                   </Link>
                 </div>
               </article>
@@ -161,7 +161,7 @@ export default function Home() {
       <section className="px-4 py-10 sm:px-6 lg:px-8">
         <div className="mx-auto grid max-w-6xl gap-3 sm:grid-cols-3">
           {[
-            ["Back picks", "Choose an official admin-created market and stake USDT."],
+            ["Place bets", "Choose an official admin-created market and stake USDT."],
             ["Score points", "Every correct prediction gives exactly 1 point."],
             ["Win rewards", "Winners share pools and selected matches include NFT rewards."],
           ].map(([title, copy], index) => (

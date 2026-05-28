@@ -43,8 +43,8 @@ export class XCupController {
   @Get("predictions")
   @UseGuards(PrivyAuthGuard)
   async getUserPredictions(@Req() req: any) {
-    const userId = req.user.userId;
-    return this.xcupService.getUserPredictions(userId);
+    const identifiers = [req.user.userId, ...(req.user.walletAddresses ?? [])];
+    return this.xcupService.getUserPredictions(identifiers);
   }
 
   @Post("predictions")
@@ -66,7 +66,11 @@ export class XCupController {
       }
     }
 
-    const result = await this.xcupService.indexPrediction(body);
+    const result = await this.xcupService.indexPrediction({
+      ...body,
+      userId: req.user?.userId ?? body.userId,
+      walletAddress: body.walletAddress ?? req.user?.walletAddresses?.[0] ?? body.userId,
+    });
     if (result.status === "indexed") {
       this.eventsGateway.sendPredictionUpdated(result.prediction);
     }

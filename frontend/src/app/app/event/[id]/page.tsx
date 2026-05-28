@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
-import { ArrowLeft, Clock, Gem, ShieldCheck, Trophy } from "lucide-react";
+import { ArrowLeft, Clock, Gem, MousePointerClick, ShieldCheck, Trophy } from "lucide-react";
 import { PredictionModal } from "@/components/PredictionModal";
 import { PvPMatchCard } from "@/components/PvPMatchCard";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -33,6 +33,7 @@ export default function GameEventPage() {
     if (!auth.authenticated || !auth.userId) return [];
     return userDbPredictions.filter((pick: any) => pick.gameId === gameId);
   }, [userDbPredictions, gameId, auth.authenticated, auth.userId]);
+  const pvpUserId = predictions[0]?.userId ?? auth.userId ?? "";
 
   const { data: playerBoard = [] } = useMatchLeaderboard(gameId);
   const { data: rewards = [] } = useGameNFTRewards(gameId);
@@ -84,8 +85,8 @@ export default function GameEventPage() {
             </div>
             <div className="rounded-2xl border border-white/60 bg-white/15 p-4 text-sm font-bold backdrop-blur">
               <p className="text-xs uppercase opacity-70">Game rule</p>
-              <p className="mt-1">Correct Pick = 1 point. Wrong Pick = 0 points.</p>
-              <p className="mt-2 text-xs opacity-75">Stake size affects pool share only, never leaderboard points.</p>
+              <p className="mt-1">Correct Pick = 1 match point and 1 PvP hit. Wrong Pick = 0.</p>
+              <p className="mt-2 text-xs opacity-75">Stake size affects pool share only, never match or PvP points.</p>
             </div>
           </div>
         </div>
@@ -97,7 +98,7 @@ export default function GameEventPage() {
             <div className="mb-3 flex items-end justify-between gap-3">
               <div>
                 <h2 className="font-display text-2xl font-bold">Markets</h2>
-                <p className="text-xs font-bold opacity-60">Admin-created markets. USDT stake required for every pick.</p>
+                <p className="text-xs font-bold opacity-60">Tap a market to open the bet slip. USDT stake required for every pick.</p>
               </div>
             </div>
 
@@ -107,20 +108,25 @@ export default function GameEventPage() {
                   type="button"
                   key={market.id}
                   onClick={() => setActiveMarket(market)}
-                  className="bubbly-card bg-white p-4 text-left transition-all hover:translate-y-0.5 hover:shadow-none"
+                  className="bubbly-card group cursor-pointer bg-white p-4 text-left transition-all hover:-translate-y-0.5 hover:bg-pastel-yellow/40 hover:shadow-[6px_6px_0px_0px_#312e81] focus:outline-none focus:ring-4 focus:ring-pastel-purple"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-[10px] font-bold uppercase opacity-50">{market.category} - {market.type}</p>
                       <h3 className="font-display text-xl font-bold">{market.title}</h3>
                     </div>
-                    <span className="rounded-full border-2 border-primary-900 bg-pastel-blue px-2 py-1 text-[10px] font-bold">
-                      {statusLabel(market.status)}
-                    </span>
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <span className="rounded-full border-2 border-primary-900 bg-pastel-blue px-2 py-1 text-[10px] font-bold">
+                        {statusLabel(market.status)}
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-full border-2 border-primary-900 bg-white px-2 py-1 text-[10px] font-bold opacity-80 group-hover:bg-pastel-green group-hover:opacity-100">
+                        <MousePointerClick size={11} /> Open bet slip
+                      </span>
+                    </div>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {market.options.map((option) => (
-                      <span key={option.id} className="rounded-full border-2 border-primary-900 bg-bg-base px-3 py-1 text-xs font-bold">
+                      <span key={option.id} className="rounded-full border-2 border-primary-900 bg-bg-base px-3 py-1 text-xs font-bold group-hover:bg-white">
                         {option.label}
                       </span>
                     ))}
@@ -158,7 +164,7 @@ export default function GameEventPage() {
         </div>
 
         <aside className="space-y-5 lg:sticky lg:top-20">
-          <PvPMatchCard gameId={gameId} userId={auth.userId ?? ""} predictions={predictions} markets={markets} />
+          <PvPMatchCard gameId={gameId} userId={pvpUserId} predictions={predictions} markets={markets} />
 
 
           <section className="bubbly-card bg-white p-4">

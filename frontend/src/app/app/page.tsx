@@ -114,7 +114,7 @@ export default function AppDashboard() {
                     href={`/app/event/${game.id}`}
                     className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-primary-900 bg-pastel-green px-4 py-2.5 text-sm font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none"
                   >
-                    {game.status === "OPEN" ? "Back Picks" : "Enter Game"} <ArrowRight size={15} />
+                    {game.status === "OPEN" ? "Place Bet" : "Enter Game"} <ArrowRight size={15} />
                   </Link>
                 </div>
               </article>

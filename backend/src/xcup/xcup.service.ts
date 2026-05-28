@@ -60,10 +60,29 @@ export class XCupService {
     return { status: 'indexed', prediction };
   }
 
-  async getUserPredictions(userId: string): Promise<any[]> {
+  async getUserPredictions(userIdentifiers: string | string[]): Promise<any[]> {
+    const identifiers = Array.isArray(userIdentifiers)
+      ? userIdentifiers
+      : [userIdentifiers];
+    const normalized = Array.from(
+      new Set(
+        identifiers
+          .filter((value): value is string => typeof value === 'string' && Boolean(value))
+          .flatMap((value) => [value, value.toLowerCase()]),
+      ),
+    );
+
+    if (normalized.length === 0) return [];
+
     return this.db
       .collection(MONGO_COLLECTIONS.predictions)
-      .find({ userId })
+      .find({
+        $or: [
+          { userId: { $in: normalized } },
+          { walletAddress: { $in: normalized } },
+        ],
+      })
+      .sort({ createdAt: -1 })
       .toArray();
   }
 

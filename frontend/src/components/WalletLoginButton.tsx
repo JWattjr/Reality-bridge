@@ -7,6 +7,7 @@ import { useWalletBalance } from "@/hooks/useApi";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   claimTestUSDT,
+  getPrivyEmbeddedXLayerWallet,
   isXLayerContractsConfigured,
   xLayerExplorerAddress,
   type XLayerWallet,
@@ -120,7 +121,7 @@ export default function WalletLoginButton({ compact = false, className = "" }: W
                     type="button"
                     disabled={isFauceting}
                     onClick={async () => {
-                      const activeWallet = auth.wallets[0] as XLayerWallet | undefined;
+                      const activeWallet = getPrivyEmbeddedXLayerWallet(auth.wallets as XLayerWallet[]);
                       if (!activeWallet) return;
                       setIsFauceting(true);
                       setFaucetStatus("Minting Test USDT...");

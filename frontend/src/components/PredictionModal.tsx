@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { CheckCircle2, ExternalLink, X } from 'lucide-react'
+import { CheckCircle2, Circle, ExternalLink, HandCoins, MousePointerClick, X } from 'lucide-react'
 import type { FootballMarket } from '@/lib/football-data'
 import { formatUSDT, statusLabel } from '@/lib/football-data'
 import { useAuthStore } from '@/store/useAuthStore'
@@ -10,6 +10,7 @@ import {
   approveAndPlacePrediction,
   claimTestUSDT,
   getFootballPredictionAddress,
+  getPrivyEmbeddedXLayerWallet,
   getTestUSDTAddress,
   isXLayerContractsConfigured,
   xLayerExplorerAddress,
@@ -47,7 +48,7 @@ export function PredictionModal({
     [market, selectedOption],
   )
   const configured = isXLayerContractsConfigured()
-  const activeWallet = auth.wallets[0] as XLayerWallet | undefined
+  const activeWallet = getPrivyEmbeddedXLayerWallet(auth.wallets as XLayerWallet[])
   const canBackPick = Boolean(
     market &&
     selected &&
@@ -62,23 +63,47 @@ export function PredictionModal({
     () => market?.options.find((option) => option.id === selectedOption)?.label,
     [market, selectedOption],
   )
+  const minimumStake = market?.minStake ?? 0
+  const betHelp = !selected
+    ? 'Choose an outcome to continue.'
+    : !stake
+      ? 'Enter your USDT stake.'
+      : stakeValue < minimumStake
+        ? `Minimum stake is ${minimumStake} USDT.`
+        : !auth.authenticated
+          ? 'Connect your wallet to place this bet.'
+          : !configured
+            ? 'X Layer contracts are not configured yet.'
+            : !activeWallet
+              ? 'Privy wallet is being created. Wait a moment, then try again.'
+              : 'Ready to place your bet.'
 
   if (!open || !market) return null
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-end bg-black/45 p-3 sm:items-center sm:justify-center">
-      <div className="bubbly-card max-h-[92vh] w-full max-w-lg overflow-y-auto bg-white p-4 sm:p-5">
+    <div
+      className="fixed inset-0 z-[80] flex items-end bg-black/35 p-3 backdrop-blur-md sm:items-center sm:justify-center"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        className="bubbly-card max-h-[92vh] w-full max-w-lg overflow-y-auto bg-white p-4 sm:p-5"
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="prediction-modal-title"
+      >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <p className="text-[10px] font-bold uppercase opacity-50">
               {market.category}
             </p>
-            <h2 className="font-display text-2xl font-bold">{market.title}</h2>
+            <h2 id="prediction-modal-title" className="font-display text-2xl font-bold">{market.title}</h2>
             <p className="mt-1 text-xs font-bold opacity-60">
               {market.type === 'YES_NO'
-                ? 'Choose Yes or No.'
-                : 'Choose one option.'}{' '}
-              Winners share the pool.
+                ? 'Tap Yes or No to choose your outcome.'
+                : 'Tap one outcome to choose your pick.'}{' '}
+              Then enter your USDT stake.
             </p>
           </div>
           <button
@@ -91,33 +116,51 @@ export function PredictionModal({
           </button>
         </div>
 
-        <div className="grid gap-2">
-          {market.options.map((option) => (
-            <button
-              type="button"
-              key={option.id}
-              onClick={() => {
-                setSelectedOption(option.id)
-                setStatus('')
-                setTxUrl('')
-                setPredictionId('')
-              }}
-              className={`flex items-center justify-between rounded-2xl border-2 border-primary-900 px-3 py-3 text-left text-sm font-bold transition-colors ${
-                selectedOption === option.id
-                  ? 'bg-pastel-green'
-                  : 'bg-bg-base'
-              }`}
-            >
-              <span>{option.label}</span>
-              {selectedOption === option.id && <CheckCircle2 size={18} />}
-            </button>
-          ))}
+        <div className="rounded-2xl border-2 border-primary-900 bg-pastel-blue/60 p-3">
+          <div className="mb-2 flex items-center gap-2 text-xs font-bold">
+            <MousePointerClick size={15} />
+            <span>Step 1: Choose your outcome</span>
+          </div>
+          <div className={`grid gap-2 ${market.type === 'YES_NO' ? 'grid-cols-2' : ''}`}>
+            {market.options.map((option) => (
+              <button
+                type="button"
+                key={option.id}
+                onClick={() => {
+                  setSelectedOption(option.id)
+                  setStatus('')
+                  setTxUrl('')
+                  setPredictionId('')
+                }}
+                aria-pressed={selectedOption === option.id}
+                className={`group flex cursor-pointer items-center justify-between gap-3 rounded-2xl border-2 border-primary-900 px-3 py-3 text-left text-sm font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:-translate-y-0.5 hover:bg-pastel-yellow hover:shadow-[3px_3px_0px_0px_#312e81] ${
+                  selectedOption === option.id
+                    ? 'bg-primary-900 text-white shadow-none'
+                    : 'bg-white'
+                }`}
+              >
+                <span className="min-w-0 truncate">{option.label}</span>
+                <span
+                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 ${
+                    selectedOption === option.id
+                      ? 'border-white bg-pastel-green text-primary-900'
+                      : 'border-primary-900 bg-bg-base text-primary-900 group-hover:bg-white'
+                  }`}
+                >
+                  {selectedOption === option.id ? <CheckCircle2 size={17} /> : <Circle size={14} />}
+                </span>
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-[10px] font-bold opacity-65">
+            Selected outcome: {selectedLabel ?? 'none yet'}
+          </p>
         </div>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <label className="block">
-            <span className="text-[10px] font-bold uppercase opacity-50">
-              USDT stake
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase opacity-60">
+              <HandCoins size={12} /> Step 2: USDT stake
             </span>
             <input
               type="number"
@@ -145,10 +188,9 @@ export function PredictionModal({
         </div>
 
         <div className="mt-4 rounded-2xl border-2 border-primary-900 bg-white p-3 text-xs font-bold">
-          <p>Your Pick: {selectedLabel ?? 'Choose an option'}</p>
+          <p>Your Bet: {selectedLabel ?? 'Choose an outcome first'}</p>
           <p className="mt-1 opacity-60">
-            Correct Pick = 1 point. Wrong Pick = 0 points. Stake size does not
-            change points.
+            Correct Pick = 1 match point and 1 PvP hit. Stake size only affects pool payout.
           </p>
         </div>
 
@@ -185,10 +227,14 @@ export function PredictionModal({
               </a>
             )}
             {predictionId && (
-              <span className="ml-2">Prediction ID: {predictionId}</span>
+              <span className="ml-2">Receipt #{predictionId}</span>
             )}
           </p>
         )}
+
+        <p className={`mt-4 text-xs font-bold ${canBackPick ? 'text-green-700' : 'text-amber-700'}`}>
+          {betHelp}
+        </p>
 
         <button
           type="button"
@@ -196,7 +242,7 @@ export function PredictionModal({
           onClick={async () => {
             if (!market || !selected || !activeWallet) return
             setIsSubmitting(true)
-            setStatus('Preparing X Layer transaction...')
+            setStatus('Preparing X Layer bet...')
             setTxUrl('')
             try {
               const result = await approveAndPlacePrediction({
@@ -207,8 +253,8 @@ export function PredictionModal({
               })
               setStatus(
                 result.approvalHash
-                  ? 'Approved Test USDT and backed your pick on X Layer.'
-                  : 'Backed your pick on X Layer.',
+                  ? 'Approved Test USDT and placed your bet on X Layer.'
+                  : 'Bet placed on X Layer.',
               )
               setTxUrl(result.explorerUrl)
               setPredictionId(result.predictionId ?? '')
@@ -231,7 +277,7 @@ export function PredictionModal({
               setStatus(
                 error instanceof Error
                   ? error.message
-                  : 'Could not back pick on X Layer.',
+                  : 'Could not place bet on X Layer.',
               )
             } finally {
               setIsSubmitting(false)
@@ -239,7 +285,7 @@ export function PredictionModal({
           }}
           className="mt-4 w-full rounded-full border-2 border-primary-900 bg-pastel-green px-5 py-3 text-sm font-bold shadow-[3px_3px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
         >
-          {isSubmitting ? 'Backing Pick...' : 'Back Pick'}
+          {isSubmitting ? 'Placing Bet...' : 'Place Bet'}
         </button>
 
         {configured && auth.authenticated && activeWallet && needsFaucet && (

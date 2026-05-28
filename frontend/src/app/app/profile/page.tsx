@@ -165,13 +165,13 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      <XLayerClaimPanel />
+      <XLayerClaimPanel predictions={userDbPredictions} />
 
       <section className="bubbly-card bg-white p-4">
         <div className="flex items-start gap-2">
           <ShieldCheck size={18} className="mt-0.5" />
           <p className="text-xs font-bold opacity-70">
-            Profile is intentionally minimal: username, wallet, game totals, USDT totals, NFTs won, and recent match results. No XP, reputation score, feeds, comments, or attendance credentials.
+            Profile is intentionally minimal: username, wallet, game totals, claimable bets, USDT totals, NFTs won, and recent match results. No XP, reputation score, feeds, comments, or attendance credentials.
           </p>
         </div>
       </section>

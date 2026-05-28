@@ -507,9 +507,21 @@ function GameMarketsList({
 
       {/* Resolution Modal */}
       {resolvingMarket && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs">
-          <div className="bubbly-card w-full max-w-md bg-white p-6 relative">
-            <h3 className="font-display text-2xl font-bold pr-6">Resolve Market</h3>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4 backdrop-blur-md"
+          onClick={() => {
+            if (!resolveMarketMutation.isPending) setResolvingMarket(null);
+          }}
+          role="presentation"
+        >
+          <div
+            className="bubbly-card w-full max-w-md bg-white p-6 relative"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="resolve-market-title"
+          >
+            <h3 id="resolve-market-title" className="font-display text-2xl font-bold pr-6">Resolve Market</h3>
             <p className="text-xs font-bold opacity-60 mt-1">{resolvingMarket.title}</p>
 
             <div className="mt-4 space-y-2">

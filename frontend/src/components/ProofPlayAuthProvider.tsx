@@ -1,12 +1,14 @@
 "use client";
 
 import {
+  getEmbeddedConnectedWallet,
   PrivyProvider,
+  useCreateWallet,
   usePrivy,
   useWallets,
   type PrivyProviderProps,
 } from "@privy-io/react-auth";
-import { useCallback, useEffect, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { XLAYER_TESTNET } from "@/lib/xlayer";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -39,7 +41,7 @@ const privyConfig: PrivyProviderProps["config"] = {
   defaultChain: xLayerTestnetChain,
   embeddedWallets: {
     ethereum: {
-      createOnLogin: "users-without-wallets",
+      createOnLogin: "all-users",
     },
     showWalletUIs: true,
   },
@@ -60,10 +62,20 @@ export function ProofPlayAuthProvider({ children }: { children: ReactNode }) {
 function PrivyAuthBridge({ children }: { children: ReactNode }) {
   const { ready, authenticated, user, login, logout, getAccessToken: privyGetAccessToken } = usePrivy();
   const { wallets } = useWallets();
+  const { createWallet } = useCreateWallet();
+  const walletCreationAttemptRef = useRef<string | null>(null);
   const setAuthState = useAuthStore((state) => state.setAuthState);
+  const embeddedWallet = getEmbeddedConnectedWallet(wallets);
+  const orderedWallets = useMemo(() => {
+    if (!embeddedWallet) return wallets;
+    return [
+      embeddedWallet,
+      ...wallets.filter((wallet) => wallet.address.toLowerCase() !== embeddedWallet.address.toLowerCase()),
+    ];
+  }, [embeddedWallet, wallets]);
 
-  const walletAddress = user?.wallet?.address ?? null;
-  const userId = authenticated ? walletAddress ?? user?.id ?? null : null;
+  const walletAddress = embeddedWallet?.address ?? user?.wallet?.address ?? null;
+  const userId = authenticated ? user?.id ?? walletAddress ?? null : null;
   const displayName = walletAddress
     ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
     : user?.email?.address ?? "Signed in";
@@ -84,13 +96,20 @@ function PrivyAuthBridge({ children }: { children: ReactNode }) {
   }, [getAccessToken]);
 
   useEffect(() => {
+    if (!ready || !authenticated || !user?.id || embeddedWallet) return;
+    if (walletCreationAttemptRef.current === user.id) return;
+    walletCreationAttemptRef.current = user.id;
+    createWallet().catch(() => undefined);
+  }, [ready, authenticated, user?.id, embeddedWallet, createWallet]);
+
+  useEffect(() => {
     setAuthState({
       ready,
       configured: true,
       authenticated,
       userId,
       walletAddress,
-      wallets,
+      wallets: orderedWallets,
       displayName,
       login,
       logout,
@@ -102,7 +121,7 @@ function PrivyAuthBridge({ children }: { children: ReactNode }) {
     authenticated,
     userId,
     walletAddress,
-    wallets,
+    orderedWallets,
     displayName,
     login,
     logout,

@@ -81,7 +81,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <LockKeyhole className="mx-auto text-primary-900" size={32} />
                 <p className="mt-4 font-display text-2xl font-bold">Sign in to access events</p>
                 <p className="mt-2 text-sm font-bold opacity-60">
-                  Sign in with your wallet or account to back picks with USDT and track your match points.
+                  Sign in with your wallet or account to place USDT bets and track your match points.
                 </p>
                 <button
                   type="button"

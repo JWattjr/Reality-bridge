@@ -133,9 +133,21 @@ export const TEST_USDT_ABI = [
 
 export type XLayerWallet = {
   address: string;
+  walletClientType?: string;
+  connectorType?: string;
   switchChain?: (targetChainId: `0x${string}` | number) => Promise<void>;
   getEthereumProvider?: () => Promise<unknown>;
 };
+
+export function isPrivyEmbeddedWallet(wallet?: Partial<XLayerWallet> | null) {
+  const walletClientType = wallet?.walletClientType?.toLowerCase();
+  const connectorType = wallet?.connectorType?.toLowerCase();
+  return connectorType === "embedded" || walletClientType === "privy" || walletClientType === "privy-v2";
+}
+
+export function getPrivyEmbeddedXLayerWallet(wallets: readonly XLayerWallet[] = []) {
+  return wallets.find(isPrivyEmbeddedWallet);
+}
 
 export function getXLayerRpcUrl() {
   return process.env.XLAYER_RPC_URL ?? process.env.NEXT_PUBLIC_XLAYER_RPC_URL ?? XLAYER_TESTNET.rpcUrls[0];
@@ -193,8 +205,12 @@ export async function getXLayerUSDTBalance(address: string): Promise<string> {
 }
 
 export async function getBrowserXLayerSigner(wallet: XLayerWallet) {
+  if (!isPrivyEmbeddedWallet(wallet)) {
+    throw new Error("ProofPlay uses your Privy embedded wallet for bets. External wallets like OKX are not used for placing bets.");
+  }
+
   if (!wallet.switchChain || !wallet.getEthereumProvider) {
-    throw new Error("Connected wallet does not support X Layer transactions.");
+    throw new Error("Privy embedded wallet is not ready for X Layer transactions yet.");
   }
 
   await wallet.switchChain(XLAYER_TESTNET.chainId);
