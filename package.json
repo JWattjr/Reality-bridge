@@ -1,41 +1,18 @@
 {
-  "name": "proofplay",
-  "version": "0.1.0",
+  "name": "proofplay-monorepo",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint",
-    "deploy:xlayer": "node scripts/deploy-xlayer-xcup.mjs",
-    "seed:mongodb": "node scripts/seed-mongodb-xcup.mjs"
-  },
-  "dependencies": {
-    "@0gfoundation/0g-storage-ts-sdk": "^1.2.9",
-    "@privy-io/node": "^0.18.0",
-    "@privy-io/react-auth": "^3.23.1",
-    "@supabase/supabase-js": "^2.105.4",
-    "clsx": "^2.1.1",
-    "ethers": "^6.13.1",
-    "framer-motion": "^12.38.0",
-    "lucide-react": "^1.14.0",
-    "mongodb": "^7.2.0",
-    "next": "16.2.6",
-    "qrcode": "^1.5.4",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "tailwind-merge": "^3.5.0"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/qrcode": "^1.5.6",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.6",
-    "solc": "^0.8.35",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "dev": "pnpm --filter frontend dev & pnpm --filter backend start:dev",
+    "dev:backend": "pnpm --filter backend start:dev",
+    "dev:frontend": "pnpm --filter frontend dev",
+    "build": "pnpm --filter frontend build && pnpm --filter backend build",
+    "start": "pnpm --filter frontend start & pnpm --filter backend start",
+    "lint": "pnpm --filter frontend lint && pnpm --filter backend lint",
+    "seed:mongodb": "pnpm --filter backend seed",
+    "resolve:market": "pnpm --filter backend resolve-market"
   }
+
 }

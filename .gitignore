@@ -31,7 +31,7 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
-.env*
+.env
 
 # vercel
 .vercel
@@ -39,3 +39,28 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# IDEs and tools
+.claude/
+.vscode/
+
+# Local/deployment/docs artifacts and databases
+deployments/
+docs/
+supabase/
+doc
+
+# foundry
+/contracts/out/
+/contracts/lib/
+/contracts/cache/
+/contracts/broadcast/
+/contracts/forge-std/
+
+
+backend/dist
+backend/node_modules
+backend/src/resolve-market.ts
+backend/src/seed.ts
+
+
