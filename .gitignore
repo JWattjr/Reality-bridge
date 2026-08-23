@@ -12,6 +12,11 @@
 
 # testing
 /coverage
+/genlayer/.venv/
+/genlayer/.pytest_cache/
+/genlayer/artifacts/
+__pycache__/
+*.py[cod]
 
 # next.js
 /.next/

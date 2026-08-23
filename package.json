@@ -5,11 +5,13 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "pnpm --parallel --stream --filter frontend --filter backend dev",
+    "dev": "pnpm --filter frontend dev",
+    "dev:legacy": "pnpm --parallel --stream --filter frontend --filter backend dev",
     "dev:backend": "pnpm --filter backend start:dev",
     "dev:frontend": "pnpm --filter frontend dev",
-    "build": "pnpm --filter frontend build && pnpm --filter backend build",
-    "start": "pnpm --filter frontend start & pnpm --filter backend start",
+    "build": "pnpm --filter frontend build",
+    "start": "pnpm --filter frontend start",
+    "start:legacy": "pnpm --filter frontend start & pnpm --filter backend start",
     "lint": "pnpm --filter frontend lint && pnpm --filter backend lint",
     "seed:mongodb": "pnpm --filter backend seed",
     "resolve:market": "pnpm --filter backend resolve-market"

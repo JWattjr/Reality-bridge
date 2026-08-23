@@ -9,36 +9,36 @@ import {
   type PrivyProviderProps,
 } from "@privy-io/react-auth";
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
-import { XLAYER_TESTNET } from "@/lib/xlayer";
+import { BASE_SEPOLIA } from "@/lib/base-sepolia";
 import { useAuthStore } from "@/store/useAuthStore";
 
 const privyAppId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
 
-const xLayerTestnetChain = {
-  id: XLAYER_TESTNET.chainId,
-  name: XLAYER_TESTNET.name,
+const baseSepoliaChain = {
+  id: BASE_SEPOLIA.chainId,
+  name: BASE_SEPOLIA.name,
   nativeCurrency: {
-    decimals: XLAYER_TESTNET.nativeCurrency.decimals,
-    name: XLAYER_TESTNET.nativeCurrency.name,
-    symbol: XLAYER_TESTNET.nativeCurrency.symbol,
+    decimals: BASE_SEPOLIA.nativeCurrency.decimals,
+    name: BASE_SEPOLIA.nativeCurrency.name,
+    symbol: BASE_SEPOLIA.nativeCurrency.symbol,
   },
   rpcUrls: {
     default: {
-      http: [...XLAYER_TESTNET.rpcUrls],
+      http: [BASE_SEPOLIA.rpcUrl],
     },
   },
   blockExplorers: {
     default: {
-      name: "OKX X Layer Explorer",
-      url: XLAYER_TESTNET.explorerUrl,
+      name: "BaseScan",
+      url: BASE_SEPOLIA.explorerUrl,
     },
   },
 };
 
 const privyConfig: PrivyProviderProps["config"] = {
   loginMethods: ["email", "google", "twitter"],
-  supportedChains: [xLayerTestnetChain],
-  defaultChain: xLayerTestnetChain,
+  supportedChains: [baseSepoliaChain],
+  defaultChain: baseSepoliaChain,
   embeddedWallets: {
     ethereum: {
       createOnLogin: "all-users",

@@ -1,144 +1,110 @@
 # ProofPlay
 
-ProofPlay is a gamified prediction market on X Layer where players compete by making correct football predictions. Each football match is one prediction round with official markets, USDT-backed picks, automatic 1v1 pairing, match leaderboards, and optional rewards.
+**A no-house PvP football prediction market, with test-USDC escrow on Base
+Sepolia and consensus-backed match resolution on GenLayer Studionet.**
 
-Players are paired 1v1 per match. The player with the most correct predictions at the end of the football game wins that match round. For the World Cup format, ProofPlay supports 104 rounds, one for each World Cup match.
+Players take `HOME`, `DRAW`, or `AWAY` positions in the same market. Their
+test-USDC funds one shared pari-mutuel pot; ProofPlay never takes the opposite
+side. When GenLayer reaches a final result, players on the winning side claim
+their proportional share of the pot. If the beta bridge does not return a
+result in time, every player can claim an individual refund.
 
-**Tagline:** Predict football. Score points. Win rewards.
+> This is a testnet MVP: no mainnet, no real-value assets, and no Bradbury.
 
-## What It Does
+## Why it is PvP
 
-- Users sign in with Privy and use their Privy embedded wallet.
-- Admins create football match events and official prediction markets.
-- Users back outcomes with Test USDT on X Layer testnet.
-- Every correct pick earns exactly 1 match point.
-- Stake size affects pool payout only, never points.
-- Each match has a match leaderboard.
-- Each match has an automatic PvP pool.
-- Selected matches can show NFT reward eligibility.
+- Players fund opposing outcomes, not a house book.
+- One wallet can hold one `HOME`, `DRAW`, or `AWAY` position per market.
+- Winners receive `their stake × total pot ÷ winning-side pot`.
+- If no player chose the final outcome, or resolution times out, the market
+  moves to refunds rather than creating a house winner.
 
-## Core User Flow
+## Architecture
 
-1. Pick a football match.
-2. Open an official market.
-3. Choose an outcome.
-4. Stake Test USDT.
-5. Match markets resolve.
-6. Correct picks earn 1 point each.
-7. Winners claim USDT payouts.
-8. PvP points and leaderboards update.
-
-## Automatic PvP
-
-PvP is off-chain and handled by the backend.
-
-- A user enters a match PvP pool after placing at least one USDT-backed pick in that match.
-- Entrants are numbered by first successful indexed bid.
-- Odd entries pair with the next even entry: `#1 vs #2`, `#3 vs #4`, `#5 vs #6`.
-- If an odd entry has no even opponent yet, that entry stays `PENDING`.
-- When the next even entrant arrives, the pool refreshes and they pair automatically.
-- Correct predictions become PvP hits.
-- Winner gets `100` PvP points.
-- Loser gets `30` PvP points.
-- Draw gives `50` points each.
-- Bye/unmatched after resolution gives `50` points.
-
-PvP points are separate from USDT payouts.
-
-## Rank Tiers
-
-- Rookie: `0`
-- Veteran: `1,500`
-- Elite: `3,000`
-- Pro: `4,800`
-- Master: `6,500`
-- Grand Master: `8,200`
-- Legendary: `9,600`
-
-## Tech Stack
-
-- Frontend: Next.js, React, Tailwind CSS, Privy, ethers
-- Backend: NestJS, MongoDB, Socket.IO
-- Chain: X Layer testnet
-- Contracts: Solidity / Foundry
-- Auth wallet: Privy embedded wallet
-- Database: MongoDB
-
-## Project Structure
-
-```txt
-frontend/   Next.js app, wallet UI, match pages, bet slip, leaderboards
-backend/    NestJS API, MongoDB models, admin actions, PvP pairing
-contracts/  Football prediction and Test USDT contracts
+```text
+Player / Privy wallet
+        │ approve + stake Base Sepolia test USDC
+        ▼
+ProofPlayBaseMarket (Base Sepolia)
+        │ request resolution through beta bridge
+        ▼
+ProofPlayResolver (GenLayer Studionet)
+        │ independently validate public-match evidence
+        ▼
+Bridge callback → authenticated Base result → PvP claims or refunds
 ```
 
-## Local Setup
+| Component | Responsibility |
+| --- | --- |
+| Base Sepolia | Test-USDC escrow, positions, pots, claims, and timeout refunds |
+| GenLayer Studionet | Consensus-backed final-score extraction and validation |
+| Bridge | Asynchronous message transport only; it cannot choose a winner |
+| Privy | Login and Base Sepolia wallet signing |
 
-Install dependencies:
+The official Base Sepolia Circle test-USDC address is
+`0x036CbD53842c5426634e7929541eC2318f3dCF7e` (6 decimals).
+
+## Key implementation files
+
+- [Base PvP market contract](contracts/src/ProofPlayBaseMarket.sol)
+- [GenLayer resolver](genlayer/contracts/proofplay_resolver.py)
+- [GenLayer direct tests](genlayer/tests/direct/test_proofplay_resolver.py)
+- [Base contract tests](contracts/test/ProofPlayBaseMarket.t.sol)
+- [Architecture and safety model](GENLAYER_MVP.md)
+- [MVP frontend](frontend/src/components/ProofPlayMvp.tsx)
+
+## Run locally
 
 ```bash
 pnpm install
-```
-
-Create env files from the examples:
-
-```bash
-cp frontend/.env.example frontend/.env
-cp backend/.env.example backend/.env
-```
-
-Required frontend env:
-
-```bash
-NEXT_PUBLIC_XLAYER_RPC_URL=
-NEXT_PUBLIC_TEST_USDT_ADDRESS=
-NEXT_PUBLIC_FOOTBALL_PREDICTION_ADDRESS=
-NEXT_PUBLIC_PRIVY_APP_ID=
-NEXT_PUBLIC_BACKEND_URL=http://localhost:3001
-```
-
-Required backend env:
-
-```bash
-PORT=3001
-MONGODB_URI=
-MONGODB_DB_NAME=proofplay_xcup
-PRIVY_APP_ID=
-PRIVY_APP_SECRET=
-XLAYER_RPC_URL=
-FOOTBALL_PREDICTION_ADDRESS=
-TEST_USDT_ADDRESS=
-ADMIN_PRIVATE_KEY=
-```
-
-Run frontend and backend:
-
-```bash
+Copy-Item frontend/.env.example frontend/.env
 pnpm dev
 ```
 
-Frontend runs on `http://localhost:3000`.
-Backend runs on `http://localhost:3001`.
+Open `http://localhost:3000`.
 
-## Useful Commands
+The app deliberately starts in **Preview mode** until a deployed Base market
+address is supplied. The preview makes the PvP pot and payout mechanics clear,
+but it never pretends to send a transaction.
 
-```bash
-pnpm build
-pnpm --filter frontend build
-pnpm --filter backend build
-pnpm --filter backend seed
+To enable Base Sepolia transactions, set:
+
+```dotenv
+NEXT_PUBLIC_PRIVY_APP_ID=
+NEXT_PUBLIC_PROOFPLAY_MARKET_ADDRESS=0x...
+NEXT_PUBLIC_PROOFPLAY_DEFAULT_MARKET_ID=1
 ```
 
-## Important Implementation Notes
+## Verification
 
-- Frontend and backend contract addresses must match.
-- Test USDT uses `6` decimals.
-- Market `minStake` values on-chain must also use `6` decimals.
-- Bets use Privy embedded wallets, not injected external wallets.
-- MongoDB stores app/game state and indexed predictions.
-- Smart contracts handle USDT staking, market resolution, claiming, and refunds.
-- PvP is backend-only and does not change market payout logic.
+```bash
+# Next.js production build
+pnpm build
 
-## Current Product Positioning
+# Base contract optimized-IR compile
+node contracts/scripts/compile.mjs
 
-ProofPlay turns official football matches into simple prediction events. Fans back picks with USDT, score one point for every correct prediction, get automatically paired in PvP battles, climb match and World Cup leaderboards, and compete for selected rewards.
+# GenLayer direct tests (Windows)
+.\genlayer\.venv\Scripts\python.exe -m pytest genlayer/tests/direct -q
+
+# Hosted Studionet smoke test (requires network access)
+.\genlayer\.venv\Scripts\gltest.exe --network studionet genlayer/tests/integration/test_studionet_smoke.py -q
+```
+
+The project contains a pinned GenVM runner and direct consensus tests. The
+current GenVM linter's semantic downloader cannot fetch that mandated runner
+from its registry; its AST safety lint passes, and both direct and hosted
+Studionet tests pass.
+
+## Current submission state
+
+The frontend is a live, runnable PvP prototype. The intelligent resolver was
+deployed and smoke-tested on hosted Studionet. The Base contract is compiled
+and ready to deploy, but an end-to-end live bridge deployment requires the
+specific bridge sender/receiver addresses and should not be represented as
+already live.
+
+Every bridge request includes a fixture commitment registered on both chains.
+Premature/failed requests are permissionlessly retryable without extending the
+original refund deadline, and a result already resolved on GenLayer can be
+replayed safely when the authenticated Base request arrives.

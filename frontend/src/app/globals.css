@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: var(--font-nunito), "Nunito", sans-serif;
-  --font-display: var(--font-balsamiq), "Balsamiq Sans", cursive;
+  --font-sans: Arial, Helvetica, sans-serif;
+  --font-display: "Trebuchet MS", Arial, sans-serif;
 
   --color-primary-100: #e0e7ff; /* indigo-100 */
   --color-primary-300: #a5b4fc; /* indigo-300 */
