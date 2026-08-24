@@ -7,6 +7,7 @@ the non-deterministic work: reading public fixture evidence and returning the
 six independent facts needed to settle a complete football prediction ticket.
 """
 
+import hashlib
 from dataclasses import dataclass
 from genlayer import *
 
@@ -30,8 +31,13 @@ class MatchResolution:
     fixture_commitment: u256
     home_team: str
     away_team: str
+    competition: str
+    kickoff: u256
     match_date: str
     resolution_url: str
+    total_goals_line_tenths: u16
+    total_corners_line_tenths: u16
+    total_cards_line_tenths: u16
     status: str
     home_goals: u16
     away_goals: u16
@@ -81,43 +87,80 @@ class ProofPlayResolver(gl.Contract):
     def register_match(
         self,
         duel_id: int,
-        fixture_commitment: int,
         home_team: str,
         away_team: str,
+        competition: str,
+        kickoff: int,
         match_date: str,
         resolution_url: str,
+        total_goals_line_tenths: int,
+        total_corners_line_tenths: int,
+        total_cards_line_tenths: int,
     ) -> None:
-        """Register the exact fixture whose ticket will be settled."""
+        """Register metadata and derive the same commitment enforced on Base."""
         self._only_owner()
         stored_id = u256(duel_id)
-        stored_commitment = u256(fixture_commitment)
 
         if stored_id in self.matches:
             raise gl.vm.UserError(f"{ERROR_EXPECTED} Duel already registered")
         if duel_id <= 0:
             raise gl.vm.UserError(f"{ERROR_EXPECTED} Duel id must be positive")
-        if fixture_commitment <= 0:
-            raise gl.vm.UserError(
-                f"{ERROR_EXPECTED} Fixture commitment must be positive"
-            )
         if not home_team.strip() or not away_team.strip():
             raise gl.vm.UserError(f"{ERROR_EXPECTED} Both teams are required")
         if home_team.strip().lower() == away_team.strip().lower():
             raise gl.vm.UserError(f"{ERROR_EXPECTED} Teams must be different")
+        if not competition.strip():
+            raise gl.vm.UserError(f"{ERROR_EXPECTED} Competition is required")
+        if kickoff <= 0:
+            raise gl.vm.UserError(f"{ERROR_EXPECTED} Kickoff must be positive")
         if not match_date.strip():
             raise gl.vm.UserError(f"{ERROR_EXPECTED} Match date is required")
         if not resolution_url.startswith("https://"):
             raise gl.vm.UserError(
                 f"{ERROR_EXPECTED} Resolution URL must use HTTPS"
             )
+        if (
+            total_goals_line_tenths <= 0
+            or total_corners_line_tenths <= 0
+            or total_cards_line_tenths <= 0
+        ):
+            raise gl.vm.UserError(f"{ERROR_EXPECTED} Market lines are required")
+        for field in (
+            home_team,
+            away_team,
+            competition,
+            match_date,
+            resolution_url,
+        ):
+            if "\x1f" in field:
+                raise gl.vm.UserError(
+                    f"{ERROR_EXPECTED} Reserved fixture separator"
+                )
+
+        stored_commitment = self._fixture_commitment(
+            home_team,
+            away_team,
+            competition,
+            kickoff,
+            match_date,
+            resolution_url,
+            total_goals_line_tenths,
+            total_corners_line_tenths,
+            total_cards_line_tenths,
+        )
 
         self.matches[stored_id] = MatchResolution(
             duel_id=stored_id,
             fixture_commitment=stored_commitment,
-            home_team=home_team.strip(),
-            away_team=away_team.strip(),
-            match_date=match_date.strip(),
+            home_team=home_team,
+            away_team=away_team,
+            competition=competition,
+            kickoff=u256(kickoff),
+            match_date=match_date,
             resolution_url=resolution_url,
+            total_goals_line_tenths=u16(total_goals_line_tenths),
+            total_corners_line_tenths=u16(total_corners_line_tenths),
+            total_cards_line_tenths=u16(total_cards_line_tenths),
             status=STATUS_PENDING,
             home_goals=u16(0),
             away_goals=u16(0),
@@ -177,8 +220,13 @@ class ProofPlayResolver(gl.Contract):
             "fixture_commitment": int(match.fixture_commitment),
             "home_team": match.home_team,
             "away_team": match.away_team,
+            "competition": match.competition,
+            "kickoff": int(match.kickoff),
             "match_date": match.match_date,
             "resolution_url": match.resolution_url,
+            "total_goals_line_tenths": int(match.total_goals_line_tenths),
+            "total_corners_line_tenths": int(match.total_corners_line_tenths),
+            "total_cards_line_tenths": int(match.total_cards_line_tenths),
             "status": match.status,
             "home_goals": int(match.home_goals),
             "away_goals": int(match.away_goals),
@@ -378,6 +426,35 @@ Return JSON with exactly these fields:
         if parsed < 0 or parsed > 99:
             return None
         return parsed
+
+    def _fixture_commitment(
+        self,
+        home_team: str,
+        away_team: str,
+        competition: str,
+        kickoff: int,
+        match_date: str,
+        resolution_url: str,
+        total_goals_line_tenths: int,
+        total_corners_line_tenths: int,
+        total_cards_line_tenths: int,
+    ) -> u256:
+        canonical = "\x1f".join(
+            (
+                "proofplay-fixture-v1",
+                home_team,
+                away_team,
+                competition,
+                str(kickoff),
+                match_date,
+                resolution_url,
+                str(total_goals_line_tenths),
+                str(total_corners_line_tenths),
+                str(total_cards_line_tenths),
+            )
+        )
+        digest = hashlib.sha256(canonical.encode("utf-8")).digest()
+        return u256(int.from_bytes(digest, byteorder="big", signed=False))
 
     def _send_result(self, match: MatchResolution) -> None:
         if not self.bridge_enabled:

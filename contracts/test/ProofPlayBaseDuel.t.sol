@@ -3,37 +3,8 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 import "./MockUSDC.sol";
+import "./MockGenLayerBridgeSender.sol";
 import "../src/ProofPlayBaseDuel.sol";
-
-contract MockGenLayerBridgeSender is IGenLayerBridgeSender {
-    uint256 public fee = 0.01 ether;
-    address public lastTarget;
-    bytes public lastData;
-    bytes public lastOptions;
-    uint256 public lastValue;
-    bytes32 public constant MESSAGE_ID = keccak256("proofplay-ticket-message");
-
-    function quoteSendToGenLayer(
-        address,
-        bytes calldata,
-        bytes calldata
-    ) external view returns (uint256 nativeFee, uint256 lzTokenFee) {
-        return (fee, 0);
-    }
-
-    function sendToGenLayer(
-        address targetContract,
-        bytes calldata data,
-        bytes calldata options
-    ) external payable returns (bytes32 messageId) {
-        require(msg.value == fee, "Wrong fee");
-        lastTarget = targetContract;
-        lastData = data;
-        lastOptions = options;
-        lastValue = msg.value;
-        return MESSAGE_ID;
-    }
-}
 
 contract ProofPlayBaseDuelTest is Test {
     MockUSDC private usdc;
@@ -46,8 +17,7 @@ contract ProofPlayBaseDuelTest is Test {
     address private constant RECEIVER = address(0xB12D6E);
     address private constant RESOLVER = address(0x6E51);
     uint32 private constant GENLAYER_SOURCE_CHAIN = 61998;
-    bytes32 private constant FIXTURE_COMMITMENT =
-        keccak256("Arsenal-Chelsea-2026-08-23");
+    bytes32 private fixtureCommitment;
 
     function setUp() public {
         usdc = new MockUSDC();
@@ -112,20 +82,33 @@ contract ProofPlayBaseDuelTest is Test {
     function _createDuel(address invitedOpponent) private returns (uint256 duelId) {
         uint16[14] memory probabilities = _probabilities();
         uint8[6] memory ticket = _creatorTicket();
+        uint64 kickoff = uint64(block.timestamp + 2 hours);
+        fixtureCommitment = duel.computeFixtureCommitment(
+            "Arsenal",
+            "Chelsea",
+            "Premier League",
+            kickoff,
+            "2026-09-05",
+            "https://www.bbc.com/sport/football/scores-fixtures/2026-09-05",
+            25,
+            95,
+            35
+        );
         vm.prank(ALICE);
         duelId = duel.createDuel(
             invitedOpponent,
             "Arsenal",
             "Chelsea",
             "Premier League",
-            uint64(block.timestamp + 2 hours),
+            kickoff,
+            "2026-09-05",
+            "https://www.bbc.com/sport/football/scores-fixtures/2026-09-05",
             10e6,
             25,
             95,
             35,
             probabilities,
-            ticket,
-            FIXTURE_COMMITMENT
+            ticket
         );
     }
 
@@ -137,12 +120,12 @@ contract ProofPlayBaseDuelTest is Test {
         duel.requestResolution{value: bridge.fee()}(duelId, hex"");
     }
 
-    function _result(uint256 duelId) private pure returns (bytes memory) {
+    function _result(uint256 duelId) private view returns (bytes memory) {
         // 2-1, home scores first, 12 corners, 4 cards.
         return
             abi.encode(
                 duelId,
-                FIXTURE_COMMITMENT,
+                fixtureCommitment,
                 uint256(2),
                 uint256(1),
                 uint256(1),
@@ -190,7 +173,7 @@ contract ProofPlayBaseDuelTest is Test {
             (uint256, bytes32)
         );
         assertEq(sentDuelId, duelId);
-        assertEq(sentFixtureCommitment, FIXTURE_COMMITMENT);
+        assertEq(sentFixtureCommitment, fixtureCommitment);
         assertEq(bridge.lastValue(), bridge.fee());
     }
 

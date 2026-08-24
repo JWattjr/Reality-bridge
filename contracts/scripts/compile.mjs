@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import solc from "../../frontend/node_modules/solc/index.js";
+import solc from "solc";
 
 const sourcePath = new URL("../src/ProofPlayBaseDuel.sol", import.meta.url);
 const source = readFileSync(sourcePath, "utf8");
@@ -11,6 +11,7 @@ const input = {
   settings: {
     optimizer: { enabled: true, runs: 200 },
     viaIR: true,
+    evmVersion: "shanghai",
     outputSelection: {
       "*": {
         "*": ["abi", "evm.bytecode.object"],

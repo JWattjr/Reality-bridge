@@ -1,11 +1,44 @@
 """Fast direct-mode tests for the ProofPlay Studionet ticket resolver."""
 
+import hashlib
 import json
+from pathlib import Path
 
 
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
-CONTRACT = "contracts/proofplay_resolver.py"
-FIXTURE_COMMITMENT = 123456789
+CONTRACT = str(
+    Path(__file__).resolve().parents[2] / "contracts" / "proofplay_resolver.py"
+)
+HOME_TEAM = "Denmark"
+AWAY_TEAM = "England"
+COMPETITION = "UEFA Euro 2024"
+KICKOFF = 1718902800
+MATCH_DATE = "2024-06-20"
+RESOLUTION_URL = "https://www.bbc.com/sport/football/scores-fixtures/2024-06-20"
+GOALS_LINE = 25
+CORNERS_LINE = 95
+CARDS_LINE = 35
+
+
+def expected_fixture_commitment() -> int:
+    canonical = "\x1f".join(
+        (
+            "proofplay-fixture-v1",
+            HOME_TEAM,
+            AWAY_TEAM,
+            COMPETITION,
+            str(KICKOFF),
+            MATCH_DATE,
+            RESOLUTION_URL,
+            str(GOALS_LINE),
+            str(CORNERS_LINE),
+            str(CARDS_LINE),
+        )
+    )
+    return int.from_bytes(hashlib.sha256(canonical.encode()).digest(), "big")
+
+
+FIXTURE_COMMITMENT = expected_fixture_commitment()
 
 
 def as_hex(address) -> str:
@@ -31,11 +64,15 @@ def deploy(direct_deploy, *args):
 def register(contract):
     contract.register_match(
         1,
-        FIXTURE_COMMITMENT,
-        "Denmark",
-        "England",
-        "2024-06-20",
-        "https://www.bbc.com/sport/football/scores-fixtures/2024-06-20",
+        HOME_TEAM,
+        AWAY_TEAM,
+        COMPETITION,
+        KICKOFF,
+        MATCH_DATE,
+        RESOLUTION_URL,
+        GOALS_LINE,
+        CORNERS_LINE,
+        CARDS_LINE,
     )
 
 
@@ -86,6 +123,10 @@ def test_owner_registers_match(direct_deploy):
     assert match["home_team"] == "Denmark"
     assert match["away_team"] == "England"
     assert match["fixture_commitment"] == FIXTURE_COMMITMENT
+    assert match["competition"] == COMPETITION
+    assert match["kickoff"] == KICKOFF
+    assert match["resolution_url"] == RESOLUTION_URL
+    assert match["total_corners_line_tenths"] == CORNERS_LINE
     assert match["status"] == "PENDING"
     assert contract.get_duel_ids() == [1]
 
@@ -187,7 +228,7 @@ def test_bridge_rejects_wrong_caller(
         )
 
 
-def test_bridge_request_resolves_once(
+def test_full_committed_registration_resolution_and_authenticated_bridge_request(
     direct_vm, direct_deploy, direct_alice, direct_bob
 ):
     contract = deploy(
@@ -211,6 +252,7 @@ def test_bridge_request_resolves_once(
     )
 
     assert contract.get_match(1)["away_goals"] == 1
+    assert contract.get_match(1)["fixture_commitment"] == FIXTURE_COMMITMENT
     with direct_vm.expect_revert("Message already processed"):
         contract.process_bridge_message(
             "message-1",

@@ -4,8 +4,8 @@ import {
   ZeroAddress,
   getAddress,
   isAddress,
-  keccak256,
   parseUnits,
+  sha256,
   toUtf8Bytes,
 } from "ethers";
 
@@ -66,13 +66,14 @@ const DUEL_ABI = [
       { name: "awayTeam", type: "string" },
       { name: "competition", type: "string" },
       { name: "kickoff", type: "uint64" },
+      { name: "matchDate", type: "string" },
+      { name: "resolutionUrl", type: "string" },
       { name: "entryStake", type: "uint96" },
       { name: "totalGoalsLineTenths", type: "uint16" },
       { name: "totalCornersLineTenths", type: "uint16" },
       { name: "totalCardsLineTenths", type: "uint16" },
       { name: "impliedProbabilityBps", type: "uint16[14]" },
       { name: "creatorPicks", type: "uint8[6]" },
-      { name: "fixtureCommitment", type: "bytes32" },
     ],
     outputs: [{ name: "duelId", type: "uint256" }],
   },
@@ -85,6 +86,13 @@ const DUEL_ABI = [
       { name: "challengerPicks", type: "uint8[6]" },
     ],
     outputs: [],
+  },
+  {
+    type: "function",
+    name: "getDuelEntryStake",
+    stateMutability: "view",
+    inputs: [{ name: "duelId", type: "uint256" }],
+    outputs: [{ name: "", type: "uint96" }],
   },
 ] as const;
 
@@ -99,6 +107,8 @@ export type TicketFixture = {
   awayTeam: string;
   competition: string;
   kickoff: number;
+  matchDate: string;
+  resolutionUrl: string;
   totalGoalsLineTenths: number;
   totalCornersLineTenths: number;
   totalCardsLineTenths: number;
@@ -131,17 +141,20 @@ export function baseExplorerTx(hash: string) {
 }
 
 export function createFixtureCommitment(fixture: TicketFixture) {
-  return keccak256(
+  return sha256(
     toUtf8Bytes(
       [
-        fixture.homeTeam.trim().toLowerCase(),
-        fixture.awayTeam.trim().toLowerCase(),
-        fixture.competition.trim().toLowerCase(),
+        "proofplay-fixture-v1",
+        fixture.homeTeam,
+        fixture.awayTeam,
+        fixture.competition,
         fixture.kickoff,
+        fixture.matchDate,
+        fixture.resolutionUrl,
         fixture.totalGoalsLineTenths,
         fixture.totalCornersLineTenths,
         fixture.totalCardsLineTenths,
-      ].join("|"),
+      ].join("\x1f"),
     ),
   );
 }
@@ -159,8 +172,21 @@ export async function approveAndCreateBaseDuel(input: CreateDuelInput) {
   }
 
   const fixture = input.fixture;
-  if (!fixture.homeTeam.trim() || !fixture.awayTeam.trim() || fixture.kickoff <= Date.now() / 1000) {
-    throw new Error("Use a future fixture with both team names.");
+  const commitmentFields = [
+    fixture.homeTeam,
+    fixture.awayTeam,
+    fixture.competition,
+    fixture.matchDate,
+    fixture.resolutionUrl,
+  ];
+  if (
+    commitmentFields.some((field) => !field.trim() || field.includes("\x1f")) ||
+    fixture.kickoff <= Date.now() / 1000
+  ) {
+    throw new Error("Use complete fixture metadata without reserved control characters.");
+  }
+  if (!fixture.resolutionUrl.startsWith("https://")) {
+    throw new Error("The fixture evidence source must use HTTPS.");
   }
   if (
     !Number.isInteger(fixture.kickoff) ||
@@ -202,13 +228,14 @@ export async function approveAndCreateBaseDuel(input: CreateDuelInput) {
     fixture.awayTeam,
     fixture.competition,
     BigInt(fixture.kickoff),
+    fixture.matchDate,
+    fixture.resolutionUrl,
     stake,
     fixture.totalGoalsLineTenths,
     fixture.totalCornersLineTenths,
     fixture.totalCardsLineTenths,
     [...input.impliedProbabilityBps],
     [...input.picks],
-    fixtureCommitment,
   );
   const receipt = await transaction.wait();
   const hash = receipt?.hash ?? transaction.hash;
@@ -257,8 +284,17 @@ export async function acceptBaseDuel(input: {
   );
   const signer = await provider.getSigner();
   const duel = new Contract(duelAddress, DUEL_ABI, signer);
+  const stake: bigint = await duel.getDuelEntryStake(BigInt(input.duelId));
+  const token = new Contract(BASE_SEPOLIA.usdcAddress, ERC20_ABI, signer);
+  const allowance: bigint = await token.allowance(await signer.getAddress(), duelAddress);
+  let approvalHash: string | undefined;
+  if (allowance < stake) {
+    const approval = await token.approve(duelAddress, stake);
+    approvalHash = approval.hash;
+    await approval.wait();
+  }
   const transaction = await duel.acceptDuel(BigInt(input.duelId), [...input.picks]);
   const receipt = await transaction.wait();
   const hash = receipt?.hash ?? transaction.hash;
-  return { duelHash: hash, explorerUrl: baseExplorerTx(hash) };
+  return { approvalHash, duelHash: hash, explorerUrl: baseExplorerTx(hash) };
 }

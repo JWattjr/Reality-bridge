@@ -85,11 +85,17 @@ NEXT_PUBLIC_PROOFPLAY_DUEL_ADDRESS=0x...
 Once configured, the UI approves Base Sepolia test USDC, creates direct or
 open duels, generates a shareable duel link from the creation event, and lets
 the invited player join with their own ticket. Before creating a live fixture,
-register the identical fixture commitment with the GenLayer resolver.
+register the identical fixture metadata and HTTPS evidence URL with the
+GenLayer resolver. Base and GenLayer independently derive the same canonical
+SHA-256 commitment; neither side accepts a caller-selected hash.
 
 ## Verification
 
 ~~~powershell
+# Complete reviewer flow: GenLayer registration/resolution plus Base
+# escrow/authenticated callback/settlement/claim
+pnpm test:flow
+
 # Next.js production build
 pnpm build
 
@@ -97,10 +103,14 @@ pnpm build
 node contracts/scripts/compile.mjs
 
 # GenLayer direct tests
-.\genlayer\.venv\Scripts\python.exe -m pytest genlayer/tests/direct -q
+Push-Location genlayer
+.\.venv\Scripts\python.exe -m pytest tests/direct -q
+Pop-Location
 
 # Hosted Studionet smoke test (requires network access)
-.\genlayer\.venv\Scripts\gltest.exe --network studionet genlayer/tests/integration/test_studionet_smoke.py -q
+Push-Location genlayer
+.\.venv\Scripts\gltest.exe -v -s --network studionet tests/integration/test_studionet_smoke.py
+Pop-Location
 ~~~
 
 The bridge configuration is intentionally not hard-coded because its official

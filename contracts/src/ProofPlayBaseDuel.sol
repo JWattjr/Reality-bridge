@@ -52,6 +52,8 @@ contract ProofPlayBaseDuel {
         string homeTeam;
         string awayTeam;
         string competition;
+        string matchDate;
+        string resolutionUrl;
         uint64 kickoff;
         uint64 resolutionRequestedAt;
         uint96 entryStake;
@@ -186,19 +188,22 @@ contract ProofPlayBaseDuel {
         string calldata awayTeam,
         string calldata competition,
         uint64 kickoff,
+        string calldata matchDate,
+        string calldata resolutionUrl,
         uint96 entryStake,
         uint16 totalGoalsLineTenths,
         uint16 totalCornersLineTenths,
         uint16 totalCardsLineTenths,
         uint16[14] calldata impliedProbabilityBps,
-        uint8[6] calldata creatorPicks,
-        bytes32 fixtureCommitment
+        uint8[6] calldata creatorPicks
     ) external nonReentrant returns (uint256 duelId) {
         require(bytes(homeTeam).length != 0 && bytes(awayTeam).length != 0, "Teams required");
         require(keccak256(bytes(homeTeam)) != keccak256(bytes(awayTeam)), "Teams must differ");
+        require(bytes(competition).length != 0, "Competition required");
+        require(bytes(matchDate).length != 0, "Match date required");
+        require(_isHttpsUrl(resolutionUrl), "Evidence URL must use HTTPS");
         require(kickoff > block.timestamp, "Kickoff must be future");
         require(entryStake > 0, "Entry stake required");
-        require(fixtureCommitment != bytes32(0), "Fixture commitment required");
         require(invitedOpponent != msg.sender, "Cannot invite self");
         require(
             totalGoalsLineTenths > 0 &&
@@ -208,12 +213,31 @@ contract ProofPlayBaseDuel {
         );
         _validateProbabilities(impliedProbabilityBps);
         _validateTicket(creatorPicks);
+        _requireCommitmentField(homeTeam);
+        _requireCommitmentField(awayTeam);
+        _requireCommitmentField(competition);
+        _requireCommitmentField(matchDate);
+        _requireCommitmentField(resolutionUrl);
+
+        bytes32 fixtureCommitment = computeFixtureCommitment(
+            homeTeam,
+            awayTeam,
+            competition,
+            kickoff,
+            matchDate,
+            resolutionUrl,
+            totalGoalsLineTenths,
+            totalCornersLineTenths,
+            totalCardsLineTenths
+        );
 
         duelId = ++duelCount;
         Duel storage duel = duels[duelId];
         duel.homeTeam = homeTeam;
         duel.awayTeam = awayTeam;
         duel.competition = competition;
+        duel.matchDate = matchDate;
+        duel.resolutionUrl = resolutionUrl;
         duel.kickoff = kickoff;
         duel.entryStake = entryStake;
         duel.totalGoalsLineTenths = totalGoalsLineTenths;
@@ -232,6 +256,47 @@ contract ProofPlayBaseDuel {
 
         emit DuelCreated(duelId, msg.sender, invitedOpponent, kickoff, entryStake, fixtureCommitment);
         emit TicketSubmitted(duelId, msg.sender, uint64(block.timestamp));
+    }
+
+    /// @notice Canonical SHA-256 commitment shared with the GenLayer resolver.
+    /// @dev Every fixture identity field, scoring line, and evidence URL is
+    ///      committed by Base itself; callers cannot provide an arbitrary hash.
+    function computeFixtureCommitment(
+        string memory homeTeam,
+        string memory awayTeam,
+        string memory competition,
+        uint64 kickoff,
+        string memory matchDate,
+        string memory resolutionUrl,
+        uint16 totalGoalsLineTenths,
+        uint16 totalCornersLineTenths,
+        uint16 totalCardsLineTenths
+    ) public pure returns (bytes32) {
+        bytes1 separator = 0x1f;
+        return
+            sha256(
+                abi.encodePacked(
+                    "proofplay-fixture-v1",
+                    separator,
+                    homeTeam,
+                    separator,
+                    awayTeam,
+                    separator,
+                    competition,
+                    separator,
+                    _uintToString(kickoff),
+                    separator,
+                    matchDate,
+                    separator,
+                    resolutionUrl,
+                    separator,
+                    _uintToString(totalGoalsLineTenths),
+                    separator,
+                    _uintToString(totalCornersLineTenths),
+                    separator,
+                    _uintToString(totalCardsLineTenths)
+                )
+            );
     }
 
     /// @notice Join an invitation or open matchmaking duel with a full ticket.
@@ -463,6 +528,11 @@ contract ProofPlayBaseDuel {
         return _impliedProbabilityBps[duelId];
     }
 
+    function getDuelEntryStake(uint256 duelId) external view returns (uint96) {
+        require(duels[duelId].status != DuelStatus.Missing, "Duel not found");
+        return duels[duelId].entryStake;
+    }
+
     function _sendResolutionRequest(
         uint256 duelId,
         bytes calldata options,
@@ -634,6 +704,40 @@ contract ProofPlayBaseDuel {
         bytes32 fixtureCommitment
     ) private pure returns (bytes memory) {
         return abi.encode(duelId, fixtureCommitment);
+    }
+
+    function _requireCommitmentField(string calldata value) private pure {
+        bytes calldata raw = bytes(value);
+        for (uint256 index = 0; index < raw.length; index++) {
+            require(raw[index] != 0x1f, "Reserved fixture separator");
+        }
+    }
+
+    function _isHttpsUrl(string calldata value) private pure returns (bool) {
+        bytes calldata raw = bytes(value);
+        bytes memory prefix = bytes("https://");
+        if (raw.length <= prefix.length) return false;
+        for (uint256 index = 0; index < prefix.length; index++) {
+            if (raw[index] != prefix[index]) return false;
+        }
+        return true;
+    }
+
+    function _uintToString(uint256 value) private pure returns (string memory) {
+        if (value == 0) return "0";
+        uint256 digits;
+        uint256 remaining = value;
+        while (remaining != 0) {
+            digits++;
+            remaining /= 10;
+        }
+        bytes memory buffer = new bytes(digits);
+        while (value != 0) {
+            digits--;
+            buffer[digits] = bytes1(uint8(48 + value % 10));
+            value /= 10;
+        }
+        return string(buffer);
     }
 
     function _safeTransfer(address to, uint256 amount) private {

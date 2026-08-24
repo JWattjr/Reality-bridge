@@ -55,14 +55,15 @@ tie-break sequence is:
 
 ## Cross-chain flow
 
-1. The creator writes fixture metadata, a nonzero fixture commitment, complete
-   probability schedule, and one ticket to Base. They either name a direct
-   opponent or leave the invitation open.
+1. The creator writes complete fixture metadata, the HTTPS evidence URL,
+   probability schedule, and one ticket to Base. Base derives a canonical
+   SHA-256 commitment over all fixture identity fields, scoring lines, and the
+   evidence URL. The creator cannot supply an arbitrary commitment.
 2. A matching opponent submits their own complete ticket before kickoff. Base
    escrows exactly one test-USDC entry from each player.
-3. The same duel ID and fixture commitment are registered in the GenLayer
-   resolver with an HTTPS source that exposes final score and aggregate match
-   stats.
+3. The same duel ID and exact metadata are registered in the GenLayer resolver.
+   GenLayer independently derives the commitment and stores the committed HTTPS
+   source that exposes final score and aggregate match stats.
 4. After kickoff, a Base resolution request sends ABI words containing the duel
    ID and fixture commitment through the configured beta bridge.
 5. GenLayer validators independently render the source and agree on home
@@ -109,6 +110,9 @@ unverifiable output leaves the match unresolved.
 
 - No real-value asset and no mainnet deployment.
 - Pinned GenVM runner in the resolver source.
+- Base and GenLayer independently derive the same domain-separated SHA-256
+  commitment from teams, competition, kickoff, date, market lines, and HTTPS
+  evidence URL. Base sends that commitment with every resolution request.
 - Base verifies the caller, source chain, resolver, duel ID, and fixture
   commitment before it accepts a bridge result.
 - Identical result callbacks are harmless; conflicting callbacks revert.
@@ -117,3 +121,15 @@ unverifiable output leaves the match unresolved.
   entry can be refunded permissionlessly.
 - An unavailable bridge can only open individual refunds; it cannot create a
   winner.
+
+## Runnable reviewer flow
+
+From the repository root, run `pnpm test:flow`. It executes one reproducible
+flow spanning both responsibility boundaries:
+
+1. GenLayer registration derives the committed fixture/evidence identity.
+2. Mocked validator evidence resolves every independent ticket fact.
+3. An authenticated Base-to-GenLayer request is checked and replay-protected.
+4. An in-memory EVM escrows both test-USDC entries and emits the bridge request.
+5. A forged callback is rejected; the configured receiver callback settles the
+   duel; the winner claims the complete two-entry pot.

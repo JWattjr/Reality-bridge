@@ -39,6 +39,8 @@ const fixture: TicketFixture = {
   awayTeam: "Chelsea",
   competition: "Premier League",
   kickoff: Math.floor(Date.UTC(2026, 8, 5, 15, 0, 0) / 1000),
+  matchDate: "2026-09-05",
+  resolutionUrl: "https://www.bbc.com/sport/football/scores-fixtures/2026-09-05",
   totalGoalsLineTenths: 25,
   totalCornersLineTenths: 95,
   totalCardsLineTenths: 35,
