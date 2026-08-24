@@ -1,12 +1,12 @@
 import { readFileSync } from "node:fs";
 import solc from "../../frontend/node_modules/solc/index.js";
 
-const sourcePath = new URL("../src/ProofPlayBaseMarket.sol", import.meta.url);
+const sourcePath = new URL("../src/ProofPlayBaseDuel.sol", import.meta.url);
 const source = readFileSync(sourcePath, "utf8");
 const input = {
   language: "Solidity",
   sources: {
-    "ProofPlayBaseMarket.sol": { content: source },
+    "ProofPlayBaseDuel.sol": { content: source },
   },
   settings: {
     optimizer: { enabled: true, runs: 200 },
@@ -30,6 +30,6 @@ if (diagnostics.some((diagnostic) => diagnostic.severity === "error")) {
   process.exit(1);
 }
 
-const compiled = output.contracts["ProofPlayBaseMarket.sol"].ProofPlayBaseMarket;
+const compiled = output.contracts["ProofPlayBaseDuel.sol"].ProofPlayBaseDuel;
 const byteLength = compiled.evm.bytecode.object.length / 2;
-console.log(`ProofPlayBaseMarket compiled (${byteLength} byte deployment bytecode, ${compiled.abi.length} ABI entries).`);
+console.log(`ProofPlayBaseDuel compiled (${byteLength} byte deployment bytecode, ${compiled.abi.length} ABI entries).`);

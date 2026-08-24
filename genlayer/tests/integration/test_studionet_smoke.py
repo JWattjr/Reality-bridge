@@ -8,7 +8,7 @@ ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 FIXTURE_COMMITMENT = 123456789
 
 
-def test_register_and_read_match_on_studionet():
+def test_register_and_read_ticket_fixture_on_studionet():
     factory = get_contract_factory("ProofPlayResolver")
     contract = factory.deploy(
         args=[ZERO_ADDRESS, ZERO_ADDRESS, 40245, ZERO_ADDRESS, 84532, ZERO_ADDRESS]
@@ -29,3 +29,5 @@ def test_register_and_read_match_on_studionet():
     match = contract.get_match(args=[1]).call()
     assert match["status"] == "PENDING"
     assert match["home_team"] == "Denmark"
+    assert match["fixture_commitment"] == FIXTURE_COMMITMENT
+    assert match["first_team_to_score"] == 0

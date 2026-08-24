@@ -1,10 +1,12 @@
 import {
   BrowserProvider,
   Contract,
-  JsonRpcProvider,
-  formatUnits,
+  ZeroAddress,
+  getAddress,
   isAddress,
+  keccak256,
   parseUnits,
+  toUtf8Bytes,
 } from "ethers";
 
 export const BASE_SEPOLIA = {
@@ -38,24 +40,49 @@ const ERC20_ABI = [
     ],
     outputs: [{ name: "", type: "bool" }],
   },
-  {
-    type: "function",
-    name: "balanceOf",
-    stateMutability: "view",
-    inputs: [{ name: "account", type: "address" }],
-    outputs: [{ name: "", type: "uint256" }],
-  },
 ] as const;
 
-const MARKET_ABI = [
+const DUEL_ABI = [
+  {
+    type: "event",
+    name: "DuelCreated",
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: "duelId", type: "uint256" },
+      { indexed: true, name: "creator", type: "address" },
+      { indexed: true, name: "invitedOpponent", type: "address" },
+      { indexed: false, name: "kickoff", type: "uint64" },
+      { indexed: false, name: "entryStake", type: "uint96" },
+      { indexed: false, name: "fixtureCommitment", type: "bytes32" },
+    ],
+  },
   {
     type: "function",
-    name: "placePrediction",
+    name: "createDuel",
     stateMutability: "nonpayable",
     inputs: [
-      { name: "marketId", type: "uint256" },
-      { name: "outcome", type: "uint8" },
-      { name: "amount", type: "uint256" },
+      { name: "invitedOpponent", type: "address" },
+      { name: "homeTeam", type: "string" },
+      { name: "awayTeam", type: "string" },
+      { name: "competition", type: "string" },
+      { name: "kickoff", type: "uint64" },
+      { name: "entryStake", type: "uint96" },
+      { name: "totalGoalsLineTenths", type: "uint16" },
+      { name: "totalCornersLineTenths", type: "uint16" },
+      { name: "totalCardsLineTenths", type: "uint16" },
+      { name: "impliedProbabilityBps", type: "uint16[14]" },
+      { name: "creatorPicks", type: "uint8[6]" },
+      { name: "fixtureCommitment", type: "bytes32" },
+    ],
+    outputs: [{ name: "duelId", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "acceptDuel",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "duelId", type: "uint256" },
+      { name: "challengerPicks", type: "uint8[6]" },
     ],
     outputs: [],
   },
@@ -64,42 +91,84 @@ const MARKET_ABI = [
 export type BaseWallet = {
   address: string;
   getEthereumProvider?: () => Promise<unknown>;
-  switchChain?: (chainId: number | `0x${string}`) => Promise<void>;
+  switchChain?: (chainId: number) => Promise<void>;
 };
 
-export function getProofPlayMarketAddress() {
-  const value = process.env.NEXT_PUBLIC_PROOFPLAY_MARKET_ADDRESS;
-  return value && isAddress(value) ? value : null;
+export type TicketFixture = {
+  homeTeam: string;
+  awayTeam: string;
+  competition: string;
+  kickoff: number;
+  totalGoalsLineTenths: number;
+  totalCornersLineTenths: number;
+  totalCardsLineTenths: number;
+};
+
+export type CreateDuelInput = {
+  wallet: BaseWallet;
+  fixture: TicketFixture;
+  invitedOpponent?: string | null;
+  entryStake: string;
+  impliedProbabilityBps: readonly number[];
+  picks: readonly number[];
+};
+
+export function getProofPlayDuelAddress() {
+  const value = process.env.NEXT_PUBLIC_PROOFPLAY_DUEL_ADDRESS;
+  return value && isAddress(value) ? getAddress(value) : null;
 }
 
-export function isBaseMarketConfigured() {
-  return Boolean(getProofPlayMarketAddress());
+export function isBaseDuelConfigured() {
+  return Boolean(getProofPlayDuelAddress());
 }
 
 export function baseExplorerAddress(address: string) {
-  return `${BASE_SEPOLIA.explorerUrl}/address/${address}`;
+  return BASE_SEPOLIA.explorerUrl + "/address/" + address;
 }
 
 export function baseExplorerTx(hash: string) {
-  return `${BASE_SEPOLIA.explorerUrl}/tx/${hash}`;
+  return BASE_SEPOLIA.explorerUrl + "/tx/" + hash;
 }
 
-export async function getBaseSepoliaUsdcBalance(address: string) {
-  const provider = new JsonRpcProvider(BASE_SEPOLIA.rpcUrl, BASE_SEPOLIA.chainId);
-  const usdc = new Contract(BASE_SEPOLIA.usdcAddress, ERC20_ABI, provider);
-  return formatUnits(await usdc.balanceOf(address), 6);
+export function createFixtureCommitment(fixture: TicketFixture) {
+  return keccak256(
+    toUtf8Bytes(
+      [
+        fixture.homeTeam.trim().toLowerCase(),
+        fixture.awayTeam.trim().toLowerCase(),
+        fixture.competition.trim().toLowerCase(),
+        fixture.kickoff,
+        fixture.totalGoalsLineTenths,
+        fixture.totalCornersLineTenths,
+        fixture.totalCardsLineTenths,
+      ].join("|"),
+    ),
+  );
 }
 
-export async function approveAndPlaceBasePrediction(input: {
-  wallet: BaseWallet;
-  marketId: number;
-  outcome: 1 | 2 | 3;
-  stake: string;
-}) {
-  const marketAddress = getProofPlayMarketAddress();
-  if (!marketAddress) throw new Error("Base market address is not configured yet.");
+export async function approveAndCreateBaseDuel(input: CreateDuelInput) {
+  const duelAddress = getProofPlayDuelAddress();
+  if (!duelAddress) {
+    throw new Error("The Base Sepolia duel contract address is not configured yet.");
+  }
   if (!input.wallet.getEthereumProvider || !input.wallet.switchChain) {
     throw new Error("Connect a Privy wallet that can sign Base Sepolia transactions.");
+  }
+  if (input.impliedProbabilityBps.length !== 14 || input.picks.length !== 6) {
+    throw new Error("A complete six-pick ticket and 14 outcome probabilities are required.");
+  }
+
+  const fixture = input.fixture;
+  if (!fixture.homeTeam.trim() || !fixture.awayTeam.trim() || fixture.kickoff <= Date.now() / 1000) {
+    throw new Error("Use a future fixture with both team names.");
+  }
+  if (
+    !Number.isInteger(fixture.kickoff) ||
+    !Number.isInteger(fixture.totalGoalsLineTenths) ||
+    !Number.isInteger(fixture.totalCornersLineTenths) ||
+    !Number.isInteger(fixture.totalCardsLineTenths)
+  ) {
+    throw new Error("Fixture data must use whole-number on-chain values.");
   }
 
   await input.wallet.switchChain(BASE_SEPOLIA.chainId);
@@ -109,22 +178,87 @@ export async function approveAndPlaceBasePrediction(input: {
     BASE_SEPOLIA.chainId,
   );
   const signer = await provider.getSigner();
-  const amount = parseUnits(input.stake, 6);
-  if (amount <= BigInt(0)) throw new Error("Enter a positive USDC stake.");
+  const stake = parseUnits(input.entryStake, 6);
+  if (stake <= BigInt(0)) throw new Error("Enter a positive test-USDC entry.");
 
+  const invitedOpponent = input.invitedOpponent?.trim()
+    ? getAddress(input.invitedOpponent.trim())
+    : ZeroAddress;
   const token = new Contract(BASE_SEPOLIA.usdcAddress, ERC20_ABI, signer);
-  const market = new Contract(marketAddress, MARKET_ABI, signer);
-  const allowance = await token.allowance(await signer.getAddress(), marketAddress);
+  const duel = new Contract(duelAddress, DUEL_ABI, signer);
+  const allowance = await token.allowance(await signer.getAddress(), duelAddress);
   let approvalHash: string | undefined;
 
-  if (allowance < amount) {
-    const approval = await token.approve(marketAddress, amount);
+  if (allowance < stake) {
+    const approval = await token.approve(duelAddress, stake);
     approvalHash = approval.hash;
     await approval.wait();
   }
 
-  const transaction = await market.placePrediction(BigInt(input.marketId), input.outcome, amount);
+  const fixtureCommitment = createFixtureCommitment(fixture);
+  const transaction = await duel.createDuel(
+    invitedOpponent,
+    fixture.homeTeam,
+    fixture.awayTeam,
+    fixture.competition,
+    BigInt(fixture.kickoff),
+    stake,
+    fixture.totalGoalsLineTenths,
+    fixture.totalCornersLineTenths,
+    fixture.totalCardsLineTenths,
+    [...input.impliedProbabilityBps],
+    [...input.picks],
+    fixtureCommitment,
+  );
   const receipt = await transaction.wait();
   const hash = receipt?.hash ?? transaction.hash;
-  return { approvalHash, predictionHash: hash, explorerUrl: baseExplorerTx(hash) };
+  let duelId: string | undefined;
+  for (const log of receipt?.logs ?? []) {
+    try {
+      const parsed = duel.interface.parseLog(log);
+      if (parsed?.name === "DuelCreated") {
+        duelId = parsed.args.duelId.toString();
+        break;
+      }
+    } catch {
+      // Ignore unrelated USDC approval and transfer logs.
+    }
+  }
+  return {
+    approvalHash,
+    duelHash: hash,
+    duelId,
+    fixtureCommitment,
+    explorerUrl: baseExplorerTx(hash),
+  };
+}
+
+export async function acceptBaseDuel(input: {
+  wallet: BaseWallet;
+  duelId: string;
+  picks: readonly number[];
+}) {
+  const duelAddress = getProofPlayDuelAddress();
+  if (!duelAddress) {
+    throw new Error("The Base Sepolia duel contract address is not configured yet.");
+  }
+  if (!input.wallet.getEthereumProvider || !input.wallet.switchChain) {
+    throw new Error("Connect a Privy wallet that can sign Base Sepolia transactions.");
+  }
+  if (!/^[1-9]\d*$/.test(input.duelId) || input.picks.length !== 6) {
+    throw new Error("Enter a valid duel ID and complete all six picks.");
+  }
+
+  await input.wallet.switchChain(BASE_SEPOLIA.chainId);
+  const ethereumProvider = await input.wallet.getEthereumProvider();
+  const provider = new BrowserProvider(
+    ethereumProvider as ConstructorParameters<typeof BrowserProvider>[0],
+    BASE_SEPOLIA.chainId,
+  );
+  const signer = await provider.getSigner();
+  const duel = new Contract(duelAddress, DUEL_ABI, signer);
+  const transaction = await duel.acceptDuel(BigInt(input.duelId), [...input.picks]);
+  const receipt = await transaction.wait();
+  const hash = receipt?.hash ?? transaction.hash;
+  return { duelHash: hash, explorerUrl: baseExplorerTx(hash) };
 }

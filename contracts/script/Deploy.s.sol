@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Script.sol";
 import "forge-std/console2.sol";
-import "../src/ProofPlayBaseMarket.sol";
+import "../src/ProofPlayBaseDuel.sol";
 
 /// @notice Deploys the Base Sepolia escrow contract only.
 /// @dev Bridge endpoints are deliberately configured in a separate, explicit
@@ -17,7 +17,7 @@ contract Deploy is Script {
     uint256 private constant MIN_RESOLUTION_TIMEOUT_SECONDS = 1 hours;
     uint256 private constant MAX_RESOLUTION_TIMEOUT_SECONDS = 30 days;
 
-    function run() external returns (ProofPlayBaseMarket market) {
+    function run() external returns (ProofPlayBaseDuel duel) {
         require(block.chainid == BASE_SEPOLIA_CHAIN_ID, "Run on Base Sepolia only");
 
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
@@ -39,13 +39,13 @@ contract Deploy is Script {
         console2.log("Resolution timeout (seconds):", timeoutSeconds);
 
         vm.startBroadcast(deployerPrivateKey);
-        market = new ProofPlayBaseMarket(
+        duel = new ProofPlayBaseDuel(
             BASE_SEPOLIA_TEST_USDC,
             uint64(timeoutSeconds)
         );
         vm.stopBroadcast();
 
-        console2.log("ProofPlayBaseMarket deployed:", address(market));
+        console2.log("ProofPlayBaseDuel deployed:", address(duel));
         console2.log(
             "Next: configure the verified GenLayer bridge sender, receiver, and resolver."
         );
