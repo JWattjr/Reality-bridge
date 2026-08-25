@@ -58,6 +58,27 @@ const DUEL_ABI = [
   },
   {
     type: "function",
+    name: "duelCount",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "getMatchmakingState",
+    stateMutability: "view",
+    inputs: [{ name: "duelId", type: "uint256" }],
+    outputs: [
+      { name: "status", type: "uint8" },
+      { name: "creator", type: "address" },
+      { name: "invitedOpponent", type: "address" },
+      { name: "kickoff", type: "uint64" },
+      { name: "entryStake", type: "uint96" },
+      { name: "fixtureCommitment", type: "bytes32" },
+    ],
+  },
+  {
+    type: "function",
     name: "createDuel",
     stateMutability: "nonpayable",
     inputs: [
@@ -297,4 +318,79 @@ export async function acceptBaseDuel(input: {
   const receipt = await transaction.wait();
   const hash = receipt?.hash ?? transaction.hash;
   return { approvalHash, duelHash: hash, explorerUrl: baseExplorerTx(hash) };
+}
+
+const OPEN_DUEL_STATUS = BigInt(1);
+const MATCHMAKING_SCAN_LIMIT = BigInt(25);
+
+export async function findOrCreateBaseDuel(input: CreateDuelInput) {
+  const duelAddress = getProofPlayDuelAddress();
+  if (!duelAddress) {
+    throw new Error("The Base Sepolia duel contract address is not configured yet.");
+  }
+  if (!input.wallet.getEthereumProvider || !input.wallet.switchChain) {
+    throw new Error("Connect an EVM wallet that can sign Base Sepolia transactions.");
+  }
+
+  const stake = parseUnits(input.entryStake, 6);
+  if (stake <= BigInt(0)) throw new Error("Enter a positive test-USDC entry.");
+
+  await input.wallet.switchChain(BASE_SEPOLIA.chainId);
+  const ethereumProvider = await input.wallet.getEthereumProvider();
+  const provider = new BrowserProvider(
+    ethereumProvider as ConstructorParameters<typeof BrowserProvider>[0],
+    BASE_SEPOLIA.chainId,
+  );
+  const signer = await provider.getSigner();
+  const player = getAddress(await signer.getAddress());
+  const duel = new Contract(duelAddress, DUEL_ABI, provider);
+  const latestDuelId: bigint = await duel.duelCount();
+  const fixtureCommitment = createFixtureCommitment(input.fixture);
+  const oldestDuelId = latestDuelId > MATCHMAKING_SCAN_LIMIT
+    ? latestDuelId - MATCHMAKING_SCAN_LIMIT + BigInt(1)
+    : BigInt(1);
+
+  for (
+    let duelId = latestDuelId;
+    duelId >= oldestDuelId && duelId > BigInt(0);
+    duelId -= BigInt(1)
+  ) {
+    const state = await duel.getMatchmakingState(duelId);
+    const status = BigInt(state.status);
+    const creator = getAddress(state.creator);
+    const invitedOpponent = getAddress(state.invitedOpponent);
+    const kickoff = Number(state.kickoff);
+    const candidateStake = BigInt(state.entryStake);
+    const candidateCommitment = String(state.fixtureCommitment).toLowerCase();
+    if (
+      status !== OPEN_DUEL_STATUS ||
+      creator === player ||
+      invitedOpponent !== ZeroAddress ||
+      kickoff <= Date.now() / 1000 ||
+      candidateStake !== stake ||
+      candidateCommitment !== fixtureCommitment.toLowerCase()
+    ) {
+      continue;
+    }
+
+    try {
+      const joined = await acceptBaseDuel({
+        wallet: input.wallet,
+        duelId: duelId.toString(),
+        picks: input.picks,
+      });
+      return {
+        ...joined,
+        duelId: duelId.toString(),
+        fixtureCommitment,
+        matchmakingStatus: "matched" as const,
+      };
+    } catch (error) {
+      if ((error as { code?: string }).code !== "CALL_EXCEPTION") throw error;
+      // Another player won the race for this duel. Continue through the queue.
+    }
+  }
+
+  const created = await approveAndCreateBaseDuel({ ...input, invitedOpponent: null });
+  return { ...created, matchmakingStatus: "queued" as const };
 }

@@ -44,16 +44,18 @@ no value. Bradbury and mainnet are deliberately out of scope.
 
 ## User flow
 
-For a no-wallet demo, choose FormBot, ValueBot, or StatsBot in the ticket UI
-and play the completed ticket immediately. The bot ticket stays hidden until
-settlement, then the UI reveals a consistent simulated full-time result,
-weighted scores, and the outcome of all six independent markets. Demo duels
-are clearly labelled and never touch escrow or test funds.
+For a no-wallet demo, lock the completed ticket and ProofPlay automatically
+assigns a bot opponent. The player cannot choose the bot, and its ticket stays
+hidden until settlement. The UI then reveals a consistent simulated full-time
+result, weighted scores, and the outcome of all six independent markets. Demo
+duels are clearly labelled and never touch escrow or test funds.
 
-1. A creator builds all six picks, chooses a fixture, and creates either a
-   direct invitation (wallet-restricted) or open duel.
-2. The opponent opens the shared link or enters the duel ID and submits a full
-   ticket before kickoff.
+1. A player builds all six picks and enters automatic matchmaking for the
+   fixture. Choosing an opponent is available only through a private,
+   wallet-restricted friend challenge.
+2. Automatic matchmaking joins the next compatible open duel or queues a new
+   one. For a private challenge, the invited friend opens the shared link and
+   submits a full ticket before kickoff.
 3. Base locks both one-entry stakes. There is no money transfer between
    individual markets.
 4. After the fixture is final, GenLayer validates the raw match facts from the

@@ -17,6 +17,7 @@ import {
   acceptBaseDuel,
   approveAndCreateBaseDuel,
   createFixtureCommitment,
+  findOrCreateBaseDuel,
   isBaseDuelConfigured,
   type TicketFixture,
 } from "@/lib/base-sepolia";
@@ -231,13 +232,12 @@ export default function ProofPlayMvp() {
   const [entryStake, setEntryStake] = useState("5");
   const [opponentAddress, setOpponentAddress] = useState("");
   const [joinDuelId, setJoinDuelId] = useState("");
-  const [pendingAction, setPendingAction] = useState<"create" | "join" | null>(null);
+  const [pendingAction, setPendingAction] = useState<"match" | "invite" | "join" | null>(null);
   const [notice, setNotice] = useState(
     "Build a six-pick ticket. Every pick will settle independently at full time.",
   );
   const [transactionUrl, setTransactionUrl] = useState<string | null>(null);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
-  const [selectedBotId, setSelectedBotId] = useState(demoBots[0].id);
   const [demoDuel, setDemoDuel] = useState<DemoDuel | null>(null);
   const baseDuelConfigured = isBaseDuelConfigured();
 
@@ -269,16 +269,11 @@ export default function ProofPlayMvp() {
     setDemoDuel(null);
   }
 
-  function selectBot(botId: string) {
-    setSelectedBotId(botId);
-    setDemoDuel(null);
-  }
-
   function playDemoBot() {
-    const bot = demoBots.find((candidate) => candidate.id === selectedBotId) ?? demoBots[0];
-    const randomValue = new Uint32Array(1);
-    window.crypto.getRandomValues(randomValue);
-    const scenario = demoScenarios[randomValue[0] % demoScenarios.length];
+    const randomValues = new Uint32Array(2);
+    window.crypto.getRandomValues(randomValues);
+    const bot = demoBots[randomValues[0] % demoBots.length];
+    const scenario = demoScenarios[randomValues[1] % demoScenarios.length];
     const playerScore = scoreDemoTicket(picks, scenario.outcomes);
     const botScore = scoreDemoTicket(bot.picks, scenario.outcomes);
     const winner = demoWinner(playerScore, botScore);
@@ -304,37 +299,61 @@ export default function ProofPlayMvp() {
     return auth.wallet;
   }
 
-  async function createChallenge() {
+  async function createChallenge(invitedOpponent: string | null) {
+    const isPrivateChallenge = Boolean(invitedOpponent?.trim());
     if (!baseDuelConfigured) {
       setNotice(
-        "Preview mode: deploy ProofPlayBaseDuel and set NEXT_PUBLIC_PROOFPLAY_DUEL_ADDRESS to create an on-chain invitation.",
+        isPrivateChallenge
+          ? "Preview mode: deploy ProofPlayBaseDuel and set NEXT_PUBLIC_PROOFPLAY_DUEL_ADDRESS to create a private invitation."
+          : "Preview mode: deploy ProofPlayBaseDuel and set NEXT_PUBLIC_PROOFPLAY_DUEL_ADDRESS to enter automatic matchmaking.",
       );
       return;
     }
     const wallet = connectedWallet();
     if (!wallet) return;
 
-    setPendingAction("create");
+    setPendingAction(isPrivateChallenge ? "invite" : "match");
     setTransactionUrl(null);
+    setInviteLink(null);
     try {
-      const result = await approveAndCreateBaseDuel({
-        wallet,
-        fixture,
-        invitedOpponent: opponentAddress,
-        entryStake,
-        impliedProbabilityBps,
-        picks,
-      });
+      const result = isPrivateChallenge
+        ? await approveAndCreateBaseDuel({
+            wallet,
+            fixture,
+            invitedOpponent,
+            entryStake,
+            impliedProbabilityBps,
+            picks,
+          })
+        : await findOrCreateBaseDuel({
+            wallet,
+            fixture,
+            entryStake,
+            impliedProbabilityBps,
+            picks,
+          });
       setTransactionUrl(result.explorerUrl);
       if (result.duelId) {
         const link = window.location.origin + "/?duel=" + result.duelId;
-        setInviteLink(link);
-        setNotice(
-          "Duel #" + result.duelId + " created. Copy the link and send it to your rival before kickoff.",
-        );
+        if (isPrivateChallenge) {
+          setInviteLink(link);
+          setNotice(
+            "Private duel #" + result.duelId + " created. Copy the link and send it to your friend before kickoff.",
+          );
+        } else if ("matchmakingStatus" in result && result.matchmakingStatus === "matched") {
+          setNotice(
+            "Matched automatically in duel #" + result.duelId + ". Both tickets are locked until the fixture is verified.",
+          );
+        } else {
+          setNotice(
+            "No compatible player was waiting. Your ticket is queued as duel #" + result.duelId + " for automatic pairing.",
+          );
+        }
       } else {
         setNotice(
-          "Duel created on Base Sepolia. Open the transaction to read the DuelCreated event and share its duel ID.",
+          isPrivateChallenge
+            ? "Private duel created on Base Sepolia. Open the transaction to read its duel ID and share it with your friend."
+            : "Ticket entered into automatic matchmaking on Base Sepolia. Open the transaction to read its duel ID.",
         );
       }
     } catch (error) {
@@ -488,39 +507,17 @@ export default function ProofPlayMvp() {
             <section className="bubbly-card bg-pastel-pink p-5">
               <div className="flex items-center gap-2">
                 <Bot size={21} />
-                <h2 className="font-display text-2xl font-black">Play a demo bot</h2>
+                <h2 className="font-display text-2xl font-black">Automatic bot match</h2>
               </div>
               <p className="mt-2 text-xs font-bold leading-relaxed opacity-70">
-                No wallet, gas, or funds. The bot ticket stays hidden until a demo result settles all six markets.
+                Lock your ticket and ProofPlay will assign an opponent. You cannot choose the bot, and its ticket stays hidden until settlement.
               </p>
-              <div className="mt-4 grid gap-2">
-                {demoBots.map((bot) => {
-                  const selected = bot.id === selectedBotId;
-                  return (
-                    <button
-                      key={bot.id}
-                      type="button"
-                      aria-pressed={selected}
-                      onClick={() => selectBot(bot.id)}
-                      className={
-                        "rounded-xl border-2 px-3 py-2.5 text-left transition " +
-                        (selected
-                          ? "border-primary-900 bg-white shadow-[2px_2px_0px_0px_#312e81]"
-                          : "border-primary-300 bg-white/60 hover:border-primary-900")
-                      }
-                    >
-                      <span className="block text-xs font-black">{bot.name}</span>
-                      <span className="mt-0.5 block text-[10px] font-bold opacity-60">{bot.strategy}</span>
-                    </button>
-                  );
-                })}
-              </div>
               <button
                 type="button"
                 onClick={playDemoBot}
                 className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-primary-900 bg-primary-900 px-3 py-3 text-xs font-black text-white shadow-[3px_3px_0px_0px_#fef08a] transition hover:translate-y-0.5 hover:shadow-none"
               >
-                <Bot size={16} />{demoDuel ? "Replay bot duel" : "Lock ticket & play"}
+                <Bot size={16} />{demoDuel ? "Find another bot" : "Find a bot & play"}
               </button>
 
               {demoDuel ? (
@@ -569,21 +566,12 @@ export default function ProofPlayMvp() {
             <section className="bubbly-card bg-white p-5">
               <div className="flex items-center gap-2">
                 <Users size={20} />
-                <h2 className="font-display text-2xl font-black">Challenge a friend</h2>
+                <h2 className="font-display text-2xl font-black">Find an opponent</h2>
               </div>
               <p className="mt-2 text-xs font-bold leading-relaxed opacity-65">
-                Add a wallet address for a direct invitation, or leave it blank to create an open duel.
+                Enter the shared queue for this fixture. ProofPlay pairs you automatically with the next eligible player.
               </p>
               <label className="mt-4 block text-[11px] font-black uppercase tracking-wide">
-                Rival wallet (optional)
-                <input
-                  value={opponentAddress}
-                  onChange={(event) => setOpponentAddress(event.target.value)}
-                  placeholder="0x… for a direct invite"
-                  className="mt-1.5 w-full rounded-xl border-2 border-primary-900 bg-bg-base px-3 py-2.5 text-xs font-semibold outline-none focus:bg-white"
-                />
-              </label>
-              <label className="mt-3 block text-[11px] font-black uppercase tracking-wide">
                 Entry per player (test USDC)
                 <input
                   inputMode="decimal"
@@ -594,12 +582,41 @@ export default function ProofPlayMvp() {
               </label>
               <button
                 type="button"
-                onClick={createChallenge}
+                onClick={() => void createChallenge(null)}
                 disabled={pendingAction !== null}
                 className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-primary-900 bg-pastel-green px-3 py-3 text-xs font-black shadow-[3px_3px_0px_0px_#312e81] transition hover:translate-y-0.5 hover:shadow-none disabled:cursor-wait disabled:opacity-60"
               >
+                <Users size={16} />
+                {pendingAction === "match" ? "Finding opponent…" : "Find me an opponent"}
+              </button>
+            </section>
+
+            <section className="bubbly-card bg-white p-5">
+              <div className="flex items-center gap-2">
+                <Link2 size={20} />
+                <h2 className="font-display text-2xl font-black">Challenge a friend privately</h2>
+              </div>
+              <p className="mt-2 text-xs font-bold leading-relaxed opacity-65">
+                This is the only mode where you choose your opponent. The invitation is restricted to their wallet.
+              </p>
+              <label className="mt-4 block text-[11px] font-black uppercase tracking-wide">
+                Friend&apos;s wallet
+                <input
+                  value={opponentAddress}
+                  onChange={(event) => setOpponentAddress(event.target.value)}
+                  placeholder="0x…"
+                  className="mt-1.5 w-full rounded-xl border-2 border-primary-900 bg-bg-base px-3 py-2.5 text-xs font-semibold outline-none focus:bg-white"
+                />
+              </label>
+              <p className="mt-2 text-[10px] font-bold opacity-55">Uses the {entryStake || "0"} test-USDC entry selected above.</p>
+              <button
+                type="button"
+                onClick={() => void createChallenge(opponentAddress)}
+                disabled={pendingAction !== null || !opponentAddress.trim()}
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-primary-900 bg-pastel-yellow px-3 py-3 text-xs font-black shadow-[3px_3px_0px_0px_#312e81] transition hover:translate-y-0.5 hover:shadow-none disabled:cursor-not-allowed disabled:opacity-45"
+              >
                 <Link2 size={16} />
-                {pendingAction === "create" ? "Creating duel…" : opponentAddress.trim() ? "Create direct invite" : "Create open duel"}
+                {pendingAction === "invite" ? "Creating invitation…" : "Create private challenge"}
               </button>
               {inviteLink ? (
                 <button
@@ -615,10 +632,10 @@ export default function ProofPlayMvp() {
             <section className="bubbly-card bg-pastel-blue p-5">
               <div className="flex items-center gap-2">
                 <CircleDollarSign size={20} />
-                <h2 className="font-display text-2xl font-black">Join a shared duel</h2>
+                <h2 className="font-display text-2xl font-black">Join a private challenge</h2>
               </div>
               <p className="mt-2 text-xs font-bold leading-relaxed opacity-65">
-                A challenge link fills this automatically. Your rival may make entirely different picks.
+                A friend&apos;s private challenge link fills this automatically. You can still make entirely different picks.
               </p>
               <div className="mt-3 flex gap-2">
                 <input

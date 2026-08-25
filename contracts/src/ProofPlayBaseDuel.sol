@@ -323,6 +323,34 @@ contract ProofPlayBaseDuel {
         emit TicketSubmitted(duelId, msg.sender, uint64(block.timestamp));
     }
 
+    /// @notice Minimal public state needed by permissionless matchmaking clients.
+    /// @dev Ticket contents are deliberately excluded so neither player can inspect
+    ///      the other's selections before accepting the duel.
+    function getMatchmakingState(
+        uint256 duelId
+    )
+        external
+        view
+        returns (
+            DuelStatus status,
+            address creator,
+            address invitedOpponent,
+            uint64 kickoff,
+            uint96 entryStake,
+            bytes32 fixtureCommitment
+        )
+    {
+        Duel storage duel = duels[duelId];
+        return (
+            duel.status,
+            duel.creator,
+            duel.invitedOpponent,
+            duel.kickoff,
+            duel.entryStake,
+            duel.fixtureCommitment
+        );
+    }
+
     /// @notice Creator may cancel an unmatched invitation before kickoff.
     function cancelUnmatchedDuel(uint256 duelId) external {
         Duel storage duel = duels[duelId];
