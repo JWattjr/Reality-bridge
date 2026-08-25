@@ -9,7 +9,6 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@privy-io/react-auth": "^3.23.1",
     "ethers": "^6.13.1",
     "lucide-react": "^1.14.0",
     "next": "16.2.6",

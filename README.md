@@ -36,7 +36,7 @@ a draw with one-entry refunds for both players.
 | Base Sepolia | One test-USDC entry per player, ticket lock, payout, and refund state |
 | GenLayer Studionet | Consensus-backed verification of score, first scorer, corners, and cards |
 | GenLayer bridge beta | Authenticated transport only; it cannot choose a winner |
-| Privy | Login, embedded wallet, and Base Sepolia signing |
+| Browser EVM wallet | MetaMask, Rabby, Coinbase Wallet, or another injected wallet for Base Sepolia signing |
 
 Base Sepolia uses Circle test USDC at
 0x036CbD53842c5426634e7929541eC2318f3dCF7e (six decimals). Test assets have
@@ -78,7 +78,6 @@ The interface remains transparent in preview mode until a deployed Base Sepolia
 duel address is supplied:
 
 ~~~dotenv
-NEXT_PUBLIC_PRIVY_APP_ID=
 NEXT_PUBLIC_PROOFPLAY_DUEL_ADDRESS=0x...
 ~~~
 

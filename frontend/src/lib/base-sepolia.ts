@@ -165,7 +165,7 @@ export async function approveAndCreateBaseDuel(input: CreateDuelInput) {
     throw new Error("The Base Sepolia duel contract address is not configured yet.");
   }
   if (!input.wallet.getEthereumProvider || !input.wallet.switchChain) {
-    throw new Error("Connect a Privy wallet that can sign Base Sepolia transactions.");
+    throw new Error("Connect an EVM wallet that can sign Base Sepolia transactions.");
   }
   if (input.impliedProbabilityBps.length !== 14 || input.picks.length !== 6) {
     throw new Error("A complete six-pick ticket and 14 outcome probabilities are required.");
@@ -270,7 +270,7 @@ export async function acceptBaseDuel(input: {
     throw new Error("The Base Sepolia duel contract address is not configured yet.");
   }
   if (!input.wallet.getEthereumProvider || !input.wallet.switchChain) {
-    throw new Error("Connect a Privy wallet that can sign Base Sepolia transactions.");
+    throw new Error("Connect an EVM wallet that can sign Base Sepolia transactions.");
   }
   if (!/^[1-9]\d*$/.test(input.duelId) || input.picks.length !== 6) {
     throw new Error("Enter a valid duel ID and complete all six picks.");

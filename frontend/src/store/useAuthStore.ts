@@ -1,18 +1,16 @@
 import { create } from "zustand";
-import { ConnectedWallet } from "@privy-io/react-auth";
+import type { BaseWallet } from "@/lib/base-sepolia";
 
 interface AuthState {
   ready: boolean;
   configured: boolean;
   authenticated: boolean;
-  userId: string | null;
   walletAddress: string | null;
-  wallets: ConnectedWallet[];
+  wallet: BaseWallet | null;
   displayName: string;
-  login: () => void;
+  error: string | null;
+  login: () => void | Promise<void>;
   logout: () => void;
-  getAccessToken: () => Promise<string | null>;
-  authHeaders: () => Promise<Record<string, string>>;
   setAuthState: (state: Partial<Omit<AuthState, "setAuthState">>) => void;
 }
 
@@ -20,13 +18,11 @@ export const useAuthStore = create<AuthState>((set) => ({
   ready: false,
   configured: false,
   authenticated: false,
-  userId: null,
   walletAddress: null,
-  wallets: [],
+  wallet: null,
   displayName: "Connect wallet",
+  error: null,
   login: () => undefined,
   logout: () => undefined,
-  getAccessToken: async () => null,
-  authHeaders: async () => ({}),
   setAuthState: (newState) => set((state) => ({ ...state, ...newState })),
 }));

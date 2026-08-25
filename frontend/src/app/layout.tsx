@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ProofPlayAuthProvider } from "@/components/ProofPlayAuthProvider";
+import { EvmWalletProvider } from "@/components/EvmWalletProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -15,7 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
-        <ProofPlayAuthProvider>{children}</ProofPlayAuthProvider>
+        <EvmWalletProvider>{children}</EvmWalletProvider>
       </body>
     </html>
   );

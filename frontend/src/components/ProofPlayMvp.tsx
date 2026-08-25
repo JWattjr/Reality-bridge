@@ -169,17 +169,14 @@ export default function ProofPlayMvp() {
 
   function connectedWallet() {
     if (!auth.authenticated) {
-      auth.login();
+      void auth.login();
       return null;
     }
-    const wallet = auth.wallets.find(
-      (item) => item.address.toLowerCase() === auth.walletAddress?.toLowerCase(),
-    ) ?? auth.wallets[0];
-    if (!wallet) {
-      setNotice("Your Privy wallet is still being created. Try again in a moment.");
+    if (!auth.wallet) {
+      setNotice("Reconnect your EVM wallet and try again.");
       return null;
     }
-    return wallet;
+    return auth.wallet;
   }
 
   async function createChallenge() {

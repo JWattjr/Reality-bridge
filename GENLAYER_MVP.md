@@ -12,8 +12,9 @@ have no financial value.
 
 ## Responsibility boundary
 
-- **Frontend owns:** Privy login, Base Sepolia wallet switching, ticket
-  construction, direct-invite links, and non-authoritative previews.
+- **Frontend owns:** injected EVM wallet connection, Base Sepolia network
+  switching, ticket construction, direct-invite links, and non-authoritative
+  previews.
 - **Base Sepolia contract owns:** ticket lock at kickoff, one entry escrowed
   from each player, fixed probability weights, deterministic score comparison,
   payouts, and timeout refunds.

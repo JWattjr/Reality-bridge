@@ -23,16 +23,16 @@ export default function WalletLoginButton({ compact = false, className = "" }: W
     window.setTimeout(() => setCopied(false), 1400);
   }
 
-  if (!auth.configured) {
-    return <span className={`inline-flex items-center gap-1.5 rounded-full border-2 border-primary-900 bg-white px-3 py-1.5 text-[10px] font-bold ${className}`}><Wallet size={compact ? 12 : 14} />Set Privy env</span>;
-  }
-
   if (!auth.ready) {
     return <span className={`inline-flex items-center gap-1.5 rounded-full border-2 border-primary-900 bg-white px-3 py-1.5 text-[10px] font-bold ${className}`}><Wallet size={compact ? 12 : 14} />Loading</span>;
   }
 
+  if (!auth.configured) {
+    return <span title="Install MetaMask, Rabby, Coinbase Wallet, or another injected EVM wallet." className={`inline-flex items-center gap-1.5 rounded-full border-2 border-primary-900 bg-white px-3 py-1.5 text-[10px] font-bold ${className}`}><Wallet size={compact ? 12 : 14} />Install EVM wallet</span>;
+  }
+
   if (!auth.authenticated) {
-    return <button type="button" onClick={auth.login} className={`inline-flex items-center gap-1.5 rounded-full border-2 border-primary-900 bg-pastel-green px-3 py-1.5 text-[10px] font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none ${className}`}><LogIn size={compact ? 12 : 14} />{compact ? "Connect" : "Connect wallet"}</button>;
+    return <button type="button" title={auth.error ?? undefined} onClick={() => void auth.login()} className={`inline-flex items-center gap-1.5 rounded-full border-2 border-primary-900 bg-pastel-green px-3 py-1.5 text-[10px] font-bold shadow-[2px_2px_0px_0px_#312e81] transition-all hover:translate-y-0.5 hover:shadow-none ${className}`}><LogIn size={compact ? 12 : 14} />{auth.error ? "Try wallet again" : compact ? "Connect" : "Connect EVM wallet"}</button>;
   }
 
   return (
@@ -42,7 +42,7 @@ export default function WalletLoginButton({ compact = false, className = "" }: W
       </button>
       {open ? (
         <div className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-72 rounded-3xl border-3 border-primary-900 bg-white p-3 text-left shadow-[4px_4px_0px_0px_#312e81]">
-          <p className="text-[10px] font-bold uppercase opacity-60">Base Sepolia wallet</p>
+          <p className="text-[10px] font-bold uppercase opacity-60">Connected EVM wallet</p>
           <p className="mt-1 break-all text-xs font-bold">{walletAddress}</p>
           <p className="mt-3 rounded-2xl bg-pastel-blue p-3 text-[10px] font-bold leading-relaxed">Use Base Sepolia ETH for gas and Base Sepolia test USDC for ProofPlay. Both are test assets with no value.</p>
           <div className="mt-3 grid grid-cols-2 gap-2">
