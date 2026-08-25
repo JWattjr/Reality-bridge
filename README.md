@@ -44,6 +44,12 @@ no value. Bradbury and mainnet are deliberately out of scope.
 
 ## User flow
 
+For a no-wallet demo, choose FormBot, ValueBot, or StatsBot in the ticket UI
+and play the completed ticket immediately. The bot ticket stays hidden until
+settlement, then the UI reveals a consistent simulated full-time result,
+weighted scores, and the outcome of all six independent markets. Demo duels
+are clearly labelled and never touch escrow or test funds.
+
 1. A creator builds all six picks, chooses a fixture, and creates either a
    direct invitation (wallet-restricted) or open duel.
 2. The opponent opens the shared link or enters the duel ID and submits a full

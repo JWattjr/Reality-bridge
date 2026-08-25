@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
+  Bot,
   CheckCircle2,
   CircleDollarSign,
   Link2,
@@ -32,6 +33,33 @@ type TicketMarket = {
   title: string;
   helper: string;
   options: TicketOption[];
+};
+
+type DemoBot = {
+  id: string;
+  name: string;
+  strategy: string;
+  picks: number[];
+};
+
+type DemoScenario = {
+  id: string;
+  summary: string;
+  outcomes: number[];
+};
+
+type DemoScore = {
+  correct: number;
+  weighted: number;
+  bestPick: number;
+};
+
+type DemoDuel = {
+  bot: DemoBot;
+  scenario: DemoScenario;
+  playerScore: DemoScore;
+  botScore: DemoScore;
+  winner: "player" | "bot" | "draw";
 };
 
 const fixture: TicketFixture = {
@@ -110,6 +138,50 @@ const impliedProbabilityBps = ticketMarkets.flatMap((market) =>
   market.options.map((option) => option.probabilityBps),
 );
 
+const demoBots: DemoBot[] = [
+  {
+    id: "form",
+    name: "FormBot",
+    strategy: "Follows the market favourites",
+    picks: [3, 2, 1, 1, 1, 1],
+  },
+  {
+    id: "value",
+    name: "ValueBot",
+    strategy: "Hunts low-probability outcomes",
+    picks: [2, 3, 2, 2, 2, 2],
+  },
+  {
+    id: "stats",
+    name: "StatsBot",
+    strategy: "Backs a tight away performance",
+    picks: [3, 2, 2, 1, 1, 2],
+  },
+];
+
+const demoScenarios: DemoScenario[] = [
+  {
+    id: "home-thriller",
+    summary: "Arsenal 2–1 Chelsea · Arsenal scored first · 12 corners · 4 cards",
+    outcomes: [1, 1, 1, 1, 1, 1],
+  },
+  {
+    id: "score-draw",
+    summary: "Arsenal 1–1 Chelsea · Chelsea scored first · 8 corners · 3 cards",
+    outcomes: [2, 2, 2, 2, 2, 1],
+  },
+  {
+    id: "away-control",
+    summary: "Arsenal 0–2 Chelsea · Chelsea scored first · 11 corners · 5 cards",
+    outcomes: [3, 2, 2, 1, 1, 2],
+  },
+  {
+    id: "stalemate",
+    summary: "Arsenal 0–0 Chelsea · No goals · 7 corners · 2 cards",
+    outcomes: [2, 3, 2, 2, 2, 2],
+  },
+];
+
 function formatProbability(probabilityBps: number) {
   return (probabilityBps / 100).toFixed(probabilityBps % 100 === 0 ? 0 : 1) + "%";
 }
@@ -126,6 +198,33 @@ function weightedValue(probabilityBps: number) {
   return Math.floor(1_000_000 / probabilityBps);
 }
 
+function optionFor(marketIndex: number, outcome: number) {
+  return ticketMarkets[marketIndex].options.find((option) => option.value === outcome);
+}
+
+function scoreDemoTicket(ticket: number[], actualOutcomes: number[]): DemoScore {
+  return ticket.reduce<DemoScore>(
+    (score, pick, marketIndex) => {
+      if (pick !== actualOutcomes[marketIndex]) return score;
+      const probability = optionFor(marketIndex, pick)?.probabilityBps ?? 10_000;
+      const value = weightedValue(probability);
+      return {
+        correct: score.correct + 1,
+        weighted: score.weighted + value,
+        bestPick: Math.max(score.bestPick, value),
+      };
+    },
+    { correct: 0, weighted: 0, bestPick: 0 },
+  );
+}
+
+function demoWinner(player: DemoScore, bot: DemoScore): DemoDuel["winner"] {
+  if (player.weighted !== bot.weighted) return player.weighted > bot.weighted ? "player" : "bot";
+  if (player.correct !== bot.correct) return player.correct > bot.correct ? "player" : "bot";
+  if (player.bestPick !== bot.bestPick) return player.bestPick > bot.bestPick ? "player" : "bot";
+  return "draw";
+}
+
 export default function ProofPlayMvp() {
   const auth = useAuthStore();
   const [picks, setPicks] = useState<number[]>(defaultPicks);
@@ -138,6 +237,8 @@ export default function ProofPlayMvp() {
   );
   const [transactionUrl, setTransactionUrl] = useState<string | null>(null);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [selectedBotId, setSelectedBotId] = useState(demoBots[0].id);
+  const [demoDuel, setDemoDuel] = useState<DemoDuel | null>(null);
   const baseDuelConfigured = isBaseDuelConfigured();
 
   useEffect(() => {
@@ -165,6 +266,30 @@ export default function ProofPlayMvp() {
 
   function choosePick(marketIndex: number, value: number) {
     setPicks((current) => current.map((pick, index) => (index === marketIndex ? value : pick)));
+    setDemoDuel(null);
+  }
+
+  function selectBot(botId: string) {
+    setSelectedBotId(botId);
+    setDemoDuel(null);
+  }
+
+  function playDemoBot() {
+    const bot = demoBots.find((candidate) => candidate.id === selectedBotId) ?? demoBots[0];
+    const randomValue = new Uint32Array(1);
+    window.crypto.getRandomValues(randomValue);
+    const scenario = demoScenarios[randomValue[0] % demoScenarios.length];
+    const playerScore = scoreDemoTicket(picks, scenario.outcomes);
+    const botScore = scoreDemoTicket(bot.picks, scenario.outcomes);
+    const winner = demoWinner(playerScore, botScore);
+    setDemoDuel({ bot, scenario, playerScore, botScore, winner });
+    setNotice(
+      winner === "player"
+        ? `You beat ${bot.name} in the demo duel.`
+        : winner === "bot"
+          ? `${bot.name} won this demo duel. Adjust your ticket and replay.`
+          : `You drew with ${bot.name}. Identical demo scores split the result.`,
+    );
   }
 
   function connectedWallet() {
@@ -358,6 +483,87 @@ export default function ProofPlayMvp() {
                 <li><span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary-900 text-white">2</span>Most correct picks, then highest-value pick</li>
                 <li><span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary-900 text-white">3</span>Earlier ticket; exact tie refunds both entries</li>
               </ol>
+            </section>
+
+            <section className="bubbly-card bg-pastel-pink p-5">
+              <div className="flex items-center gap-2">
+                <Bot size={21} />
+                <h2 className="font-display text-2xl font-black">Play a demo bot</h2>
+              </div>
+              <p className="mt-2 text-xs font-bold leading-relaxed opacity-70">
+                No wallet, gas, or funds. The bot ticket stays hidden until a demo result settles all six markets.
+              </p>
+              <div className="mt-4 grid gap-2">
+                {demoBots.map((bot) => {
+                  const selected = bot.id === selectedBotId;
+                  return (
+                    <button
+                      key={bot.id}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => selectBot(bot.id)}
+                      className={
+                        "rounded-xl border-2 px-3 py-2.5 text-left transition " +
+                        (selected
+                          ? "border-primary-900 bg-white shadow-[2px_2px_0px_0px_#312e81]"
+                          : "border-primary-300 bg-white/60 hover:border-primary-900")
+                      }
+                    >
+                      <span className="block text-xs font-black">{bot.name}</span>
+                      <span className="mt-0.5 block text-[10px] font-bold opacity-60">{bot.strategy}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                type="button"
+                onClick={playDemoBot}
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-primary-900 bg-primary-900 px-3 py-3 text-xs font-black text-white shadow-[3px_3px_0px_0px_#fef08a] transition hover:translate-y-0.5 hover:shadow-none"
+              >
+                <Bot size={16} />{demoDuel ? "Replay bot duel" : "Lock ticket & play"}
+              </button>
+
+              {demoDuel ? (
+                <div className="mt-4 rounded-2xl border-2 border-primary-900 bg-white p-3">
+                  <p className="text-[10px] font-black uppercase tracking-wide opacity-55">Demo full-time result</p>
+                  <p className="mt-1 text-xs font-black leading-relaxed">{demoDuel.scenario.summary}</p>
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-center">
+                    <div className="rounded-xl bg-pastel-green p-2">
+                      <p className="text-[10px] font-black uppercase">You</p>
+                      <p className="font-display text-2xl font-black">{demoDuel.playerScore.correct}/6</p>
+                      <p className="text-[9px] font-bold">{demoDuel.playerScore.weighted} pts</p>
+                    </div>
+                    <div className="rounded-xl bg-pastel-blue p-2">
+                      <p className="text-[10px] font-black uppercase">{demoDuel.bot.name}</p>
+                      <p className="font-display text-2xl font-black">{demoDuel.botScore.correct}/6</p>
+                      <p className="text-[9px] font-bold">{demoDuel.botScore.weighted} pts</p>
+                    </div>
+                  </div>
+                  <p className="mt-3 rounded-xl bg-primary-900 px-3 py-2 text-center text-xs font-black text-white">
+                    {demoDuel.winner === "player"
+                      ? "You win the duel"
+                      : demoDuel.winner === "bot"
+                        ? `${demoDuel.bot.name} wins`
+                        : "Duel drawn"}
+                  </p>
+                  <div className="mt-3 space-y-2">
+                    {ticketMarkets.map((market, marketIndex) => {
+                      const actual = demoDuel.scenario.outcomes[marketIndex];
+                      const playerCorrect = picks[marketIndex] === actual;
+                      const botCorrect = demoDuel.bot.picks[marketIndex] === actual;
+                      return (
+                        <div key={market.title} className="rounded-xl border border-primary-200 bg-bg-base px-2.5 py-2 text-[9px] font-bold">
+                          <p className="font-black">{market.title}: {optionFor(marketIndex, actual)?.label}</p>
+                          <p className="mt-1 flex justify-between gap-2 opacity-70">
+                            <span>You: {optionFor(marketIndex, picks[marketIndex])?.label} {playerCorrect ? "✓" : "×"}</span>
+                            <span>Bot: {optionFor(marketIndex, demoDuel.bot.picks[marketIndex])?.label} {botCorrect ? "✓" : "×"}</span>
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
             </section>
 
             <section className="bubbly-card bg-white p-5">
