@@ -14,7 +14,7 @@ AWAY_TEAM = "England"
 COMPETITION = "UEFA Euro 2024"
 KICKOFF = 1718902800
 MATCH_DATE = "2024-06-20"
-RESOLUTION_URL = "https://www.bbc.com/sport/football/scores-fixtures/2024-06-20"
+RESOLUTION_URL = "https://www.europeanchampionship2024.co.uk/match/17/denmark-england"
 GOALS_LINE = 25
 CORNERS_LINE = 95
 CARDS_LINE = 35
@@ -64,6 +64,7 @@ def deploy(direct_deploy, *args):
 def register(contract):
     contract.register_match(
         1,
+        FIXTURE_COMMITMENT,
         HOME_TEAM,
         AWAY_TEAM,
         COMPETITION,
@@ -85,7 +86,7 @@ def mock_result(
     total_cards: int = 4,
 ):
     direct_vm.mock_web(
-        r".*bbc\.com/sport/football/scores-fixtures.*",
+        r".*europeanchampionship2024\.co\.uk/match/17/denmark-england.*",
         {
             "status": 200,
             "body": (
@@ -139,6 +140,28 @@ def test_non_owner_cannot_register(direct_vm, direct_deploy, direct_alice):
         register(contract)
 
 
+def test_registration_rejects_metadata_not_matching_base_commitment(
+    direct_vm,
+    direct_deploy,
+):
+    contract = deploy(direct_deploy)
+
+    with direct_vm.expect_revert("Base fixture commitment mismatch"):
+        contract.register_match(
+            1,
+            FIXTURE_COMMITMENT + 1,
+            HOME_TEAM,
+            AWAY_TEAM,
+            COMPETITION,
+            KICKOFF,
+            MATCH_DATE,
+            RESOLUTION_URL,
+            GOALS_LINE,
+            CORNERS_LINE,
+            CARDS_LINE,
+        )
+
+
 def test_resolves_all_ticket_facts_and_persists_them(direct_vm, direct_deploy):
     contract = deploy(direct_deploy)
     register(contract)
@@ -171,7 +194,10 @@ def test_rejects_first_scorer_inconsistent_with_goal_free_draw(
 def test_unfinished_match_does_not_change_state(direct_vm, direct_deploy):
     contract = deploy(direct_deploy)
     register(contract)
-    direct_vm.mock_web(r".*bbc\.com.*", {"status": 200, "body": "Kick-off 20:00"})
+    direct_vm.mock_web(
+        r".*europeanchampionship2024\.co\.uk.*",
+        {"status": 200, "body": "Kick-off 20:00"},
+    )
     direct_vm.mock_llm(
         r".*resolving one football match.*",
         json.dumps(

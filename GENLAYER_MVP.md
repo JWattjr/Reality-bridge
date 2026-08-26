@@ -113,7 +113,9 @@ unverifiable output leaves the match unresolved.
 - Pinned GenVM runner in the resolver source.
 - Base and GenLayer independently derive the same domain-separated SHA-256
   commitment from teams, competition, kickoff, date, market lines, and HTTPS
-  evidence URL. Base sends that commitment with every resolution request.
+  evidence URL. GenLayer registration receives Base's expected commitment and
+  reverts on-chain unless its independently derived value is identical. Base
+  sends that commitment again with every resolution request.
 - Base verifies the caller, source chain, resolver, duel ID, and fixture
   commitment before it accepts a bridge result.
 - Identical result callbacks are harmless; conflicting callbacks revert.
@@ -128,9 +130,16 @@ unverifiable output leaves the match unresolved.
 From the repository root, run `pnpm test:flow`. It executes one reproducible
 flow spanning both responsibility boundaries:
 
-1. GenLayer registration derives the committed fixture/evidence identity.
-2. Mocked validator evidence resolves every independent ticket fact.
-3. An authenticated Base-to-GenLayer request is checked and replay-protected.
-4. An in-memory EVM escrows both test-USDC entries and emits the bridge request.
-5. A forged callback is rejected; the configured receiver callback settles the
-   duel; the winner claims the complete two-entry pot.
+1. A fresh resolver is deployed on hosted Studionet.
+2. Registration independently derives the committed fixture/evidence identity
+   and checks it against Base's expected commitment on-chain.
+3. An authenticated Base-to-GenLayer request triggers validators to render the
+   real committed web source and agree on every independent ticket fact. No web
+   or LLM result is mocked.
+4. The test exports the persisted Studionet result together with its resolver
+   address and registration/resolution transaction hashes.
+5. An in-memory EVM derives the same commitment, escrows both test-USDC entries,
+   and emits the resolution request.
+6. A forged callback is rejected. The configured receiver relays the exact
+   Studionet result, Base settles the duel, and the winner claims the complete
+   two-entry pot.

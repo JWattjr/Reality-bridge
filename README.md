@@ -93,14 +93,15 @@ Once configured, the UI approves Base Sepolia test USDC, creates direct or
 open duels, generates a shareable duel link from the creation event, and lets
 the invited player join with their own ticket. Before creating a live fixture,
 register the identical fixture metadata and HTTPS evidence URL with the
-GenLayer resolver. Base and GenLayer independently derive the same canonical
-SHA-256 commitment; neither side accepts a caller-selected hash.
+GenLayer resolver together with Base's canonical SHA-256 commitment. GenLayer
+independently recomputes that commitment from its registered fields and
+rejects the transaction on-chain if the metadata or evidence URL differs.
 
 ## Verification
 
 ~~~powershell
-# Complete reviewer flow: GenLayer registration/resolution plus Base
-# escrow/authenticated callback/settlement/claim
+# Complete reviewer flow: real Studionet web consensus plus Base
+# escrow/authenticated callback/settlement/payout (no mocked result)
 pnpm test:flow
 
 # Next.js production build
@@ -114,11 +115,29 @@ Push-Location genlayer
 .\.venv\Scripts\python.exe -m pytest tests/direct -q
 Pop-Location
 
-# Hosted Studionet smoke test (requires network access)
+# Hosted real-web resolution only (requires network access)
 Push-Location genlayer
-.\.venv\Scripts\gltest.exe -v -s --network studionet tests/integration/test_studionet_smoke.py
+.\.venv\Scripts\gltest.exe tests/integration/test_studionet_real_resolution.py -v -s --network studionet
 Pop-Location
 ~~~
+
+`pnpm test:flow` deploys a fresh resolver to Studionet, registers a completed
+fixture with Base's expected commitment, and enters through the authenticated
+Base-message handler. GenLayer validators render the committed public match
+page and export their persisted consensus result. The Base harness refuses a
+mismatched commitment, relays those exact returned facts rather than a fixture
+constant, settles both independent tickets, and verifies the final test-USDC
+payout. The command prints the resolver address and both Studionet transaction
+hashes so a reviewer can inspect the network evidence.
+
+Latest verified Studionet run (26 August 2026):
+
+- Resolver: `0x030D6121a84546D314706b9684787126c72E17d4`
+- Registration transaction: `0x05c90fb402d2d0ef28c828aac1e5c029b18bbbd5d52171cafd6a8d18d93d607c`
+- Real-web resolution transaction: `0x87c918bc2a51eba83bb1220bc6bda76201f20a3b4fd0262d2b5694de8ef41f98`
+
+Run `genlayer receipt <transaction-hash>` on Studionet to inspect either
+transaction's consensus receipts.
 
 The bridge configuration is intentionally not hard-coded because its official
 beta endpoints must be verified at deployment time. The contract fails closed

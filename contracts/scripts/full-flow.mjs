@@ -12,6 +12,14 @@ import {
   toUtf8Bytes,
 } from "ethers";
 
+assert(process.argv[2], "Pass the exported Studionet adjudication proof as JSON.");
+const networkProof = JSON.parse(process.argv[2]);
+assert.equal(networkProof.network, "studionet");
+assert.match(networkProof.resolverAddress, /^0x[0-9a-fA-F]{40}$/);
+assert.match(networkProof.fixtureCommitment, /^0x[0-9a-fA-F]{64}$/);
+const fixture = networkProof.fixture;
+const resolvedResult = networkProof.result;
+
 function source(path) {
   return readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 }
@@ -55,7 +63,10 @@ const compiled = compile();
 const chain = ganache.provider({
   logging: { quiet: true },
   wallet: { totalAccounts: 6, defaultBalance: 1_000 },
-  chain: { chainId: 31_337 },
+  chain: {
+    chainId: 31_337,
+    time: new Date((fixture.kickoff - 3_600) * 1_000),
+  },
 });
 const provider = new BrowserProvider(chain);
 const [owner, creator, challenger, receiver, resolver] = await Promise.all(
@@ -96,20 +107,6 @@ for (const player of [creator, challenger]) {
   await (await usdc.connect(player).approve(await duel.getAddress(), stake)).wait();
 }
 
-const latest = await provider.getBlock("latest");
-assert(latest);
-const kickoff = latest.timestamp + 60;
-const fixture = {
-  homeTeam: "Arsenal",
-  awayTeam: "Chelsea",
-  competition: "Premier League",
-  kickoff,
-  matchDate: "2026-09-05",
-  resolutionUrl: "https://www.bbc.com/sport/football/scores-fixtures/2026-09-05",
-  goalsLine: 25,
-  cornersLine: 95,
-  cardsLine: 35,
-};
 const canonical = [
   "proofplay-fixture-v1",
   fixture.homeTeam,
@@ -135,6 +132,7 @@ const baseCommitment = await duel.computeFixtureCommitment(
   fixture.cardsLine,
 );
 assert.equal(baseCommitment, independentlyComputedCommitment);
+assert.equal(baseCommitment.toLowerCase(), networkProof.fixtureCommitment.toLowerCase());
 
 const probabilities = [3400, 2500, 4100, 4400, 4700, 900, 5900, 4100, 5600, 4400, 5300, 4700, 6100, 3900];
 const creatorPicks = [1, 1, 1, 1, 2, 1];
@@ -157,7 +155,9 @@ await (await duel.connect(creator).createDuel(
 const duelId = 1n;
 await (await duel.connect(challenger).acceptDuel(duelId, challengerPicks)).wait();
 
-await provider.send("evm_increaseTime", [61]);
+const latest = await provider.getBlock("latest");
+assert(latest);
+await provider.send("evm_increaseTime", [fixture.kickoff - latest.timestamp + 1]);
 await provider.send("evm_mine", []);
 const bridgeFee = parseEther("0.01");
 await (await duel.requestResolution(duelId, "0x", { value: bridgeFee })).wait();
@@ -171,7 +171,15 @@ assert.equal(requestedCommitment, baseCommitment);
 
 const resultPayload = AbiCoder.defaultAbiCoder().encode(
   ["uint256", "bytes32", "uint256", "uint256", "uint256", "uint256", "uint256"],
-  [duelId, baseCommitment, 2, 1, 1, 12, 4],
+  [
+    duelId,
+    baseCommitment,
+    resolvedResult.homeGoals,
+    resolvedResult.awayGoals,
+    resolvedResult.firstTeamToScore,
+    resolvedResult.totalCorners,
+    resolvedResult.totalCards,
+  ],
 );
 let forgedCallbackRejected = false;
 try {
@@ -192,11 +200,13 @@ await (await duel.connect(receiver).processBridgeMessage(
   resultPayload,
 )).wait();
 
-const creatorBeforeClaim = await usdc.balanceOf(await creator.getAddress());
-await (await duel.connect(creator).claimPrize(duelId)).wait();
-const creatorAfterClaim = await usdc.balanceOf(await creator.getAddress());
-assert.equal(creatorAfterClaim - creatorBeforeClaim, stake * 2n);
+const challengerBeforeClaim = await usdc.balanceOf(await challenger.getAddress());
+await (await duel.connect(challenger).claimPrize(duelId)).wait();
+const challengerAfterClaim = await usdc.balanceOf(await challenger.getAddress());
+assert.equal(challengerAfterClaim - challengerBeforeClaim, stake * 2n);
 assert.equal(await usdc.balanceOf(await duel.getAddress()), 0n);
 
-console.log("✓ Base lifecycle: escrow → request → authenticated callback → settlement → claim");
+console.log(`✓ Studionet resolver: ${networkProof.resolverAddress}`);
+console.log(`✓ Real result: ${fixture.homeTeam} ${resolvedResult.homeGoals}-${resolvedResult.awayGoals} ${fixture.awayTeam}, ${resolvedResult.totalCorners} corners, ${resolvedResult.totalCards} cards`);
+console.log("✓ Base lifecycle: escrow → request → authenticated callback → settlement → challenger payout");
 console.log(`✓ Fixture/evidence commitment: ${baseCommitment}`);

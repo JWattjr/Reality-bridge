@@ -33,6 +33,7 @@ def test_register_and_read_ticket_fixture_on_studionet():
     receipt = contract.register_match(
         args=[
             1,
+            FIXTURE_COMMITMENT,
             "Denmark",
             "England",
             "UEFA Euro 2024",
