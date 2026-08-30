@@ -1,0 +1,66 @@
+/* Touch-target sizing.
+   Small inline controls inherited from the original layout (brand link, text
+   link, icon button, footer links) are below the 44 px comfortable minimum.
+   These rules grow their hit area without changing the visual design. */
+
+.icon-button {
+  height: 40px;
+  width: 40px;
+}
+
+@media (pointer: coarse), (max-width: 780px) {
+  .brand,
+  .text-button,
+  .footer-links a,
+  .nav-links a,
+  .source-link,
+  .external-link,
+  .protocol-link {
+    align-items: center;
+    display: inline-flex;
+    min-height: 44px;
+  }
+
+  /* Every real control reaches the 44px comfortable minimum on touch. */
+  .filter-chip,
+  .ghost-button,
+  .wallet-button,
+  .mobile-menu,
+  .skip-link,
+  .action-button,
+  .primary-button {
+    min-height: 44px;
+  }
+
+  .bundle-confirm input,
+  .lobby-row {
+    min-height: 44px;
+  }
+
+  .bundle-confirm input[type="checkbox"] {
+    height: 22px;
+    min-height: 22px;
+    width: 22px;
+  }
+
+  .bundle-confirm {
+    padding: 6px 0;
+  }
+
+  .footer-links {
+    align-items: center;
+    column-gap: 18px;
+    display: flex;
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+
+  .evidence-sources {
+    row-gap: 0;
+  }
+
+  .icon-button {
+    height: 44px;
+    width: 44px;
+  }
+}

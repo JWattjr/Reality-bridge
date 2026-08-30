@@ -1,0 +1,80 @@
+{
+  "network": "GenLayer StudioNet",
+  "networkKey": "studionet",
+  "chainId": 61999,
+  "rpc": "https://studio.genlayer.com/api",
+  "runner": "# { \"Depends\": \"py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6\" }",
+  "contractAddress": "0x4DE4c2aFC908fd744b65Fe8361FEE4Dc1C5c8CA9",
+  "publisher": "0xf19AA039E52fC65A23f2f98FBA15081244C32d4d",
+  "transactions": {
+    "deploy": "0xb0861ef6bcf63aacd58c06662333a80d3ee675aeb59f7cc0fffd43e0dd9cafd3",
+    "register_source": "0x6de135bd7c0f3dd8dad9cda2cdd3d1eea6d07db9997c5f12f36d87e0743c33e9",
+    "register_fixture_source": "0xd40f9be0da51367cc6807e37df8255a8ab88d3c7fbbc56aebd0fdb8bb8b98d33",
+    "create_round": "0x673d2859a97b209b8f58cd3ba20cac5273e000b6e9a2a1ed52802db5f0ed2d6a",
+    "add_tile": "0x9dac9995617b1a6eb9455b472d6520c2614f1fde7f78517b586e2f5af42d59e4",
+    "open_round": "0xa65f5bce458f93393012a18f322d0092fbeabab351a44d6e967e6b47f6c1f55f"
+  },
+  "deployedAt": "2026-08-30T14:43:02+00:00",
+  "rounds": [
+    {
+      "roundId": 1,
+      "entryWei": "10000000000000000",
+      "joinDeadline": 1788101882,
+      "joinDeadlineIso": "2026-08-30T14:58:02+00:00",
+      "commitWindowSeconds": 900,
+      "revealGraceSeconds": 300,
+      "choiceDeadline": 1788103682,
+      "choiceDeadlineIso": "2026-08-30T15:28:02+00:00",
+      "resolutionTime": 1788103982,
+      "resolutionTimeIso": "2026-08-30T15:33:02+00:00",
+      "terminalDeadline": 1788187382,
+      "terminalDeadlineIso": "2026-08-31T14:43:02+00:00",
+      "panelWindowSeconds": 1800,
+      "evidenceUrl": "https://blockstream.info/api/blocks/tip/height",
+      "question": "Will the Bitcoin block height reported by the registered source be greater than 964740 at the evidence timestamp?",
+      "blockHeightAtPublish": 964739,
+      "threshold": 964740,
+      "transactions": {
+        "create_round": "0x673d2859a97b209b8f58cd3ba20cac5273e000b6e9a2a1ed52802db5f0ed2d6a",
+        "add_tile": "0x9dac9995617b1a6eb9455b472d6520c2614f1fde7f78517b586e2f5af42d59e4",
+        "open_round": "0xa65f5bce458f93393012a18f322d0092fbeabab351a44d6e967e6b47f6c1f55f"
+      }
+    }
+  ],
+  "frontendUrl": null,
+  "verification": {
+    "genvmLint": "lint passed (3 checks); schema validation passed - RealityBridge, 28 methods (9 view, 19 write)",
+    "directTests": "56 passed",
+    "frontendTests": "90 passed across 7 files",
+    "npmAudit": "found 0 vulnerabilities (next 16.3.3)",
+    "hostedIntegration": {
+      "status": "passed against the corrected contract",
+      "durationSeconds": 192,
+      "throwawayContract": "0x2eE3c0a084858825493F20975F427ce3e174baf3",
+      "resolvedOutcome": "YES",
+      "reasonCode": "FINAL_EVIDENCE",
+      "note": "tests/integration deploys its own contract each run; separate from the published one above",
+      "earlierRuns": [
+        {
+          "contract": "0xeC37Bb0a63502143ec87Dc5E5174a1131e375A54",
+          "seconds": 234
+        },
+        {
+          "contract": "0xf44f742e885586B15dD5d86d9bC25f5C8B624045",
+          "seconds": 200
+        }
+      ]
+    },
+    "conservationProvenOnChain": {
+      "contract": "0xeC37Bb0a63502143ec87Dc5E5174a1131e375A54",
+      "poolWei": "20000000000000000",
+      "claimAmountsWei": {
+        "runnerWithOneCredit": "16000000000000000",
+        "passiveSurvivor": "4000000000000000"
+      },
+      "contractBalanceAfterClaims": "0"
+    },
+    "frontendUrlVerified": false,
+    "recordedDemonstration": false
+  }
+}

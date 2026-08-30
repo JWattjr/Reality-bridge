@@ -1,0 +1,133 @@
+name: Reality Bridge
+
+# Everything here runs offline. The hosted StudioNet journey
+# (genlayer/tests/integration) is deliberately excluded: it sends real
+# transactions to a shared simulator and is run by hand before a deployment.
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "apps/reality-bridge/**"
+      - ".github/workflows/reality-bridge.yml"
+  pull_request:
+    paths:
+      - "apps/reality-bridge/**"
+      - ".github/workflows/reality-bridge.yml"
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: apps/reality-bridge
+
+jobs:
+  contract:
+    name: Contract lint and direct tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      # genlayer-test downloads the pinned GenVM runner on first use; caching
+      # it keeps later runs from re-fetching ~130MB of artifacts.
+      - name: Cache GenVM artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/gltest-direct
+            ~/.cache/genvm-linter
+          key: genvm-${{ hashFiles('apps/reality-bridge/genlayer/contracts/reality_bridge.py') }}
+          restore-keys: genvm-
+
+      - name: Install
+        run: python -m pip install -r genlayer/requirements.txt
+
+      - name: Direct tests
+        run: python -m pytest genlayer/tests/direct -q
+
+      # The linter resolves the runner named in the contract header. The latest
+      # published bundle no longer ships the pinned one, so point GENVMROOT at
+      # the SDK the direct suite already downloaded. Relaxing the pin is not an
+      # acceptable alternative.
+      - name: Build GENVMROOT for schema validation
+        run: python genlayer/scripts/make_genvmroot.py
+
+      - name: Lint and validate the contract
+        env:
+          GENVMROOT: .genvmroot
+          PYTHONUTF8: "1"
+        run: genvm-lint check genlayer/contracts/reality_bridge.py
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/reality-bridge/frontend/package-lock.json
+
+      - name: Install
+        working-directory: apps/reality-bridge/frontend
+        run: npm ci
+
+      - name: Types
+        working-directory: apps/reality-bridge/frontend
+        run: npm run typecheck
+
+      - name: Lint
+        working-directory: apps/reality-bridge/frontend
+        run: npm run lint
+
+      - name: Tests
+        working-directory: apps/reality-bridge/frontend
+        run: npm run test
+
+      - name: Production build
+        working-directory: apps/reality-bridge/frontend
+        run: npm run build
+
+      # A submission should carry no known high or critical advisories.
+      - name: Dependency audit
+        working-directory: apps/reality-bridge/frontend
+        run: npm audit --audit-level=high
+
+  network-hygiene:
+    name: StudioNet is the only network
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Reality Bridge targets GenLayer StudioNet (chain 61999) and nothing
+      # else. Any other GenLayer network appearing in first-party code, tests
+      # or documentation is a defect.
+      - name: Reject obsolete network references
+        run: |
+          if grep -rniE 'bradbury|asimov|\b4221\b' \
+              --exclude-dir=node_modules \
+              --exclude-dir=.next \
+              --exclude-dir=.genvmroot \
+              --exclude-dir=__pycache__ \
+              --exclude-dir=.pytest_cache \
+              --exclude='*.tsbuildinfo' \
+              --exclude='package-lock.json' \
+              --exclude='reality-bridge.yml' \
+              . ; then
+            echo "::error::Found an obsolete GenLayer network reference above."
+            exit 1
+          fi
+          echo "No obsolete network references."
+
+      - name: Reject committed secrets
+        run: |
+          if git ls-files | grep -E '\.env(\.local)?$|\.deployer\.key$' ; then
+            echo "::error::A secret file is tracked by git."
+            exit 1
+          fi
+          echo "No secret files tracked."

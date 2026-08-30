@@ -1,0 +1,18 @@
+# Local GenVM SDK mirror used only by `genvm-lint validate`.
+.genvmroot/
+
+# Dependencies and test/build scratch are local only.
+node_modules/
+
+# GenLayer test tooling scratch space.
+genlayer/.pytest_cache/
+genlayer/artifacts/
+genlayer/.env
+
+# The StudioNet publisher key. Never commit it.
+genlayer/.deployer.key
+
+# Local frontend configuration.
+.env
+.env.local
+.env.*.local
