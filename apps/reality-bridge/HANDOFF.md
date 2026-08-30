@@ -1,7 +1,8 @@
 # Reality Bridge — handoff
 
-The build is complete and every offline check passes. What remains needs a
-funded wallet and a host, which the previous environment did not have.
+The build is complete and every offline check passes. The source is committed,
+round 2 is published on StudioNet, and the frontend is hosted. What remains is
+the funded-wallet journey and its uncut recording.
 
 Read [`SUBMISSION.md`](SUBMISSION.md) for the full picture and
 [`QA.md`](QA.md) for the hands-on procedures. This file is only the remaining
@@ -14,15 +15,16 @@ work.
 | Contract (StudioNet, chain `61999`) | `0x4DE4c2aFC908fd744b65Fe8361FEE4Dc1C5c8CA9` |
 | Publisher account | `0xf19AA039E52fC65A23f2f98FBA15081244C32d4d` |
 | Publisher key | `genlayer/.deployer.key` — **git-ignored, local to the machine that deployed** |
-| Published round 1 | join window expired unjoined; a fresh round is needed |
-| Git | `apps/reality-bridge/` and `.github/` are **untracked** |
-| `frontendUrl` in the manifest | `null` |
+| Published round 1 | expired unjoined; retained as historical manifest data |
+| Published round 2 | `OPEN`, one panel, future-resolving Bitcoin question |
+| Git | source committed as `a5c6d31`, `5305d48`, and `9198aab` |
+| `frontendUrl` in the manifest | `https://reality-bridge-beta.vercel.app` |
 
 Passing now: contract lint + schema (28 methods), 56 direct tests, 90 frontend
-tests, typecheck, lint, production build, `npm audit` clean, and the hosted
-StudioNet journey (192 s).
+tests, typecheck, lint, production build, `npm audit` clean, the hosted
+StudioNet integration journey (192 s), and the public URL smoke check.
 
-## Task 1 — Commit the source
+## Task 1 — Commit the source (done)
 
 69 files across `apps/reality-bridge/` and `.github/`. Nothing in the tree
 carries AI attribution; keep it that way — **no `Co-Authored-By`, no
@@ -41,9 +43,10 @@ CI (`.github/workflows/reality-bridge.yml`) runs on push: contract, frontend,
 and a network-hygiene job that fails on any non-StudioNet GenLayer network or
 a tracked secret.
 
-## Task 2 — Publish a fresh, joinable round
+## Task 2 — Publish a fresh, joinable round (done)
 
-Rounds carry real deadlines and expire. Round 1 is past its join window.
+Rounds carry real deadlines and expire. Round 1 is past its join window; round 2
+is the current public round.
 
 **If you are on the machine that holds `genlayer/.deployer.key`:**
 
@@ -70,26 +73,27 @@ prior defect.
 runner hands the **same** panel to the next seat. Without it every forfeit
 produces `VOID_LIVENESS`.
 
-## Task 3 — Host the frontend
+## Task 3 — Host the frontend (done)
 
 ```bash
 cp frontend/.env.example frontend/.env.local     # set the two NEXT_PUBLIC_ vars
 npm --prefix frontend run build
 ```
 
-Any static-capable Next.js host works; the app is a single prerendered client
-page. Set on the host:
+The production URL is [`https://reality-bridge-beta.vercel.app`](https://reality-bridge-beta.vercel.app).
+It is a static-capable Next.js deployment of the single client page. The host
+has:
 
 ```text
 NEXT_PUBLIC_REALITY_BRIDGE_CONTRACT=0x...
 NEXT_PUBLIC_REALITY_BRIDGE_ROUND_ID=          # optional; blank picks the most urgent
 ```
 
-Then record the URL:
+The URL is recorded and verified in:
 
 ```jsonc
 // deployment/studionet.json
-"frontendUrl": "https://..."
+"frontendUrl": "https://reality-bridge-beta.vercel.app"
 ```
 
 ## Task 4 — Two-wallet journey against the public URL
@@ -132,9 +136,9 @@ python genlayer/scripts/show_round.py --watch
 lag: authoritative reads use the finalized variant, so the board trails an
 accepted transaction briefly.
 
-Finally, update `SUBMISSION.md` — flip *Public URL and recorded
-demonstration* from `OUTSTANDING`, and set `frontendUrlVerified` and
-`recordedDemonstration` to `true` in the manifest.
+After the wallet journey is recorded, update `SUBMISSION.md` and set
+`recordedDemonstration` to `true` in the manifest. `frontendUrlVerified` is
+already `true`.
 
 ## Gotchas that will otherwise waste your time
 

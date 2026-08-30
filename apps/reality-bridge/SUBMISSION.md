@@ -14,8 +14,8 @@ from a command. Where something is unverified, it says so.
 | Published contract | `0x4DE4c2aFC908fd744b65Fe8361FEE4Dc1C5c8CA9` |
 | Publisher account | `0xf19AA039E52fC65A23f2f98FBA15081244C32d4d` |
 | Deployment transaction | `0xb0861ef6bcf63aacd58c06662333a80d3ee675aeb59f7cc0fffd43e0dd9cafd3` |
-| Published round | `1` — one panel, entry `0.01 GEN` |
-| Frontend URL | **not hosted** — see *Outstanding* |
+| Published round | `2` — one panel, entry `0.01 GEN` |
+| Frontend URL | [reality-bridge-beta.vercel.app](https://reality-bridge-beta.vercel.app) — production, verified |
 | Demonstration recording | **not recorded** — see *Outstanding* |
 
 Per-transaction hashes, deadlines and the panel threshold are in the manifest.
@@ -26,9 +26,9 @@ deadlines and expire. Publish a fresh one using the recipes in
 ### The published round poses a genuinely open question
 
 > Will the Bitcoin block height reported by the registered source be greater
-> than **964740** at the evidence timestamp?
+> than **964777** at the evidence timestamp?
 
-The threshold is computed from the live tip height at publish time (`964739`),
+The threshold is computed from the live tip height at publish time (`964776`),
 so at the moment a player commits, the answer does not exist yet. The evidence
 source is `https://blockstream.info/api/blocks/tip/height`: public,
 path-addressed, monotonic and unambiguous.
@@ -59,8 +59,9 @@ but not the product, and has been replaced.
 | Frontend tests | done | 90 passed across 7 files |
 | Hosted StudioNet journey | done | see *Command results* |
 | Continuous integration | done | `.github/workflows/reality-bridge.yml` — contract, frontend and network-hygiene jobs |
-| Source is versioned | OUTSTANDING | not committed yet |
-| Public URL and recorded demonstration | OUTSTANDING | see below |
+| Source is versioned | done | commits `a5c6d31` and `5305d48` |
+| Public URL | done | production URL recorded in `deployment/studionet.json` and checked with browser automation |
+| Recorded demonstration | OUTSTANDING | the two-wallet journey still needs real wallet signatures and an uncut recording |
 
 ## Command results
 
@@ -107,7 +108,8 @@ is recorded in the manifest.
 
 ## Browser verification performed
 
-Against a local dev server pointed at the published contract:
+Against the hosted production URL and a local dev server pointed at the
+published contract:
 
 - The full lifecycle watched live while two funded accounts played a round:
   lobby pool and seats updating after both joins, `ACTIVE` with five
@@ -123,26 +125,18 @@ Against a local dev server pointed at the published contract:
   bend to the player's choice, and no live-network vocabulary.
 - Mobile at 375 px: no horizontal overflow, no touch target under 44 px.
 
-**This was localhost, not a public URL.**
+The hosted production URL renders the same StudioNet-only lobby and live round
+2 configuration; the signed two-wallet journey is the only remaining check.
 
 ## Outstanding
 
-Three items remain. None is blocked on code.
+One item remains, and it is not blocked on code: **complete and record the
+two-wallet journey against the public URL.** The signed half needs wallets this
+environment does not hold. The steps are in [`QA.md`](QA.md); the narration is
+in [`DEMO.md`](DEMO.md).
 
-1. **Commit the source.** Application files are still untracked (`git status`
-   shows `?? apps/`). Nothing in the tree carries AI attribution, so a commit
-   authored by you is clean. CI is in place and runs on push.
-2. **Host the frontend.** This repository has no authorised hosting pipeline
-   for this application, so no deployment was made and `frontendUrl` is
-   `null`. `npm --prefix frontend run build` produces the bundle; set the two
-   `NEXT_PUBLIC_*` variables on your host and record the URL in the manifest.
-3. **Complete and record the two-wallet journey against that public URL.** The
-   signed half needs wallets this environment does not hold. The steps are in
-   [`QA.md`](QA.md); the narration is in [`DEMO.md`](DEMO.md).
-
-Until items 2 and 3 are done this is **not submission-ready**, however green
-the checks are. Everything verifiable without a host and a wallet has been
-verified.
+Until that recording exists this is **not submission-ready**, however green
+the checks are. Everything verifiable without a wallet has been verified.
 
 ## Reading list for a reviewer
 
