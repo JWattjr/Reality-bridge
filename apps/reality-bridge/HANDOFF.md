@@ -1,7 +1,7 @@
 # Reality Bridge — handoff
 
 The build is complete and every offline check passes. The source is committed,
-round 2 is published on StudioNet, and the frontend is hosted. What remains is
+round 3 is published on StudioNet, and the frontend is hosted. What remains is
 the funded-wallet journey and its uncut recording.
 
 Read [`SUBMISSION.md`](SUBMISSION.md) for the full picture and
@@ -16,8 +16,9 @@ work.
 | Publisher account | `0xf19AA039E52fC65A23f2f98FBA15081244C32d4d` |
 | Publisher key | `genlayer/.deployer.key` — **git-ignored, local to the machine that deployed** |
 | Published round 1 | expired unjoined; retained as historical manifest data |
-| Published round 2 | `OPEN`, one panel, future-resolving Bitcoin question |
-| Git | source committed as `a5c6d31`, `5305d48`, and `9198aab` |
+| Published round 2 | expired unjoined; retained as historical manifest data |
+| Published round 3 | `OPEN`, one panel, future-resolving Bitcoin question |
+| Git | source and hosted status committed as `a5c6d31`, `5305d48`, `9198aab`, and `61c139e` |
 | `frontendUrl` in the manifest | `https://reality-bridge-beta.vercel.app` |
 
 Passing now: contract lint + schema (28 methods), 56 direct tests, 90 frontend
@@ -45,13 +46,13 @@ a tracked secret.
 
 ## Task 2 — Publish a fresh, joinable round (done)
 
-Rounds carry real deadlines and expire. Round 1 is past its join window; round 2
-is the current public round.
+Rounds carry real deadlines and expire. Rounds 1 and 2 are past their join
+windows; round 3 is the current public round.
 
 **If you are on the machine that holds `genlayer/.deployer.key`:**
 
 ```bash
-python genlayer/scripts/deploy_studionet.py --contract 0x4DE4c2aFC908fd744b65Fe8361FEE4Dc1C5c8CA9 --round-id 2 --join-window 1800 --commit-window 1800 --panel-window 3600 --reveal-grace 900
+python genlayer/scripts/deploy_studionet.py --contract 0x4DE4c2aFC908fd744b65Fe8361FEE4Dc1C5c8CA9 --round-id 3 --join-window 1200 --commit-window 300 --panel-window 600 --reveal-grace 120
 ```
 
 **If you are not** — the key cannot be recovered, so deploy fresh:

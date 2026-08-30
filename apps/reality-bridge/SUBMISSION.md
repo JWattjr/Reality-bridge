@@ -14,7 +14,7 @@ from a command. Where something is unverified, it says so.
 | Published contract | `0x4DE4c2aFC908fd744b65Fe8361FEE4Dc1C5c8CA9` |
 | Publisher account | `0xf19AA039E52fC65A23f2f98FBA15081244C32d4d` |
 | Deployment transaction | `0xb0861ef6bcf63aacd58c06662333a80d3ee675aeb59f7cc0fffd43e0dd9cafd3` |
-| Published round | `2` — one panel, entry `0.01 GEN` |
+| Published round | `3` — one panel, entry `0.01 GEN` |
 | Frontend URL | [reality-bridge-beta.vercel.app](https://reality-bridge-beta.vercel.app) — production, verified |
 | Demonstration recording | **not recorded** — see *Outstanding* |
 
@@ -26,9 +26,9 @@ deadlines and expire. Publish a fresh one using the recipes in
 ### The published round poses a genuinely open question
 
 > Will the Bitcoin block height reported by the registered source be greater
-> than **964777** at the evidence timestamp?
+> than **964782** at the evidence timestamp?
 
-The threshold is computed from the live tip height at publish time (`964776`),
+The threshold is computed from the live tip height at publish time (`964781`),
 so at the moment a player commits, the answer does not exist yet. The evidence
 source is `https://blockstream.info/api/blocks/tip/height`: public,
 path-addressed, monotonic and unambiguous.
@@ -59,7 +59,7 @@ but not the product, and has been replaced.
 | Frontend tests | done | 90 passed across 7 files |
 | Hosted StudioNet journey | done | see *Command results* |
 | Continuous integration | done | `.github/workflows/reality-bridge.yml` — contract, frontend and network-hygiene jobs |
-| Source is versioned | done | commits `a5c6d31` and `5305d48` |
+| Source is versioned | done | commits `a5c6d31`, `5305d48`, `9198aab`, and `61c139e` |
 | Public URL | done | production URL recorded in `deployment/studionet.json` and checked with browser automation |
 | Recorded demonstration | OUTSTANDING | the two-wallet journey still needs real wallet signatures and an uncut recording |
 
@@ -126,7 +126,7 @@ published contract:
 - Mobile at 375 px: no horizontal overflow, no touch target under 44 px.
 
 The hosted production URL renders the same StudioNet-only lobby and live round
-2 configuration; the signed two-wallet journey is the only remaining check.
+3 configuration; the signed two-wallet journey is the only remaining check.
 
 ## Outstanding
 
