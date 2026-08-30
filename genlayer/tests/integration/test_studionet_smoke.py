@@ -1,4 +1,4 @@
-"""Hosted Studionet smoke test; intentionally avoids Bradbury."""
+"""Hosted Studionet smoke test."""
 
 import hashlib
 

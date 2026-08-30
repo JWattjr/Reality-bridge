@@ -31,8 +31,8 @@ need a configured StudioNet account.
 ## Network status
 
 StudioNet (chain `61999`, `https://studio.genlayer.com/api`) is the only
-supported network. Bradbury is obsolete and no longer referenced anywhere in
-this app.
+supported network. No legacy GenLayer testnet is referenced anywhere in this
+app.
 
 No mainnet deployment is included. Populate `deployment/studionet.json` only
 after deploying to StudioNet and recording the contract address, runner hash,

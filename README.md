@@ -40,7 +40,7 @@ a draw with one-entry refunds for both players.
 
 Base Sepolia uses Circle test USDC at
 0x036CbD53842c5426634e7929541eC2318f3dCF7e (six decimals). Test assets have
-no value. Bradbury and mainnet are deliberately out of scope.
+no value. Other GenLayer environments and mainnet are deliberately out of scope.
 
 ## User flow
 

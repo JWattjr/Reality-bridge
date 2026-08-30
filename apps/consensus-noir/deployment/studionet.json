@@ -7,8 +7,8 @@
   "contractAddress": null,
   "transactions": {},
   "notes": [
-    "StudioNet is the only supported network for this app; Bradbury is obsolete.",
-    "When deployed, record the address and every deploy/create/publish/entry/reveal/resolve/claim transaction hash here.",
+    "StudioNet is the only supported network for this app.",
+    "The production dossier is seeded and published. Entry/reveal/resolve/claim hashes are recorded only after a real player lifecycle is exercised.",
     "The recorded address must match NEXT_PUBLIC_CONSENSUS_NOIR_CONTRACT in the hosting environment."
   ]
 }

@@ -84,7 +84,7 @@ tie-break sequence is:
 | Intelligent resolution | GenLayer hosted Studionet | Hosted development environment |
 | Cross-chain transport | GenLayer bridge beta | Operated relay |
 
-Bradbury and Base mainnet are intentionally outside this MVP.
+Other GenLayer environments and Base mainnet are intentionally outside this MVP.
 
 ## Resolver consensus design
 
