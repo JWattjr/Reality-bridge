@@ -148,7 +148,7 @@ network read, or any chain id other than `61999` appears anywhere.
 
 ### 3.2 Wrong network
 
-**Do.** Connect a wallet, then switch it to Ethereum mainnet in the wallet.
+**Do.** Connect a wallet, then switch it to an unsupported network in the wallet.
 
 **Expect.** A red banner appears immediately naming the chain you are on.
 Every write disables with *Switch the wallet to GenLayer StudioNet.* A

@@ -101,7 +101,7 @@ To deploy and play against the live network, follow
   error instead of silently becoming a simulation.
 - **The salt is the player's to keep.** The interface will not sign a commitment
   until the player has exported a versioned recovery bundle and said so.
-- **Testnet only.** No mainnet path, no real-value play, no audit.
+- **StudioNet only.** No non-StudioNet path, no real-value play, no audit.
 
 ## Working rules for contributors
 

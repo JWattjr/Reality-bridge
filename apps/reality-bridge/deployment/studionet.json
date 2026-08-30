@@ -8,11 +8,11 @@
   "publisher": "0xf19AA039E52fC65A23f2f98FBA15081244C32d4d",
   "transactions": {
     "deploy": "0xb0861ef6bcf63aacd58c06662333a80d3ee675aeb59f7cc0fffd43e0dd9cafd3",
-    "register_source": "0xc7568b65bbfac5740ac1393265306d59224532cd2e373a54552770763dac5ae8",
-    "register_fixture_source": "0x2e083ac479a279b17c131b91ff864a55d61da641a54008485bf02de5a0aad26a",
-    "create_round": "0xb91a102bdbf353124443e6404cf8af72959908e031bbf2d8643fde2455132af6",
-    "add_tile": "0x6fd1cdd6680837108c736095e707c580b15c0264907412df2a39128248f9f05b",
-    "open_round": "0x7a21d63395c7f968aa081f9645b043def3a73aa17ce398d1f2421be107bcfdac"
+    "register_source": "0x9ee29954065065325eab7ed6847edd80e06f7e101dab0d4301a9384ae391bea9",
+    "register_fixture_source": "0xb5c20cbb5e4dd520a54b141153c9647dc06f83a607d366459e474562aac540ce",
+    "create_round": "0x602c79ea06cedec8aa86064840100f99a23d671c111b642da2224d97e4650f79",
+    "add_tile": "0x143af456ed6fda49710f6e3681459396d9400266ba215432b1cec5a843038b10",
+    "open_round": "0x0a65df7ac5cbda6b0f71e9a70925ae09c7f7dcd2afc35cb0edc9a1714d0273a0"
   },
   "deployedAt": "2026-08-30T14:43:02+00:00",
   "rounds": [
@@ -87,6 +87,30 @@
         "add_tile": "0x6fd1cdd6680837108c736095e707c580b15c0264907412df2a39128248f9f05b",
         "open_round": "0x7a21d63395c7f968aa081f9645b043def3a73aa17ce398d1f2421be107bcfdac"
       }
+    },
+    {
+      "roundId": 4,
+      "entryWei": "10000000000000000",
+      "joinDeadline": 1788125666,
+      "joinDeadlineIso": "2026-08-30T21:34:26+00:00",
+      "commitWindowSeconds": 300,
+      "revealGraceSeconds": 120,
+      "choiceDeadline": 1788126266,
+      "choiceDeadlineIso": "2026-08-30T21:44:26+00:00",
+      "resolutionTime": 1788126386,
+      "resolutionTimeIso": "2026-08-30T21:46:26+00:00",
+      "terminalDeadline": 1788211166,
+      "terminalDeadlineIso": "2026-08-31T21:19:26+00:00",
+      "panelWindowSeconds": 600,
+      "evidenceUrl": "https://blockstream.info/api/blocks/tip/height",
+      "question": "Will the Bitcoin block height reported by the registered source be greater than 964788 at the evidence timestamp?",
+      "blockHeightAtPublish": 964787,
+      "threshold": 964788,
+      "transactions": {
+        "create_round": "0x602c79ea06cedec8aa86064840100f99a23d671c111b642da2224d97e4650f79",
+        "add_tile": "0x143af456ed6fda49710f6e3681459396d9400266ba215432b1cec5a843038b10",
+        "open_round": "0x0a65df7ac5cbda6b0f71e9a70925ae09c7f7dcd2afc35cb0edc9a1714d0273a0"
+      }
     }
   ],
   "frontendUrl": "https://reality-bridge-beta.vercel.app",
@@ -121,6 +145,40 @@
         "passiveSurvivor": "4000000000000000"
       },
       "contractBalanceAfterClaims": "0"
+    },
+    "walletJourney": {
+      "status": "completed against hosted production URL",
+      "url": "https://reality-bridge-beta.vercel.app",
+      "contract": "0x4DE4c2aFC908fd744b65Fe8361FEE4Dc1C5c8CA9",
+      "roundId": 4,
+      "startTx": "0x979abe50000431985f4b3451ef65f2de5a292f87a1e41f3cbb193b591e96cffe",
+      "resolveTx": "0x2c3c6bc33f3c37ebd407b4f0ed1d6eda0db37f4c21703d9e961ea0df71eb4994",
+      "panelOutcome": "YES",
+      "reasonCode": "FINAL_EVIDENCE",
+      "evidenceReceipt": "77839f48ea5854f466c6ff6ffbfa5de5a6b176bad3503173158316da44c23f4c",
+      "poolWei": "20000000000000000",
+      "claimedWei": "20000000000000000",
+      "wallets": [
+        {
+          "account": "0x1eE3B827907429E5dF3DB7282446b6E065ff6199",
+          "role": "runner",
+          "discoveryCredits": 1,
+          "joinTx": "0x957dfe74cbe381eeb16d48fb23202d1f824d9831ec25fa6afcdc6071a542e13b",
+          "commitTx": "0xa8056890ce385a68da7bb5326b101fba5d4e5678996cb09f66297e2e5f9c27bf",
+          "revealTx": "0x347f511c68e334c955feb81740e469e3c3bab3d53a5798f4c8527aa6142e4b6b",
+          "claimTx": "0x1ec88863e5d7c7a3d3f1b60ddf514c54552a5df395a0badcaa4a575843c6fa2a",
+          "claimWei": "16000000000000000"
+        },
+        {
+          "account": "0x9A8Ceb4FEF3c74B6631D04f999e550c662B2BaF0",
+          "role": "passive survivor",
+          "discoveryCredits": 0,
+          "joinTx": "0xcf3b802c4f45bbd731ee5cbd43d652a8c3354f168e3a300722766f610946a7ff",
+          "claimTx": "0x717b661179c9b59809241686f87f9d9f72f22fd1b88d638cae8a9d5f34dfa04e",
+          "claimWei": "4000000000000000"
+        }
+      ],
+      "recording": "not captured; connected browser surface has no recorder"
     },
     "frontendUrlVerified": true,
     "recordedDemonstration": false
