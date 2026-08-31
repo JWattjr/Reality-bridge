@@ -63,8 +63,8 @@ Transaction hashes, in lifecycle order:
 4. Commit `YES` from wallet 1 — `0xa8056890ce385a68da7bb5326b101fba5d4e5678996cb09f66297e2e5f9c27bf`
 5. Reveal `YES` from wallet 1 — `0x347f511c68e334c955feb81740e469e3c3bab3d53a5798f4c8527aa6142e4b6b`
 6. Permissionless resolution request — `0x2c3c6bc33f3c37ebd407b4f0ed1d6eda0db37f4c21703d9e961ea0df71eb4994`
-7. Claim wallet 2 — `0x717b661179c9b59809241686f87f9d9f72f22fd1b88d638cae8a9d5f34dfa04e`
-8. Claim wallet 1 — `0x1ec88863e5d7c7a3d3f1b60ddf514c54552a5df395a0badcaa4a575843c6fa2a`
+7. Claim by wallet 1, `0.016 GEN` — `0x717b661179c9b59809241686f87f9d9f72f22fd1b88d638cae8a9d5f34dfa04e`
+8. Claim by wallet 2, `0.004 GEN` — `0x1ec88863e5d7c7a3d3f1b60ddf514c54552a5df395a0badcaa4a575843c6fa2a`
 
 Independent finalized reads (`show_round.py 4`) report `SETTLED`, panel
 outcome `YES`, reason `FINAL_EVIDENCE`, one attempt, receipt

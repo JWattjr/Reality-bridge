@@ -8,11 +8,11 @@
   "publisher": "0xf19AA039E52fC65A23f2f98FBA15081244C32d4d",
   "transactions": {
     "deploy": "0xb0861ef6bcf63aacd58c06662333a80d3ee675aeb59f7cc0fffd43e0dd9cafd3",
-    "register_source": "0x9ee29954065065325eab7ed6847edd80e06f7e101dab0d4301a9384ae391bea9",
-    "register_fixture_source": "0xb5c20cbb5e4dd520a54b141153c9647dc06f83a607d366459e474562aac540ce",
-    "create_round": "0x602c79ea06cedec8aa86064840100f99a23d671c111b642da2224d97e4650f79",
-    "add_tile": "0x143af456ed6fda49710f6e3681459396d9400266ba215432b1cec5a843038b10",
-    "open_round": "0x0a65df7ac5cbda6b0f71e9a70925ae09c7f7dcd2afc35cb0edc9a1714d0273a0"
+    "register_source": "0xb2702d97f79407becc5bb5819d0311b0d770e082d7aefb2f8a577f7b82c257da",
+    "register_fixture_source": "0xedc5c2218fe64031fa5a3a7f268722cfdba6bea1f4366178e45b39728a41a461",
+    "create_round": "0xcbc946909e888f1e9098f2e1422f5d3fbb61c3ce78effde978b83a59614b0899",
+    "add_tile": "0x22fccbe43c3d9c4e4cc48aa18365e2f5e310c744cef6cab87d3fb6df69a7b781",
+    "open_round": "0xa1de06ce37a5785fa6dcde3abf52d0b1b0d400be43cc2fd949d9b5ec8ce63a93"
   },
   "deployedAt": "2026-08-30T14:43:02+00:00",
   "rounds": [
@@ -111,6 +111,30 @@
         "add_tile": "0x143af456ed6fda49710f6e3681459396d9400266ba215432b1cec5a843038b10",
         "open_round": "0x0a65df7ac5cbda6b0f71e9a70925ae09c7f7dcd2afc35cb0edc9a1714d0273a0"
       }
+    },
+    {
+      "roundId": 5,
+      "entryWei": "10000000000000000",
+      "joinDeadline": 1788198113,
+      "joinDeadlineIso": "2026-08-31T17:41:53+00:00",
+      "commitWindowSeconds": 60,
+      "revealGraceSeconds": 30,
+      "choiceDeadline": 1788198233,
+      "choiceDeadlineIso": "2026-08-31T17:43:53+00:00",
+      "resolutionTime": 1788198263,
+      "resolutionTimeIso": "2026-08-31T17:44:23+00:00",
+      "terminalDeadline": 1788284333,
+      "terminalDeadlineIso": "2026-09-01T17:38:53+00:00",
+      "panelWindowSeconds": 120,
+      "evidenceUrl": "https://blockstream.info/api/blocks/tip/height",
+      "question": "Will the Bitcoin block height reported by the registered source be greater than 964916 at the evidence timestamp?",
+      "blockHeightAtPublish": 964915,
+      "threshold": 964916,
+      "transactions": {
+        "create_round": "0xcbc946909e888f1e9098f2e1422f5d3fbb61c3ce78effde978b83a59614b0899",
+        "add_tile": "0x22fccbe43c3d9c4e4cc48aa18365e2f5e310c744cef6cab87d3fb6df69a7b781",
+        "open_round": "0xa1de06ce37a5785fa6dcde3abf52d0b1b0d400be43cc2fd949d9b5ec8ce63a93"
+      }
     }
   ],
   "frontendUrl": "https://reality-bridge-beta.vercel.app",
@@ -166,7 +190,7 @@
           "joinTx": "0x957dfe74cbe381eeb16d48fb23202d1f824d9831ec25fa6afcdc6071a542e13b",
           "commitTx": "0xa8056890ce385a68da7bb5326b101fba5d4e5678996cb09f66297e2e5f9c27bf",
           "revealTx": "0x347f511c68e334c955feb81740e469e3c3bab3d53a5798f4c8527aa6142e4b6b",
-          "claimTx": "0x1ec88863e5d7c7a3d3f1b60ddf514c54552a5df395a0badcaa4a575843c6fa2a",
+          "claimTx": "0x717b661179c9b59809241686f87f9d9f72f22fd1b88d638cae8a9d5f34dfa04e",
           "claimWei": "16000000000000000"
         },
         {
@@ -174,7 +198,7 @@
           "role": "passive survivor",
           "discoveryCredits": 0,
           "joinTx": "0xcf3b802c4f45bbd731ee5cbd43d652a8c3354f168e3a300722766f610946a7ff",
-          "claimTx": "0x717b661179c9b59809241686f87f9d9f72f22fd1b88d638cae8a9d5f34dfa04e",
+          "claimTx": "0x1ec88863e5d7c7a3d3f1b60ddf514c54552a5df395a0badcaa4a575843c6fa2a",
           "claimWei": "4000000000000000"
         }
       ],

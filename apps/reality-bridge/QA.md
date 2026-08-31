@@ -93,6 +93,25 @@ the publisher key in the git-ignored `genlayer/.deployer.key`.
 
 Take the contract address from the manifest and pick an unused round id.
 
+### Recipe 0 — `--quick` (about five and a half minutes to resolvable)
+
+The shortest round the contract's minimums permit. Joins close three minutes
+after publishing and the panel becomes resolvable at five and a half. Use it
+for a demo or a smoke test where you want the whole lifecycle in one sitting.
+
+```bash
+python genlayer/scripts/deploy_studionet.py --contract 0xYOUR_CONTRACT --round-id 10 --quick
+```
+
+That is `--join-window 180 --commit-window 60 --panel-window 120
+--reveal-grace 30`. Any window flag you pass explicitly still wins, so
+`--quick --join-window 600` gives you longer to gather players without
+lengthening the rest.
+
+It is genuinely tight: **have both wallets funded and connected before you
+publish.** Three minutes is enough to join twice and no more. For a first
+run through the flow, prefer recipe A.
+
 ### Recipe A — fast full cycle (about 12 minutes to settlement)
 
 Good for the join → commit → reveal → resolve → claim path.
