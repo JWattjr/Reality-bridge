@@ -92,7 +92,7 @@ round-3 reserve (`0.010 GEN`); round 4 itself is fully conserved.
 | Zero high or critical advisories | done | `npm audit` reports `found 0 vulnerabilities` on `next@16.3.3` |
 | Contract lint and schema validation | done | 28 methods (9 view, 19 write) |
 | Deterministic contract tests | done | 56 passed |
-| Frontend tests | done | 90 passed across 7 files |
+| Frontend tests | done | 104 passed across 8 files |
 | Hosted StudioNet journey | done | signed round-4 run against the production URL; hashes and payout proof below |
 | Continuous integration | done | `.github/workflows/reality-bridge.yml` — contract, frontend and network-hygiene jobs |
 | Source is versioned | done | commits `a5c6d31`, `5305d48`, `9198aab`, and `61c139e` |
@@ -110,7 +110,7 @@ python -m pytest genlayer/tests/direct -q
   56 passed
 
 npm --prefix frontend run test
-  7 test files, 90 passed
+  8 test files, 104 passed
 
 npm --prefix frontend run typecheck     clean
 npm --prefix frontend run lint          clean

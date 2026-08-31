@@ -141,7 +141,7 @@
   "verification": {
     "genvmLint": "lint passed (3 checks); schema validation passed - RealityBridge, 28 methods (9 view, 19 write)",
     "directTests": "56 passed",
-    "frontendTests": "90 passed across 7 files",
+    "frontendTests": "104 passed across 8 files",
     "npmAudit": "found 0 vulnerabilities (next 16.3.3)",
     "hostedIntegration": {
       "status": "passed against the corrected contract",

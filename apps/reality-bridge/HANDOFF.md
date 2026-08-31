@@ -213,7 +213,7 @@ python -m pytest genlayer/tests/direct -q                 # 56 passed
 GENVMROOT=.genvmroot genvm-lint check genlayer/contracts/reality_bridge.py
 npm --prefix frontend run typecheck
 npm --prefix frontend run lint
-npm --prefix frontend run test                            # 90 passed
+npm --prefix frontend run test                            # 104 passed
 npm --prefix frontend run build
 npm --prefix frontend audit --audit-level=high            # 0 vulnerabilities
 cd genlayer && python -m pytest tests/integration -q -s   # ~3 min, real network
