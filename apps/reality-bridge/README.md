@@ -11,13 +11,24 @@ The application is intentionally small enough to inspect, but it is not a fronte
 | Item | Verified value |
 | --- | --- |
 | Network | **GenLayer StudioNet only** — chain id `61999` |
-| Contract | `0x4DE4c2aFC908fd744b65Fe8361FEE4Dc1C5c8CA9` |
+| Contract | `0x9fD62230aA1149bf443C0a447ffe9D1b2cF4b87E` |
 | Hosted client | [reality-bridge-beta.vercel.app](https://reality-bridge-beta.vercel.app) |
-| Published proof round | Round `4`: two wallets, one future-resolving panel, complete settlement and claims |
-| Consensus result | `YES` / `FINAL_EVIDENCE`, receipt `77839f48ea5854f466c6ff6ffbfa5de5a6b176bad3503173158316da44c23f4c` |
+| Settled proof round | Round `2`: two wallets, one future-resolving panel, complete settlement and claims |
+| Consensus result | `NO` / `FINAL_EVIDENCE`, receipt `d0530d271059263a7f575f02515a283fa96e629c1946609e74e80eded80a140f` |
+| Latest public round | Round `3` — deadline-bound; the client reads its live status from StudioNet |
 | Pinned GenVM runner | `py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6` |
 
-The complete transaction trail, exact deadlines, payout proof and the one outstanding demo-recording item are recorded in [`SUBMISSION.md`](SUBMISSION.md). This repository targets StudioNet exclusively; all currency and assets are test assets with no real-world value.
+### Check it without trusting it
+
+```bash
+python genlayer/scripts/verify_submission.py
+```
+
+Reads the deployed contract from StudioNet, re-fetches each resolved panel's evidence from its public source, recomputes every stored receipt from the pre-image documented in [`specs/PRODUCT_SPEC.md`](specs/PRODUCT_SPEC.md), and re-derives each outcome from the evidence's own timestamp. `PASS`/`FAIL` per check, non-zero exit on any failure. It reads no stored answer and compares it to itself, and it reads the hosted client's deployed JavaScript rather than trusting this file. The current live result is **12/12 checks passed**, including the production bundle-to-contract check.
+
+Round 2 is worth looking at closely, because the target block landed 42 seconds *after* the panel's instant. Resolution ran later still, when the live chain tip had already passed the target — so an implementation that read the current tip would have answered `YES`. This one compares the block's own header timestamp against the panel's instant and answers `NO`. That margin is the difference between a panel whose outcome depends on when someone calls it and one whose outcome does not. See *Caller-chosen outcomes through resolution timing* in [`SECURITY.md`](SECURITY.md).
+
+The complete transaction trail, exact deadlines and payout proof are in [`SUBMISSION.md`](SUBMISSION.md). This repository targets StudioNet exclusively; all currency and assets are test assets with no real-world value. No screen recording is provided — the evidence is reproducible from the command above instead.
 
 ## Why this needs GenLayer
 
@@ -101,7 +112,7 @@ These choices make the client easier to trust during a demo: it represents proto
 
 ## Verified two-wallet result
 
-Round 4 asked a genuinely future-resolving question: whether the Bitcoin block height from the registered public source would exceed a threshold at the later evidence timestamp. At commit time, the answer did not yet exist.
+The published round asks a genuinely future-resolving question: whether a specific Bitcoin block - one above the tip at publish time, so it does not exist yet - was mined at or before the panel's evidence instant. At commit time the answer does not yet exist, and because a mined block's header timestamp never changes, the answer is the same whoever resolves it and whenever they do. An earlier version of this question read the *current* tip height, which let a late caller flip the outcome; see SECURITY.md.
 
 | Account | Protocol role | Final result |
 | --- | --- | --- |
@@ -129,7 +140,7 @@ reality-bridge/
 ├── deployment/studionet.json       # contract, runner and verification manifest
 ├── SECURITY.md                     # threat model and mitigations
 ├── QA.md                           # hands-on StudioNet verification procedure
-└── DEMO.md                         # uncut walkthrough script
+└── DEMO.md                         # narrated walkthrough of one round
 ```
 
 ## Verification

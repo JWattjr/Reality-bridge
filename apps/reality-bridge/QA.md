@@ -54,7 +54,14 @@ by hand:
 ### 1.3 Fund your wallet
 
 StudioNet accounts start empty and there is no public faucet page — the
-simulator exposes one over JSON-RPC. Five GEN is plenty:
+simulator exposes one over JSON-RPC.
+
+**From the app:** connect a wallet on StudioNet. If the balance cannot cover
+the entry plus fee headroom, the page offers a **Get test GEN** button that
+calls the simulator's faucet and reads the balance back. The reported balance
+is what the chain returns afterwards, not the amount requested.
+
+**By hand**, if you would rather not use the button — five GEN is plenty:
 
 ```bash
 curl -s -X POST https://studio.genlayer.com/api -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","method":"sim_fundAccount","params":["0xYOUR_ADDRESS",5000000000000000000],"id":1}'
@@ -85,6 +92,19 @@ imately trails an accepted transaction by ten to forty seconds before catching
 up. Anything longer than that is a bug.
 
 ---
+
+## 1.4 Verify the submission's claims without playing anything
+
+```bash
+python genlayer/scripts/verify_submission.py
+```
+
+Reads the deployed contract from StudioNet, re-fetches each resolved panel's
+evidence from its public source, recomputes every stored receipt from the
+documented pre-image, re-derives each outcome from the evidence's own
+timestamp, and reads the hosted client's JavaScript bundle to confirm which
+contract it actually serves. `PASS`/`FAIL` per check; non-zero exit on any
+failure.
 
 ## 2. Get a round you can actually play
 

@@ -1,4 +1,4 @@
-# Reality Bridge — uncut StudioNet demo script
+# Reality Bridge — walkthrough of one full round
 
 One continuous take, no cuts, no edits. Everything below runs against **GenLayer
 StudioNet** (chain id `61999`). Total wall time is about 12 minutes if you use
@@ -168,7 +168,7 @@ address, publisher, every transaction hash and the round's real deadlines.
 The two-wallet lifecycle was completed against
 [`https://reality-bridge-beta.vercel.app`](https://reality-bridge-beta.vercel.app)
 on StudioNet (`61999`) using the published contract
-`0x4DE4c2aFC908fd744b65Fe8361FEE4Dc1C5c8CA9`. Wallet 1 joined, committed and
+`0x4DE4c2aFC908fd744b65Fe8361FEE4Dc1C5c8CA9` -- the previous deployment, before the resolution-timing fix. Wallet 1 joined, committed and
 revealed `YES`; wallet 2 joined, started the round and requested permissionless
 resolution. The panel settled `YES` with reason `FINAL_EVIDENCE` and receipt
 `77839f48ea5854f466c6ff6ffbfa5de5a6b176bad3503173158316da44c23f4c`.
@@ -178,5 +178,7 @@ to wallet 2. The complete transaction list and hashes are in
 [`SUBMISSION.md`](SUBMISSION.md) and `deployment/studionet.json`.
 
 This section is an on-chain evidence record, not a video: the connected browser
-surface did not expose a recorder, so `recordedDemonstration` remains `false`
-until an actual uncut capture is attached.
+surface did not expose a recorder. No screen recording is provided: the
+evidence for every claim is reproducible from
+`python genlayer/scripts/verify_submission.py`, which re-derives it from live
+chain and source data rather than showing it.
